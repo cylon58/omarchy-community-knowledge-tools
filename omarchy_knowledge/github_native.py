@@ -28,7 +28,13 @@ MAX_RESPONSE = 1024 * 1024
 MAX_BYTES = 32 * 1024 * 1024
 MAX_CALLS = 512
 TOTAL_SECONDS = 180
-API_VERSION = "2026-03-10"
+# Admission requires merge_commit_sha to bind the exact GitHub test merge to B/H.
+# 2026-03-10 removes that field; use the supported contract, not an absent-field
+# fallback. 2022-11-28 is supported until at least 2028-03-12, 24 months after the
+# 2026-03-12 announcement of the newer version.
+# https://docs.github.com/en/rest/about-the-rest-api/breaking-changes
+# https://github.blog/changelog/2026-03-12-rest-api-version-2026-03-10-is-now-available/
+API_VERSION = "2022-11-28"
 
 
 class NativeUnavailable(Exception):
