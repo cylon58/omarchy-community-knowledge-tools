@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "enabled": false,
+  "retired": true,
+  "description": "Historical App/merge-queue example only; native deployment uses python -m omarchy_knowledge.deployment and docs/deployment.md",
+  "repository_id": null,
+  "github_app_id": null,
+  "required_check_context": null,
+  "policy_epoch": null,
+  "maintainer_authority": [],
+  "schedule": null
+}

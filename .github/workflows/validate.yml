@@ -1,0 +1,41 @@
+name: Toolkit validation
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - name: Check out the exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Provide Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Verify runner prerequisites
+        run: |
+          git --version
+          python -m venv "$RUNNER_TEMP/toolkit-venv"
+      - name: Provision the pinned runtime dependency
+        run: |
+          source "$RUNNER_TEMP/toolkit-venv/bin/activate"
+          python -m pip install --disable-pip-version-check -r requirements.txt
+          python -m pip install --disable-pip-version-check --no-deps .
+      - name: Run the offline suite and synthetic flow
+        run: |
+          source "$RUNNER_TEMP/toolkit-venv/bin/activate"
+          python -m unittest discover -s tests -q
+          python -m examples.synthetic_demo > "$RUNNER_TEMP/synthetic-demo-result.json"

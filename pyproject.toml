@@ -1,0 +1,15 @@
+[build-system]
+requires = []
+build-backend = "omarchy_build_backend"
+backend-path = ["."]
+
+[project]
+name = "omarchy-community-knowledge-tools"
+version = "0.1.0"
+description = "Local inert Omarchy community knowledge toolkit"
+requires-python = ">=3.11"
+dependencies = ["jsonschema==4.26.0"]
+
+[project.scripts]
+omarchy-knowledge = "omarchy_knowledge.cli:main"
+omarchy-knowledge-panel = "omarchy_knowledge.companion:panel_main"

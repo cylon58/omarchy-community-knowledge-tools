@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "community.knowledge",
+  "name": "Community Knowledge",
+  "version": "0.1.0",
+  "author": "Omarchy Community Knowledge contributors",
+  "description": "Local attributed knowledge search, status, and draft preview",
+  "kinds": ["panel"],
+  "entryPoints": {"panel": "Panel.qml"}
+}
