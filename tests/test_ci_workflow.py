@@ -13,6 +13,9 @@ class ContinuousIntegrationWorkflow(unittest.TestCase):
         self.assertIn('python-version: ["3.11", "3.13"]', workflow)
         self.assertIn("python-version: ${{ matrix.python-version }}", workflow)
         self.assertIn("python -m venv", workflow)
+        self.assertIn('runs-on: ubuntu-24.04', workflow)
+        self.assertIn('sudo apt-get install --no-install-recommends -y makepkg', workflow)
+        self.assertIn('test "$(/usr/bin/vercmp 1:1.0-1 1.0-1)" = 1', workflow)
         self.assertIn("python -m unittest discover -s tests -q", workflow)
         self.assertIn("python -m examples.synthetic_demo", workflow)
         for forbidden in ("pull_request_target:", "schedule:", "workflow_run:", "secrets.",

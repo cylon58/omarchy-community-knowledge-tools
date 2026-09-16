@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -28,6 +28,13 @@ jobs:
       - name: Verify runner prerequisites
         run: |
           git --version
+          . /etc/os-release
+          test "$ID" = ubuntu && test "$VERSION_ID" = 24.04
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y makepkg
+          dpkg-query -W -f='${Package} ${Version}\n' makepkg
+          test "$(/usr/bin/vercmp 1:1.0-1 1.0-1)" = 1
+          test "$(/usr/bin/vercmp 1.0-2 1.0-1)" = 1
           python -m venv "$RUNNER_TEMP/toolkit-venv"
       - name: Provision the pinned runtime dependency
         run: |
