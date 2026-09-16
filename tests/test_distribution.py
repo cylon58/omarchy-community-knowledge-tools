@@ -9,7 +9,14 @@ from tests.test_coordinator import FakeAPI
 
 
 class Distribution(unittest.TestCase):
-    setUp = test_admission.TreeAdmission.setUp
+    def setUp(self):
+        from unittest.mock import patch
+        test_admission.TreeAdmission.setUp(self)
+        for target in ('omarchy_knowledge.github_public.GitHubPublicRead.repository',
+                       'omarchy_knowledge.catalog.CatalogPublicRead.catalog'):
+            stub = patch(target, side_effect=OSError('offline fixture'))
+            stub.start()
+            self.addCleanup(stub.stop)
     git = test_admission.TreeAdmission.git
     commit = test_admission.TreeAdmission.commit
 
@@ -193,7 +200,8 @@ class Distribution(unittest.TestCase):
         status = cache_status(cache, now=datetime(2026, 9, 18, tzinfo=timezone.utc))
         self.assertTrue(status['stale'])
         self.assertEqual(status['age_seconds'], 172800)
-        self.assertEqual(status['upstream'], {'version': 1, 'status': 'not-refreshed', 'observations': []})
+        self.assertEqual(status['upstream']['status'], 'unknown')
+        self.assertEqual(status['upstream']['observations'], [])
 
 
 if __name__ == '__main__':

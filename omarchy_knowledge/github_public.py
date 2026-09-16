@@ -15,7 +15,11 @@ from .git_objects import valid_oid
 
 
 REPOSITORIES = frozenset({"omacom/omarchy"})
-API_VERSION = "2026-03-10"
+# This contract consumes merge_commit_sha, removed in 2026-03-10.
+# 2022-11-28 remains supported for at least 24 months after March 2026:
+# https://docs.github.com/en/rest/about-the-rest-api/breaking-changes
+# Review the replacement contract before March 2028; missing fields fail unknown.
+API_VERSION = "2022-11-28"
 PUBLIC_READ_DEADLINE_SECONDS = 15
 
 
@@ -75,9 +79,15 @@ class GitHubPublicRead:
     """
     def __init__(self, *, connection_factory=http.client.HTTPSConnection):
         self._connection_factory = connection_factory
+        self._calls = 0
+        self._deadline = time.monotonic() + 120
 
     def _read(self, repo, suffix):
         _repo(repo)
+        self._calls += 1
+        remaining = self._deadline - time.monotonic()
+        if self._calls > 96 or remaining <= 0:
+            raise PublicReadUnavailable()
         # A supplied factory is a trusted offline test transport, never PR input.
         if self._connection_factory is not http.client.HTTPSConnection:
             return self._read_once(repo, suffix)
@@ -88,7 +98,7 @@ class GitHubPublicRead:
             process.start()
             send.close()
             try:
-                if not receive.poll(PUBLIC_READ_DEADLINE_SECONDS):
+                if not receive.poll(min(PUBLIC_READ_DEADLINE_SECONDS, remaining)):
                     raise PublicReadUnavailable()
                 result = receive.recv()
                 if not isinstance(result, PublicSnapshot):
@@ -128,6 +138,8 @@ class GitHubPublicRead:
                     break
             data = json.loads(raw, object_pairs_hook=_pairs,
                               parse_constant=lambda _: (_ for _ in ()).throw(PublicReadUnavailable()))
+            if isinstance(data, list) and (suffix.startswith('/releases?') or '/comments?' in suffix):
+                data = {'items': data}
             if not isinstance(data, dict):
                 raise PublicReadUnavailable()
             return PublicSnapshot(repo, datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -139,6 +151,24 @@ class GitHubPublicRead:
 
     def pull(self, repo, number):
         return self._read(repo, "/pulls/" + _number(number))
+
+    def repository(self, repo):
+        return self._read(repo, '')
+
+    def releases(self, repo, page):
+        if type(page) is not int or not 1 <= page <= 2:
+            raise ValueError('Release page bound')
+        return self._read(repo, '/releases?per_page=20&page=' + str(page))
+
+    def comments(self, repo, number, page):
+        if type(page) is not int or not 1 <= page <= 2:
+            raise ValueError('Comment page bound')
+        return self._read(repo, '/issues/' + _number(number) + '/comments?per_page=30&page=' + str(page))
+
+    def comment(self, repo, number):
+        if type(number) is not int or not 0 < number <= 2**63 - 1:
+            raise ValueError('Numeric comment identity required')
+        return self._read(repo, '/issues/comments/' + str(number))
 
     def ref(self, repo, tag):
         return self._read(repo, "/git/ref/tags/" + _tag(tag))

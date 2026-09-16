@@ -55,10 +55,15 @@ imports are attributed claims and clear canonical cache provenance.
 [The trust boundary](docs/security.md#canonical-cache-trust) explains local seals.
 An empty ledger is valid and yields zero results. No seed data is required.
 
-Optional Arch `vercmp` enables Arch-version comparisons; missing support yields
-unknown. No live upstream refresh is supplied by this slice: the versioned
-upstream envelope explicitly says `not-refreshed`. Source facts and community
-resolution claims alone do not authorize update advice.
+Sync and the scheduled static build refresh official release, PR, declaration and
+package-catalog facts. The bounded provider covers Omarchy's own package pair on
+stable/rc x86_64. Empty ledgers still show catalog health. Optional system `vercmp`
+enables Arch comparisons; missing support yields unknown. Zstandard catalogs need
+the system `libzstd.so.1`; hosted read-only jobs provision both prerequisites.
+The real maintainer authority list starts empty: facts alone yield investigation.
+Only an authenticated, current supplier assertion joined with a published release
+and every exact package condition permits update advice. This is not independent
+binary/source proof. See [resolution evidence and declarations](docs/resolution.md).
 
 ## Draft and approve a contribution
 

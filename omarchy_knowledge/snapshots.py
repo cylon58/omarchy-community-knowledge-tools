@@ -598,6 +598,10 @@ def snapshot_status(snapshot: Snapshot, *, now: datetime | None = None,
     current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     created = _timestamp(snapshot.manifest["created_at"])
     age = max(0, int((current - created).total_seconds()))
+    upstream = snapshot.canonical['upstream'] if snapshot.canonical else {
+        'version': 1, 'status': 'not-refreshed', 'observations': []}
+    upstream_stale = (upstream.get('version') != 2
+                      or not _timestamp(upstream['observed_at']) <= current <= _timestamp(upstream['fresh_until']))
     return {
         "data_revision": snapshot.manifest["data_revision"],
         "toolkit_revision": snapshot.manifest["toolkit_revision"],
@@ -608,6 +612,5 @@ def snapshot_status(snapshot: Snapshot, *, now: datetime | None = None,
         "trust": "canonical-api-receipts" if snapshot.canonical else "integrity-only; authenticity-not-established",
         "source": snapshot.canonical['source'] if snapshot.canonical else snapshot.manifest['source'],
         "offline_disclosure": "Offline snapshot age cannot establish whether an upstream fix exists or newer records are available.",
-        "upstream": snapshot.canonical['upstream'] if snapshot.canonical else {
-            'version': 1, 'status': 'not-refreshed', 'observations': []},
+        "upstream": upstream, "upstream_stale": upstream_stale,
     }

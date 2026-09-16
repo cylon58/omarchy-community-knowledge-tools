@@ -89,10 +89,13 @@ def snapshot_data(data, output):
 
 
 def sync(api, policy, cache, *, now=None):
+    from .resolution import refresh_canonical
     data = read_canonical(api, policy, now=now)
+    refresh_canonical(data)
     with tempfile.TemporaryDirectory(prefix='omarchy-canonical-') as temporary:
         output = Path(temporary) / 'snapshot'
         manifest = snapshot_data(data, output)
         _import_snapshot(output, cache, canonical={k: v for k, v in data.items() if k != 'records'})
     return {**data['source'], 'record_count': manifest['record_count'],
-            'receipt_count': len(data['receipts']), 'trust': 'canonical-api-receipts'}
+            'receipt_count': len(data['receipts']), 'trust': 'canonical-api-receipts',
+            'upstream_status': data['upstream']['status']}

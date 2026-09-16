@@ -23,6 +23,16 @@ PINS = {
 }
 RUNTIME = ('jsonschema==4.26.0 attrs==26.1.0 jsonschema-specifications==2025.9.1 '
            'referencing==0.37.0 rpds-py==2026.6.3')
+VERCMP_SETUP = {
+    'name': 'Provide official Ubuntu Arch version comparator for read-only refresh',
+    'run': '. /etc/os-release\n'
+           'test "$ID" = ubuntu && test "$VERSION_ID" = 24.04\n'
+           'sudo apt-get update\n'
+           'sudo apt-get install --no-install-recommends -y makepkg libzstd1\n'
+           "dpkg-query -W -f='${Package} ${Version}\\n' makepkg libzstd1\n"
+           'test "$(/usr/bin/vercmp 1:1.0-1 1.0-1)" = 1\n'
+           'test "$(/usr/bin/vercmp 1.0-2 1.0-1)" = 1\n',
+}
 
 
 def _action(action, **inputs):
@@ -78,7 +88,7 @@ def workflows(policy):
                 run('publish', '--input "$RUNNER_TEMP/plan/plan.json" --output "$RUNNER_TEMP/status/status.json"'),
                 upload('status', '${{ runner.temp }}/status/status.json')]},
             'build': {**common, 'needs': 'publish', 'permissions': {'contents': 'read'}, 'steps': setup() + [
-                download('status'), run('build', '--input "$RUNNER_TEMP/status/status.json" --output "$RUNNER_TEMP/site"'),
+                VERCMP_SETUP, download('status'), run('build', '--input "$RUNNER_TEMP/status/status.json" --output "$RUNNER_TEMP/site"'),
                 _action('upload-pages-artifact', name=artifact('pages'), path='${{ runner.temp }}/site',
                         **{'retention-days': 1})]},
             'pages': {**common, 'needs': 'build',

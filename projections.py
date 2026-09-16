@@ -568,17 +568,27 @@ def _match_software(predicate: Mapping[str, Any], environment: Mapping[str, Any]
     return _result(MATCHES, "One observed component satisfies every version constraint.")
 
 
-def _edge_matches(expected: Mapping[str, Any], observed: Mapping[str, Any], binding: Mapping[str, str]) -> bool:
+def _edge_state(expected: Mapping[str, Any], observed: Mapping[str, Any], binding: Mapping[str, str]) -> str:
     if observed.get("from") != binding[expected["from"]] or observed.get("to") != binding[expected["to"]]:
-        return False
+        return DOES_NOT_MATCH
+    unknown = False
     for field in ("relation", "transport", "detail"):
-        if field in expected and observed.get(field) != expected[field]:
-            return False
+        if field not in expected:
+            continue
+        actual = observed.get(field)
+        if actual is None or (field == 'transport' and 'unknown' in (actual, expected[field])):
+            unknown = True
+        elif field == 'detail' and expected[field] == 'exact' and actual == 'summarized':
+            unknown = True
+        elif actual != expected[field]:
+            return DOES_NOT_MATCH
     if "via" in expected:
         expected_via = [binding[alias] for alias in expected["via"]]
-        if observed.get("via", []) != expected_via:
-            return False
-    return True
+        if 'via' not in observed or (observed.get('detail') != 'exact' and observed['via'] != expected_via):
+            unknown = True
+        elif observed['via'] != expected_via:
+            return DOES_NOT_MATCH
+    return INSUFFICIENT_INFORMATION if unknown else MATCHES
 
 
 def _match_topology(predicate: Mapping[str, Any], environment: Mapping[str, Any], maximum: int) -> ApplicabilityResult:
@@ -594,6 +604,7 @@ def _match_topology(predicate: Mapping[str, Any], environment: Mapping[str, Any]
                            f"topology alias {selector_binding['alias']}")
         choices.append((selector_binding["alias"], aliases))
     attempts = 0
+    saw_unknown = False
     observed_edges = environment.get("topology", {}).get("edges", ())
     for assignment in itertools.product(*(aliases for _, aliases in choices)):
         attempts += 1
@@ -603,9 +614,15 @@ def _match_topology(predicate: Mapping[str, Any], environment: Mapping[str, Any]
         if len(set(assignment)) != len(assignment):
             continue
         binding = {choices[index][0]: assignment[index] for index in range(len(choices))}
-        if all(any(_edge_matches(edge, observed, binding) for observed in observed_edges)
-               for edge in topology["required_edges"]):
+        edges = [_or([ApplicabilityResult(_edge_state(edge, observed, binding)) for observed in observed_edges])
+                 for edge in topology['required_edges']]
+        state = _and([ApplicabilityResult(value) for value in edges])
+        if state == MATCHES:
             return _result(MATCHES, "Observed aliases and edges satisfy the topology predicate.")
+        saw_unknown |= state == INSUFFICIENT_INFORMATION
+    if saw_unknown:
+        return _result(INSUFFICIENT_INFORMATION, 'A candidate topology path has unknown transport or route detail.',
+                       'topology edge detail')
     return _result(DOES_NOT_MATCH, "Observed component aliases do not form the required topology.")
 
 
@@ -740,6 +757,51 @@ def _available_environment(observation: Mapping[str, Any], local_environment: Ma
     }
 
 
+def _proven_upgrade(event, observation, environment):
+    """An in-range catalog target must move a known installed group only forward.
+
+    A failed upper bound, ambiguous component, unknown paired version or other
+    failed predicate is not evidence that the installed software is older.
+    """
+    available = _available_environment(observation, environment)
+    for alternative in event['payload']['resolution']['fixed_in']['any_of']:
+        predicates = alternative['all_of']
+        if match_applicability({'requires': predicates}, available).state != MATCHES:
+            continue
+        older, valid = False, True
+        for predicate in predicates:
+            if predicate['kind'] != 'software':
+                valid &= _match_predicate(predicate, environment, MAX_TOPOLOGY_BINDINGS).state == MATCHES
+                continue
+            installed = [c for c in environment.get('components', ())
+                         if _selector_matches(predicate['selector'], c['selector'])]
+            targets = [c for c in available['components']
+                       if _selector_matches(predicate['selector'], c['selector'])]
+            if len(installed) != 1 or len(targets) != 1:
+                valid = False
+                break
+            current, target = installed[0], targets[0]
+            scheme = predicate['scheme']
+            if current.get('version_scheme') != scheme or current.get('version') is None:
+                valid = False
+                break
+            movement = _compare_version(current['version'], target['version'], scheme)
+            if movement is None or movement > 0:
+                valid = False
+                break
+            older |= movement < 0
+            for condition in predicate['constraints']:
+                compared = _compare_version(current['version'], condition['version'], scheme)
+                if compared is None or (not _compare_operator(compared, condition['op'])
+                        and not ((condition['op'] in {'>', '>=', '='} and compared < 0)
+                                 or (condition['op'] == '>' and compared == 0))):
+                    valid = False
+                    break
+        if valid and older:
+            return True
+    return False
+
+
 def _recommendation(action: str, applicability: str, workaround: str, reasons: Sequence[str],
                     upstream_state: str, already_applied: bool, rejected: int) -> Recommendation:
     return Recommendation(
@@ -862,6 +924,10 @@ def recommend_action(case: Mapping[str, Any], change: Mapping[str, Any],
                                ("The installed fixed-in state cannot be compared safely.",),
                                "available", workaround_already_applied, rejected)
     if installed.state == DOES_NOT_MATCH:
+        if not _proven_upgrade(event, observation, environment):
+            return _recommendation('investigate', applicability.state, base_workaround,
+                                   ('Installed versions are not proven older than an applicable available target without a downgrade.',),
+                                   'installed-range-incompatible-or-unknown', workaround_already_applied, rejected)
         workaround = "retain-existing" if workaround_already_applied else "defer-new"
         return _recommendation("prefer-update", applicability.state, workaround,
                                ("An upstream-supported applicable fix is available for this distribution scope.",),

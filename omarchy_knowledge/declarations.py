@@ -29,13 +29,8 @@ def _digest(value):
     return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value)
 
 
-def validate_declaration(declaration, trusted_api_comment, policy, *, event_id, event_sha256, now):
-    """Return projection-compatible relevance only; package/source state is absent.
-
-    Empty authority is default. The API snapshot must be at most one hour old.
-    The expected comment identity and exact raw body digest come from trusted code.
-    """
-    unknown = {"state": "unknown", "basis": "unknown"}
+def _authenticated_body(declaration, trusted_api_comment, policy, *, now):
+    unknown = None
     try:
         if not isinstance(policy, AuthorityPolicy) or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", policy.revision):
             return unknown
@@ -66,7 +61,16 @@ def validate_declaration(declaration, trusted_api_comment, policy, *, event_id, 
             return unknown
         if not _digest(declaration["body_sha256"]) or hashlib.sha256(raw.encode()).hexdigest() != declaration["body_sha256"]:
             return unknown
-        body = knowledge._parse_json(raw)
+        return knowledge._parse_json(raw)
+    except (ValueError, TypeError, KeyError, AttributeError, RecursionError):
+        return unknown
+
+
+def validate_declaration(declaration, trusted_api_comment, policy, *, event_id, event_sha256, now):
+    """Relevance v1 only, against exact caller-authenticated current API identity."""
+    unknown = {"state": "unknown", "basis": "unknown"}
+    try:
+        body = _authenticated_body(declaration, trusted_api_comment, policy, now=now)
         if set(body) != {"declaration_version", "kind", "repository_id", "pull_request", "event_id", "event_sha256", "assertion"}:
             return unknown
         if (type(body["declaration_version"]) is not int or body["declaration_version"] != 1 or body["kind"] != "relevance"
@@ -84,3 +88,57 @@ def validate_declaration(declaration, trusted_api_comment, policy, *, event_id, 
                 "declaration_sha256": declaration["body_sha256"]}
     except (ValueError, TypeError, KeyError, AttributeError, RecursionError):
         return unknown
+
+
+def validate_resolution_declaration(declaration, trusted_api_comment, policy, *, event_id, event_sha256, now):
+    """Resolution v2 supplier assertion. No release/package proof is supplied here.
+
+    All fields are mandatory, including for revocations. The coordinator treats
+    any authorized malformed candidate for the event as unknown/conflicting.
+    """
+    try:
+        body = _authenticated_body(declaration, trusted_api_comment, policy, now=now)
+        if not isinstance(body, dict) or set(body) != {
+                'declaration_version', 'kind', 'repository_id', 'pull_request', 'event_id', 'event_sha256',
+                'assertion', 'release', 'fixed_packages', 'channels', 'architectures', 'migration', 'activation'}:
+            return None
+        if (type(body['declaration_version']) is not int or body['declaration_version'] != 2
+                or body['kind'] != 'resolution' or body['repository_id'] != declaration['repository_id']
+                or type(body['pull_request']) is not int or body['pull_request'] != declaration['pull_request']
+                or body['event_id'] != event_id or not isinstance(event_id, str)
+                or not re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}', event_id)
+                or not _digest(event_sha256) or body['event_sha256'] != event_sha256
+                or body['assertion'] not in {'supports', 'revokes'}):
+            return None
+        release = body['release']
+        if (set(release) != {'tag', 'fix_state'} or release['fix_state'] != 'included'
+                or not isinstance(release['tag'], str)
+                or not re.fullmatch(r'v[0-9]{1,5}\.[0-9]{1,5}\.[0-9]{1,5}(?:rc[0-9]{1,5})?', release['tag'])):
+            return None
+        for field, allowed in [('channels', {'stable', 'rc'}), ('architectures', {'x86_64'})]:
+            values = body[field]
+            if (type(values) is not list or not values or len(values) > len(allowed)
+                    or not all(type(v) is str and v in allowed for v in values) or len(set(values)) != len(values)):
+                return None
+        if body['migration'] not in {'yes', 'no', 'unknown'} or body['activation'] not in {
+                'none', 'relogin', 'reboot', 'service-restart', 'manual', 'unknown'}:
+            return None
+        packages = body['fixed_packages']
+        if type(packages) is not list or not 1 <= len(packages) <= 2:
+            return None
+        names = set()
+        for package in packages:
+            if (set(package) != {'name', 'scheme', 'minimum_version', 'maximum_exclusive'}
+                    or package['name'] not in {'omarchy', 'omarchy-settings'} or package['name'] in names
+                    or package['scheme'] != 'arch'):
+                return None
+            names.add(package['name'])
+            for key in ('minimum_version', 'maximum_exclusive'):
+                value = package[key]
+                if key == 'maximum_exclusive' and value is None:
+                    continue
+                if not isinstance(value, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._+~:-]{0,199}', value):
+                    return None
+        return {'body': body, 'identity': dict(declaration), 'authority_policy_revision': policy.revision}
+    except (ValueError, TypeError, KeyError, AttributeError, RecursionError):
+        return None

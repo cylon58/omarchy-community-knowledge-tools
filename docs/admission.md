@@ -210,7 +210,8 @@ claim of authenticity by this checker.
 
 ## Read-only upstream adapter
 
-`GitHubPublicRead` exposes only pull, tag ref, annotated tag, immutable commit/blob,
+`GitHubPublicRead` exposes repository identity, bounded release/comment pages,
+individual comments, pull, tag ref, annotated tag, immutable commit/blob,
 release-by-tag and immutable compare reads. Blob reads require a full OID, cap
 decoded bytes at 64 KiB (or a smaller requested bound), check encoded size/type,
 and verify the Git blob hash before returning inert bytes. Its only repository is
@@ -218,12 +219,14 @@ and verify the Git blob hash before returning inert bytes. Its only repository i
 GET requests without proxy/netrc/cookie/token configuration, rejects all redirects,
 caps responses at 1 MiB and uses a 15-second disposable-process deadline including
 DNS/header reads. There is a 5-second socket timeout and 10-second body deadline.
-Platforms without `fork` fail unavailable. There is no live-read CLI or automatic
-network use. Tests inject a connection factory or public snapshot provider.
+Platforms without `fork` fail unavailable. Canonical sync and scheduled build use
+this adapter automatically under its 96-call/120-second budget. Cached queries are
+offline. Tests inject a connection factory or public snapshot provider.
 
-The API version is explicitly `2026-03-10`, the current supported version verified
-against [GitHub's API version documentation](https://docs.github.com/en/rest/about-the-rest-api/api-versions)
-on 2026-09-16. No live repository requests were used for the offline tests.
+The PR-reading API version is explicitly the supported `2022-11-28` contract.
+The newer `2026-03-10` removed the required `merge_commit_sha` field. See
+[compatibility and review horizon](resolution.md#freshness-bounds-and-local-action).
+Missing identity/merge fields remain unknown, never inferred.
 
 `observe_omarchy(OmarchyProbeV1, provider, now=...)` requires numeric repository
 identity, one explicit PR, up to eight explicit tags and four explicit backport
@@ -262,11 +265,12 @@ unknown. Later calls never reuse an earlier favorable snapshot. Per-package fact
 do not establish semantic fix effectiveness; the aggregate availability field
 remains unknown because no whole-channel completeness claim is made.
 
-The adapter does not read or execute PKGBUILD,
+This exact-source adapter does not read or execute PKGBUILD,
 infer availability from a source merge, silently equate patch hashes, detect
 semantic reverts, authenticate official linked context, or generate trusted update
-advice. A future live provider must be independently reviewed before injection;
-returning a dataclass or a JSON authority claim does not authenticate provider code.
+advice. The separate [live catalog and supplier-assertion coordinator](resolution.md)
+can produce scoped advice without weakening this exact-source contract. Returning
+a dataclass or JSON authority claim does not authenticate provider code.
 
 ## Governed maintainer declarations
 
@@ -288,10 +292,11 @@ The body is strict JSON with `declaration_version: 1`, `kind: relevance`, the ex
 `assertion: supports|revokes`. Unknown fields and duplicate JSON keys fail closed.
 
 Edited/deleted comments, changed identity/digest, stale observations, revoked
-assertions, and removal from policy invalidate derived support. A future reviewed
-upstream refresh integration must reobserve and recompute support on these changes;
-this parser cannot discover edits itself. Authenticated support establishes an
-assertion of relevance only, never source inclusion or package availability.
+assertions, and removal from policy invalidate derived support. The current live
+refresh reobserves comments; this parser cannot discover edits itself. V1 support
+establishes relevance only. The strict resolution-v2 parser and current release/
+catalog join are documented in [supplier declarations](resolution.md), including
+empty initial authority, exact AND boundaries, revocation and current-object limits.
 
 ## Current deployment and retired design
 

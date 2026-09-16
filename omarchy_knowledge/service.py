@@ -136,8 +136,9 @@ def main(argv=None):
         else:
             from .canonical import read_canonical
             from .distribution import build_site
+            from .resolution import refresh_canonical
             status = safe_status(strict_json(_read_regular(Path(args.input), 64 * 1024)))
-            value = build_site(read_canonical(GitHubRead(deployment=args.deployment, read_token=token), policy),
+            value = build_site(refresh_canonical(read_canonical(GitHubRead(deployment=args.deployment, read_token=token), policy)),
                                args.output, status=status)
         if args.command != 'build':
             from .snapshots import _open_directory, _write_regular_at

@@ -16,6 +16,11 @@ class Deployment(unittest.TestCase):
             self.assertEqual(workflow['jobs']['plan']['permissions'], {'contents': 'read', 'pull-requests': 'read'})
             self.assertEqual(workflow['jobs']['publish']['permissions'], {'contents': 'write', 'pull-requests': 'read'})
             self.assertEqual(workflow['jobs']['build']['permissions'], {'contents': 'read'})
+            prerequisite = next(step for step in workflow['jobs']['build']['steps'] if 'makepkg' in step.get('run', ''))
+            self.assertNotIn('GITHUB_TOKEN', prerequisite.get('env', {}))
+            self.assertIn('/usr/bin/vercmp', prerequisite['run'])
+            for lane in ('plan', 'publish'):
+                self.assertFalse(any('makepkg' in step.get('run', '') for step in workflow['jobs'][lane]['steps']))
             self.assertEqual(workflow['jobs']['pages']['permissions'], {'contents': 'read', 'pages': 'write', 'id-token': 'write'})
             self.assertEqual(workflow['jobs']['pages']['environment']['name'], 'github-pages')
             encoded = json.dumps(workflow)

@@ -6,7 +6,14 @@ from tests.test_coordinator import FakeAPI
 
 
 class Service(unittest.TestCase):
-    setUp = test_admission.TreeAdmission.setUp
+    def setUp(self):
+        from unittest.mock import patch
+        test_admission.TreeAdmission.setUp(self)
+        for target in ('omarchy_knowledge.github_public.GitHubPublicRead.repository',
+                       'omarchy_knowledge.catalog.CatalogPublicRead.catalog'):
+            stub = patch(target, side_effect=OSError('offline fixture'))
+            stub.start()
+            self.addCleanup(stub.stop)
     git = test_admission.TreeAdmission.git
     commit = test_admission.TreeAdmission.commit
 
@@ -137,6 +144,8 @@ class Service(unittest.TestCase):
         self.assertLessEqual(status.stat().st_size, 64 * 1024)
         self.assertEqual(json.loads(status.read_bytes())['status'], 'idle')
         self.assertEqual((site / 'records.jsonl').read_bytes(), b'')
+        self.assertEqual(json.loads((site / 'status.json').read_bytes())['upstream']['status'], 'unknown')
+        self.assertIn('CATALOG_UNAVAILABLE', (site / 'index.html').read_text())
         self.assertEqual(api.writes, 0)
 
 

@@ -44,6 +44,13 @@ receipt)`; recheck the repository ID and staged diff against the approved record
 bytes. Do not include tools, workflows, receipts, config, private notes or logs in
 the community data PR. Any change requires a new preview and approval.
 
+Use a clean branch based only on the approved public repository history. Review
+every commit to be pushed, including author/committer names and emails; a sanitized
+tip diff does not sanitize private parent commits. Never push private development
+or journal history with a record. Use intentional public attribution, such as an
+approved GitHub no-reply identity, and include additional commit attribution in
+the publication preview before approval.
+
 The local CLI never posts automatically. The same bounded privacy/secret lint
 covers record, title, body and attribution, including percent-encoded secret-key
 names and network identifiers. Lint is imperfect; it is not proof of safety.
@@ -67,6 +74,16 @@ accounts are not distinct humans/machines, and imported source reports are not
 new firsthand tests.
 
 ## Attribution, corrections and optional invitations
+
+Search, show and explain expose linked correction, dispute, withdrawal and
+supersession claims in `related_events`, including corrections to relevant reports
+and resolution events. The directional `relation.to` is the affected record;
+outgoing links do not mark the replacement as withdrawn. Incoming claims require
+inspection and defer new actionable advice. They do not rewrite records, erase
+evidence counts, or grant a community account authority to withdraw others' data.
+Canonical receipts authenticate account attribution only; ordinary imports remain
+unattributed claims. At most 64 related events are displayed with a total and
+truncation flag, but all related events in the bounded snapshot inform the warning.
 
 Preserve original project/source URLs and appropriate public attribution without
 implying endorsement, independent reproduction, or permission to copy content.

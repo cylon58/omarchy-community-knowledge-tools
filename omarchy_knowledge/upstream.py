@@ -29,6 +29,7 @@ def _timestamp(value):
 
 
 def _snapshot(snapshot, probe, now):
+    now = now or datetime.now(timezone.utc)
     if not isinstance(snapshot, PublicSnapshot) or snapshot.repository != probe.repository:
         raise ValueError("Source mismatch")
     if not isinstance(snapshot.response_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", snapshot.response_sha256):
@@ -56,7 +57,7 @@ def _pull(probe, github, number, now):
                 or not re.fullmatch(r"[A-Za-z0-9._/-]{1,200}", data["base"]["ref"])):
             raise ValueError("Invalid PR snapshot")
         if data["merged"]:
-            if not valid_oid(data["merge_commit_sha"]) or _timestamp(data["merged_at"]) > now or data["state"] != "closed":
+            if not valid_oid(data["merge_commit_sha"]) or _timestamp(data["merged_at"]) > (now or datetime.now(timezone.utc)) or data["state"] != "closed":
                 raise ValueError("Invalid merge identity")
         return {"number": number, "state": data["state"], "merged": data["merged"],
                 "merged_at": data["merged_at"] if data["merged"] else None,
@@ -94,10 +95,11 @@ def _release(probe, github, tag, now):
         data, source = _snapshot(github.release_by_tag(probe.repository, tag), probe, now)
         if data["tag_name"] != tag or type(data["draft"]) is not bool or type(data["prerelease"]) is not bool:
             raise ValueError("Invalid release")
-        if data["published_at"] is not None and _timestamp(data["published_at"]) > now:
+        if data["published_at"] is not None and _timestamp(data["published_at"]) > (now or datetime.now(timezone.utc)):
             raise ValueError("Future publication")
         return {"state": "published" if not data["draft"] and data["published_at"] else "unpublished",
-                "draft": data["draft"], "prerelease": data["prerelease"], "published_at": data["published_at"], **source}
+                "draft": data["draft"], "prerelease": data["prerelease"], "published_at": data["published_at"],
+                "release_id": data.get('id'), **source}
     except ERRORS:
         return {"state": "unknown", "diagnostic": "SOURCE_UNAVAILABLE"}
 
@@ -152,7 +154,6 @@ def observe_omarchy(probe, github, packages: PackagePublicRead | None = None, *,
     of reverts. Package facts require an explicitly injected reviewed provider;
     the default has no live package extractor and returns unknown per selector.
     """
-    now = now or datetime.now(timezone.utc)
     _repo(probe.repository)
     _number(probe.pull_request)
     if type(probe.repository_id) is not int or not 0 < probe.repository_id <= 2**63 - 1:
@@ -167,7 +168,7 @@ def observe_omarchy(probe, github, packages: PackagePublicRead | None = None, *,
     pull = _pull(probe, github, probe.pull_request, now)
     return {"observation_version": 1, "kind": "upstream-source-facts",
             "repository": {"name": probe.repository, "repository_id": str(probe.repository_id)},
-            "observed_at": now.isoformat().replace("+00:00", "Z"), "pull": pull,
+            "observed_at": (now or datetime.now(timezone.utc)).isoformat().replace("+00:00", "Z"), "pull": pull,
             "tags": [(_tag_fact(probe, github, tag, pull.get("merge_commit_oid"), now)
                       if type(pull["merged"]) is bool else
                       {"tag": tag, "ancestry": "unknown", "method": "unknown", "history_complete": False,

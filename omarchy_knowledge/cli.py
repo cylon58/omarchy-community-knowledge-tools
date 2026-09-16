@@ -85,7 +85,7 @@ def _parser() -> argparse.ArgumentParser:
 
     show = commands.add_parser("show", help="show one canonical record from a cache")
     show.add_argument("identifier"); show.add_argument("--cache", required=True); show.add_argument("--json", action="store_true")
-    explain = commands.add_parser("explain", help="explain applicability/evidence without treating cache claims as trusted")
+    explain = commands.add_parser("explain", help="explain applicability and canonical evidence; ordinary imports remain claims")
     explain.add_argument("identifier"); explain.add_argument("--cache", required=True)
     explain.add_argument("--environment", required=True); explain.add_argument("--json", action="store_true")
 

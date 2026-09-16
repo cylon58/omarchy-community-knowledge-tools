@@ -25,7 +25,7 @@ def build_site(data, output, *, status):
     files['status.json'] = _canonical({**status, 'source': data['source'], 'receipt_coverage': coverage,
                                       'upstream': data['upstream'], 'pr_behavior': 'snapshots-imported-prs-remain-open'})
     text = html.escape(_canonical({'source': data['source'], 'intake': status,
-                                  'receipt_coverage': coverage}).decode())
+                                  'receipt_coverage': coverage, 'upstream': data['upstream']}).decode())
     rows = ''.join('<li><code>' + html.escape(r['id']) + '</code> ' + html.escape(r['payload']['title']) + '</li>'
                    for r in data['records'] if r['type'] == 'case')
     files['index.html'] = ('''<!doctype html><html lang="en"><meta charset="utf-8">

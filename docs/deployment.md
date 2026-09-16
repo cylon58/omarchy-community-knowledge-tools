@@ -44,6 +44,13 @@ The toolkit's ordinary Python 3.11 installation/CI remains separate. These versi
 pins trust PyPI, package publishers and GitHub's runner/tool distribution; they are
 not vendored wheels or an independent package signature system. Review upgrades.
 
+The read-only build job checks Ubuntu 24.04, provisions the official Ubuntu
+`makepkg` and `libzstd1` packages, prints their installed versions, and verifies
+`/usr/bin/vercmp` with epoch and pkgrel comparisons. Provisioning has no job token
+in its environment. Only the comparator and Zstandard library are used; installing
+makepkg is not permission to execute PKGBUILDs. The ordinary validation job uses
+the same prerequisites. Unsupported local comparators/libraries produce unknown.
+
 Both workflow entrypoints require exact numeric/name identity, main, and allowed
 events. Python checks the event again before API use. PR-target accepts opened,
 synchronize and reopened for main; reconciliation accepts schedule/manual on main.
@@ -92,9 +99,13 @@ The CLI `sync` bypasses static transport and authenticates the fixed GitHub API
 repository/main/immutable object boundary independently. Configuration pins label
 the reviewed matching installed client; arbitrary configuration does not prove a
 different installed executable's revision. See [canonical trust](security.md#canonical-cache-trust).
-There is no static-JSON authority shortcut. The versioned upstream envelope is
-replaced on every sync and currently says `not-refreshed` with no observations;
-it is the explicit hook for a later reviewed refresh provider.
+There is no static-JSON authority shortcut. Sync and build independently invoke
+the reviewed [upstream refresh](resolution.md) after validating canonical events.
+They replace the entire upstream envelope, including on fresh outages. Search and
+explain consume only observations in a locally sealed canonical cache and reject
+changed authority/provider policy. The low-level ledger reader still returns a
+`not-refreshed` hook before its caller runs refresh. Static files and ordinary
+imports cannot assert this authority. Cached queries perform no network requests.
 
 Safe run/site statuses expose PR number, H, accepted commit, head-changed flag,
 and accepted/receipt-pending/retry/rejected/unavailable state. They never print raw

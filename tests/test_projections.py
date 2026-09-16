@@ -319,6 +319,36 @@ class ApplicabilityProjection(unittest.TestCase):
         self.assertEqual(result.state, INSUFFICIENT_INFORMATION)
         self.assertIn("bound", " ".join(result.reasons).lower())
 
+    def test_unknown_topology_transport_never_establishes_safe_exclusion_absence(self):
+        predicate = {'kind': 'topology', 'topology': {
+            'selectors': [{'alias': 'input', 'selector': {'kind': 'hardware', 'role': 'keyboard'}},
+                          {'alias': 'machine', 'selector': {'kind': 'hardware', 'role': 'host'}}],
+            'required_edges': [{'from': 'input', 'to': 'machine', 'relation': 'connected_to', 'transport': 'usb'}]}}
+        observed = environment(hardware('keyboard', 'keyboard'), hardware('host', 'host'),
+                               edges=[{'from': 'keyboard', 'to': 'host', 'relation': 'connected_to',
+                                       'transport': 'unknown', 'detail': 'summarized'}])
+        for field in ('requires', 'excludes', 'uncertain_conditions'):
+            with self.subTest(field=field):
+                self.assertEqual(match_applicability({field: [predicate]}, observed).state, INSUFFICIENT_INFORMATION)
+        observed['topology']['edges'][0]['transport'] = 'bluetooth'
+        self.assertEqual(match_applicability({'requires': [predicate]}, observed).state, DOES_NOT_MATCH)
+        self.assertEqual(match_applicability({'excludes': [predicate]}, observed).state, MATCHES)
+        observed['topology']['edges'][0]['transport'] = 'usb'
+        self.assertEqual(match_applicability({'excludes': [predicate]}, observed).state, DOES_NOT_MATCH)
+
+    def test_missing_edge_details_and_summarized_route_are_unknown(self):
+        predicate = {'kind': 'topology', 'topology': {
+            'selectors': [{'alias': 'input', 'selector': {'kind': 'hardware', 'role': 'keyboard'}},
+                          {'alias': 'machine', 'selector': {'kind': 'hardware', 'role': 'host'}}],
+            'required_edges': [{'from': 'input', 'to': 'machine', 'relation': 'connected_to',
+                                'transport': 'usb', 'via': [], 'detail': 'exact'}]}}
+        observed = environment(hardware('keyboard', 'keyboard'), hardware('host', 'host'),
+                               edges=[{'from': 'keyboard', 'to': 'host', 'relation': 'connected_to',
+                                       'detail': 'summarized'}])
+        self.assertEqual(match_applicability({'excludes': [predicate]}, observed).state, INSUFFICIENT_INFORMATION)
+        observed['topology']['edges'][0].update(transport='usb', detail='exact', via=[])
+        self.assertEqual(match_applicability({'requires': [predicate]}, observed).state, MATCHES)
+
     def test_noninjective_topology_assignments_consume_the_search_budget(self):
         components = [hardware(f"device-{number}", "other") for number in range(3)]
         selectors = [
@@ -505,6 +535,15 @@ class RecommendationProjection(unittest.TestCase):
         result = self.recommendation([upstream_observation(self.event)])
         self.assertEqual(result.action, "prefer-update")
         self.assertEqual(result.workaround, "defer-new")
+
+    def test_strict_lower_bound_equality_can_be_updated_without_relaxing_upper_bounds(self):
+        predicate = self.event['payload']['resolution']['fixed_in']['any_of'][0]['all_of'][0]
+        predicate['constraints'] = [{'op': '>', 'version': '4.1.0-1'}, {'op': '<', 'version': '4.3.0-1'}]
+        for installed, expected in [('4.1.0-1', 'prefer-update'), ('4.0.0-1', 'prefer-update'),
+                                    ('4.3.0-1', 'investigate'), ('4.4.0-1', 'investigate')]:
+            with self.subTest(installed=installed):
+                self.environment['components'][1]['version'] = installed
+                self.assertEqual(self.recommendation([upstream_observation(self.event)]).action, expected)
 
     def test_fixed_version_installed_with_unknown_migration_requires_verification(self):
         self.environment["components"][1]["version"] = "4.2.0-1"
