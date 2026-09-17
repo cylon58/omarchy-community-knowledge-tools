@@ -154,6 +154,8 @@ The full suite then passed 427 tests in 109.906 seconds on Python 3.14.7, with
 `OMARCHY_KNOWLEDGE_TEST_WHEELHOUSE` set to a prepared offline wheelhouse so the
 installed-package smoke ran rather than skipped. Hosted Python 3.11/3.13 CI is a
 separate gate; these local times are not platform-wide performance guarantees.
+The reviewed publisher/experiment commit `bc43f8d` subsequently passed both hosted
+versions in [CI run 35277753201](https://github.com/cylon58/omarchy-community-knowledge-tools/actions/runs/35277753201).
 
 The fixture reconstructs the original 500-record/100-import history and checks
 all 400 saved Git identities. One ordinary ten-record contribution produces 510

@@ -31,8 +31,9 @@ A separately scheduled read-only toolkit workflow can check the fixed production
 and pilot Pages endpoints plus public workflow-run state. No credentials on Pages,
 no arbitrary URL argument, no publication/issue-write token and no remote code.
 It should fail visibly for a catalog older than four hours, prolonged failed/missing
-scheduled builds, main/publication drift beyond a grace period, persistent cursor
-reset or incomplete recovery. Use bounded response sizes and hard wall deadlines.
+scheduled builds or incomplete recovery. Warn on current main/publication drift
+and measured persistent cursor reset; do not invent a grace-period duration from
+one sample. Use bounded response sizes and hard wall deadlines.
 
 GitHub run failures can notify repository watchers who enable those notifications.
 Document that setup rather than claiming an alert was delivered. Keep a standalone
@@ -91,6 +92,15 @@ facts are separate evidence-freshness information, not proof of service outage.
 Incomplete receipt coverage and current unavailable/retry/receipt-pending intake
 must remain visibly unhealthy. More precise persistent-drift and queue-time alarms
 need measured pilot data or a defined previous-sample contract, not guessed ages.
+
+The fair-intake integration will persist separate `cursor_health` monitoring
+metadata under its publication transaction. Once present and strictly validated,
+warn on three consecutive persisted drift scans or more than four hours since
+recorded non-drift cursor progress. Unknown legacy progress stays unknown. These
+are conservative operational warnings, not a proof of unfair scheduling or an
+estimated contributor wait time. Direct-event publications must not refresh these
+fields. Immediate main/Pages mismatch remains a warning without an invented
+duration; no cross-run download/cache service is required for this first monitor.
 
 Only install after reviewed health code and immutable workflow pins exist. Test
 pilot and production reads without creating synthetic public contributions. Record

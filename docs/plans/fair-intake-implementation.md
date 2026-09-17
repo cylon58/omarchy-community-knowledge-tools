@@ -67,6 +67,12 @@ recovery outcome. Retry/receipt-pending preserves before with degraded health.
 Build refuses pages_publishable=false before creating a site. Canonical validation
 and successful deployment remain necessary for persisted progress.
 
+Carry and update the design's separate cursor_health projection under the same
+publication matrix. Direct/retry outcomes preserve it; only permitted scheduled
+after-transitions can update it. Test non-drift progress timestamps, consecutive
+drift counting, saturation, legacy unknown time and failed-publication retention.
+This does not change the pure cursor schema or make telemetry authoritative.
+
 Update service fixtures and growth wrappers to use the new exact envelope contract,
 without disabling their production-boundary assertions or original saved-report
 reconstruction. Preserve historical result files. Test direct/scheduled identity,

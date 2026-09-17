@@ -245,13 +245,30 @@ Extend safe static status with aggregate, non-content fields:
 Do not publish an estimated total backlog unless it was actually measured. Cursor
 position alone is not backlog size.
 
+For stateless monitoring, keep a separate versioned `cursor_health` projection
+alongside (not inside) the cursor: `last_progress_at` (UTC timestamp or null) and
+`consecutive_drift_runs` (saturating nonnegative31-bit integer). This is scheduling
+telemetry, never admission or receipt authority. The planning/publishing envelope
+must preserve its prior value so direct events and failed/retry scheduled outcomes
+cannot reset it. A permitted scheduled after-transition increments the drift
+streak if that scan observed anchor drift; otherwise resets the streak to zero.
+Advance `last_progress_at` only for a persisted non-drift cursor advance or completed
+cycle, not merely a new publication timestamp or a reset to page1. Legacy status
+starts with unknown progress time and zero observed consecutive drift runs; do not
+invent historical progress. Failed deployment preserves the old public projection
+just as it preserves the cursor. Test these semantics at the publication matrix,
+not only in a standalone helper. The pure Task1 cursor remains unchanged.
+
 An independent read-only monitor should poll public Pages status, main ref, and
 the scheduled workflow-runs endpoint. Alert on no successful schedule for more
 than two intervals, queued/pending age or cancellations, repeated cursor resets or
-drift, no full cycle within the tested SLA, receipt-pending/retry, low quota, stale
+drift, lack of observed non-drift progress, receipt-pending/retry, low quota, stale
 Pages generation, or main-to-Pages revision lag. A monitor running only in the
 same Actions system cannot detect a platform-wide scheduler outage; broad launch
 needs an independently hosted check or an explicit residual-risk statement.
+Do not infer a universal full-cycle deadline from cursor position: backlog size and
+successful scheduling cadence determine it. The health plan defines bounded
+freshness/progress warnings without inventing a measured queue SLA.
 
 ## Primary references
 
