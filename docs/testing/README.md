@@ -46,6 +46,8 @@ Future recorded runs should preserve stdout and place commentary alongside it.
 | Native service growth gates | Ten-import and concentrated-evidence profiles passed; 500-record run completed imports/builds but failed final cold recovery | [Methods, raw successes/failure and review corrections](native-growth-gates.md); full growth gate remains unmet |
 | Exact cold-failure reconstruction | Reproduced refusal of request 513 after 512 sent requests; separate local replay preserved all evidence | [Postmortem and reproducer](cold-recovery-postmortem.md); original native gate remains failed |
 | GitHub GraphQL field probe | Two public GitHub reads; one tree and one text blob reconstructed to exact Git hashes | [Probe and limitations](graphql-field-probe.md); compatibility sample, not a scale benchmark |
+| Live reconciliation cadence | Hourly configuration did not correspond to hourly recent production runs | [Timestamped read-only observation](scheduled-service-observation.md); cause undiagnosed, unattended cadence still a launch check |
+| Authenticated object batching | First candidate fetched the graph within request limits, then failed a traversal check | [Raw failure and candidate notes](batched-object-reads.md); correction/review pending, no deployment |
 
 The public repository contains the regression tests named above. Historical private
 exploration is explicitly labeled; it is not presented as a public reproducible

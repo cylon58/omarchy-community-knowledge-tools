@@ -58,6 +58,9 @@ Hosted activation is not a scalability claim. Before promoting the service broad
   failed runs in the [testing notebook](testing/README.md).
 - Exercise production request adapters and per-job bounds in local simulations;
   report provider latency, quotas and scheduling separately from simulated results.
+- Measure actual unattended scheduled-run cadence and publication age, not only
+  the cron expression or the last green run. The [initial live observation](testing/scheduled-service-observation.md)
+  found gaps longer than the configured interval; its cause remains unestablished.
 - Demonstrate bounded refresh, backlog traversal beyond the newest-200 window,
   adverse-evidence parity and visible stale/unavailable service status.
 - Independently review infrastructure changes, run pinned hosted CI, then perform

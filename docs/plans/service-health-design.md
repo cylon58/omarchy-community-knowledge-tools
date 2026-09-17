@@ -42,6 +42,12 @@ Actual live read-only verification must be recorded separately from fixture test
 
 ## Deployment gate
 
+A [read-only live observation](../testing/scheduled-service-observation.md) found
+roughly five-hour gaps between recent production scheduled runs despite hourly
+configuration. The cause is not diagnosed. Keep missed-run/freshness checks and
+the independent-monitor limitation explicit; do not call the configured cron an
+observed hourly service guarantee.
+
 Only install after reviewed health code and immutable workflow pins exist. Test
 pilot and production reads without creating synthetic public contributions. Record
 the workflow/run URLs, notification limitations and how to disable the monitor.

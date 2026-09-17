@@ -118,3 +118,27 @@ pack chain but has a smaller reuse window, especially across repeated builds.
 Likewise, evaluate per-object request counts for a warm ten-record update rather
 than rejecting them solely on cold-start counts; cold starts can keep the complete
 bundle. Neither alternative is adopted before measurement and security review.
+
+### Direct-predecessor patch details to compare
+
+A bounded patch can contain a base identity, target head, newly needed typed Git
+objects and removed object keys. Deletions are inert instructions for assembling
+a candidate proof in memory, never filesystem paths or permission to delete the
+last valid cache. Every new object must hash correctly; the assembled current
+proof must pass the full existing canonical/receipt validation against the current
+API head before atomic replacement. Wrong base, missing objects, excess size or
+failed validation retains the old cache and permits only bounded full fallback.
+
+Do not accumulate patch chains or stale objects. Keep one complete local proof;
+clients missing the direct predecessor use the ordinary full download. Compression
+bytes can differ across encoders, so compare whether binding the exact downloaded
+base bundle or a normalized typed-object-set digest gives better reuse. Neither
+digest can replace current GitHub identity/head or canonical validation.
+
+For the initial format experiment, reuse the exact reconstructed500-record graph
+and append ten records/receipts through the real local admission path. First compare
+one successor; if a format is promising, vary successor content/UUIDs deterministically
+before adoption. Explicitly label a fixed-base/multiple-successor experiment as such:
+it is not independent proof across many history shapes. Count manifest bytes,
+changed-object bytes, requests and total publication size against the full successor
+proof, and keep the existing single-file cold path.

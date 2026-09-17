@@ -34,6 +34,10 @@ Preserve all saved reports. Do not edit schemas, policy, workflows or client ski
    unused object touched. Limit prefetch unique objects to5000, raw bytes20MiB,
    depth8 and tree entry bounds; no unlimited BFS. Existing offline validation
    still enforces its visits/deadline and must succeed without object network.
+   Current-root collection supports at most three unique roots (the maximum used
+   by existing preparation/repair callers), each independently bounded to4096
+   flattened entries. Historical prefetch does not create an unused combined
+   flattened list. This bounds derived metadata without pooling a per-root limit.
 4. GraphQL uses the same adapter HTTP512calls/32MiB/180second budget and1MiB
    response limit. Add192 GraphQL requests and192 reported points as additional
    per-adapter ceilings; reject missing/malformed cost/remaining metadata and stop

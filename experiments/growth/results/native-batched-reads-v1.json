@@ -1,0 +1,173 @@
+{
+  "cold_comparison": {
+    "actual_emulated_requests": 238,
+    "actual_emulated_response_bytes": 9296371,
+    "adapter_deadline_seconds": 180,
+    "adverse_failure_records": null,
+    "calls": 238,
+    "canonical_equal": null,
+    "elapsed_seconds": 2.550207,
+    "failure_kind": "NativeUnavailable",
+    "graphql_call_cap": 192,
+    "graphql_calls": 135,
+    "graphql_point_cap": 192,
+    "graphql_points": 135,
+    "graphql_remaining": 5000,
+    "object_byte_cap": 20971520,
+    "object_visit_cap": 5000,
+    "object_visit_count": 0,
+    "offline_proof_replay_equal": null,
+    "outcome": "failure",
+    "proof_bytes": null,
+    "proof_sha256": null,
+    "receipts": null,
+    "records": null,
+    "reference_object_visit_count": null,
+    "reference_verified_object_count": null,
+    "request_cap": 512,
+    "requests_by_kind": {
+      "blob": 0,
+      "branch": 1,
+      "commit": 101,
+      "graphql": 135,
+      "other": 0,
+      "repository": 1,
+      "tree": 0
+    },
+    "response_byte_cap": 33554432,
+    "response_bytes": 9296371,
+    "traceback": [
+      {
+        "function": "_cold_compare",
+        "line": 129,
+        "module": "experiments.growth.batched_reads"
+      },
+      {
+        "function": "read_canonical",
+        "line": 22,
+        "module": "omarchy_knowledge.canonical"
+      },
+      {
+        "function": "_read_canonical",
+        "line": 34,
+        "module": "omarchy_knowledge.canonical"
+      },
+      {
+        "function": "warm",
+        "line": 461,
+        "module": "omarchy_knowledge.github_native"
+      },
+      {
+        "function": "_prefetch_trees",
+        "line": 534,
+        "module": "omarchy_knowledge.github_native"
+      },
+      {
+        "function": "walk",
+        "line": 532,
+        "module": "omarchy_knowledge.github_native"
+      },
+      {
+        "function": "walk",
+        "line": 532,
+        "module": "omarchy_knowledge.github_native"
+      },
+      {
+        "function": "walk",
+        "line": 529,
+        "module": "omarchy_knowledge.github_native"
+      },
+      {
+        "function": "require",
+        "line": 55,
+        "module": "omarchy_knowledge.github_native"
+      }
+    ],
+    "verified_object_bytes": 4402758,
+    "verified_object_count": 1902
+  },
+  "configuration": {
+    "cold_seconds": 120,
+    "overall_seconds": 600,
+    "receipts": 500,
+    "records": 500
+  },
+  "elapsed_seconds": 19.293488,
+  "environment": {
+    "source_revision": "708e2c8ac3c69ce5094c9bdb22c72f2d6b1169e3",
+    "source_sha256": {
+      "experiments/growth/baseline.py": "fe20879bbf2084e0bd694ea176bc37879da54fa226eb31a5ef31547a76a4cc34",
+      "experiments/growth/batched_reads.py": "cf266dff45ec6dca89972daf4615fe81c839e5c0234262085d784a11f2ba0d44",
+      "experiments/growth/cold_postmortem.py": "82aae519efe5af45e6f520100a71ebfcadd8be3c2c078550f97a7acf8e7c2b11",
+      "experiments/growth/gates.py": "ef67e94ca135f997cc10d75db7380a7db06780d87b534931fc1063c54f026220",
+      "omarchy_knowledge/canonical.py": "ada1e99436b698492cdfc686cecf5e2cd59df5a48428aa5f73bf34a2c9631e3c",
+      "omarchy_knowledge/coordinator.py": "1d007eea66426262137995b7d663860fb093ffd00360eee9f7b238b3f2c92df7",
+      "omarchy_knowledge/github_native.py": "5575560ed78a272fc31792cfca8fbf4e488c010a90e4cc344021854550d42f1d",
+      "omarchy_knowledge/github_object_batch.py": "1c80743d5aaecd3ec090f3662706251885f2b29c06f1b5e0de612a0f9388ae33",
+      "omarchy_knowledge/object_bundle.py": "ba6772bf0686815b536896433a43943e811a45b2dfe3b7e19c40b58e45e9759f",
+      "omarchy_knowledge/service.py": "c1335314e769dac3d008dffa4e1e1df3453281c6650053d91b2b5b87a312c9ed"
+    },
+    "working_tree": {
+      "dirty": true,
+      "paths": [
+        "docs/launch-checklist.md",
+        "docs/plans/fair-intake-design.md",
+        "docs/plans/service-health-design.md",
+        "docs/testing/README.md",
+        "experiments/growth/gates.py",
+        "omarchy_knowledge/github_native.py",
+        "docs/testing/scheduled-service-observation.md",
+        "experiments/growth/batched_reads.py",
+        "omarchy_knowledge/github_object_batch.py",
+        "tests/test_batched_reads.py",
+        "tests/test_github_object_batch.py"
+      ]
+    }
+  },
+  "failure_kind": "RuntimeError",
+  "failure_stage": "native-cold-comparison",
+  "failure_traceback": [
+    {
+      "function": "run_comparison",
+      "line": 269,
+      "module": "experiments.growth.batched_reads"
+    }
+  ],
+  "fixture": {
+    "contract_violations": 0,
+    "git_commands": 4399,
+    "object_reader": {
+      "byte_cap": 20971520,
+      "cache_hits": 50600,
+      "cached_object_bytes": 4402758,
+      "cached_objects": 1902,
+      "object_cap": 5000
+    }
+  },
+  "limitations": [
+    "This reconstructs the saved synthetic graph and does not repeat admission.",
+    "The strict HTTPS fixture opens no network connection and uses no real credential.",
+    "This comparison is not the full admission growth gate or deployment approval.",
+    "Provider latency, hourly quota sufficiency, queues, fairness, and outages are unmeasured."
+  ],
+  "profile": "native-distributed-500-batched-reads",
+  "reconstruction": {
+    "all_recorded_mutation_identities_equal": true,
+    "data_head": "ec7ec1444fc6826c82addcb8a4800a4e8e38850f",
+    "elapsed_seconds": 16.518397,
+    "imports": 100,
+    "mutation_heads_checked": 200,
+    "outcome": "success",
+    "predecessor_heads_checked": 200,
+    "receipts": 500,
+    "recorded_oid_checks": 400,
+    "records": 500
+  },
+  "schema_version": 1,
+  "source_report": {
+    "imports": 100,
+    "required_sha256": "9a58c3bbfdc6e045e505b8e1759ba6f6d7b8943dac8a5e723079c1cff1b3f92a",
+    "sha256": "9a58c3bbfdc6e045e505b8e1759ba6f6d7b8943dac8a5e723079c1cff1b3f92a"
+  },
+  "status": "failure"
+}

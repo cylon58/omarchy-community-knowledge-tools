@@ -47,6 +47,7 @@ MEASURED_SOURCES = (
     "omarchy_knowledge/discovery.py",
     "omarchy_knowledge/distribution.py",
     "omarchy_knowledge/github_native.py",
+    "omarchy_knowledge/github_object_batch.py",
     "omarchy_knowledge/object_bundle.py",
     "omarchy_knowledge/service.py",
 )
@@ -387,6 +388,96 @@ class _NativeFixture:
         return {"sha": oid, "encoding": "base64", "size": len(raw),
                 "content": base64.b64encode(raw).decode()}
 
+    def _read_query(self, body: bytes):
+        """Decode only the production read grammar and render from raw Git bytes."""
+        def pairs(items):
+            result = {}
+            for key, item in items:
+                if key in result:
+                    raise AssertionError("Duplicate GraphQL request field")
+                result[key] = item
+            return result
+        try:
+            value = json.loads(
+                body, object_pairs_hook=pairs,
+                parse_constant=lambda _value: (_ for _ in ()).throw(
+                    AssertionError("Invalid GraphQL request value")),
+            )
+        except (TypeError, ValueError, UnicodeDecodeError) as exc:
+            raise AssertionError("Invalid GraphQL read JSON") from exc
+        if (not isinstance(value, dict) or set(value) != {"query", "variables"}
+                or not isinstance(value["query"], str)
+                or not isinstance(value["variables"], dict)):
+            raise AssertionError("Unexpected GraphQL read request shape")
+        variables = value["variables"]
+        count = len(variables)
+        expected_names = [f"o{index}" for index in range(count)]
+        if (not 1 <= count <= 32 or list(variables) != expected_names
+                or any(re.fullmatch(r"[0-9a-f]{40}", oid) is None
+                       for oid in variables.values())):
+            raise AssertionError("Unexpected GraphQL read variables")
+        declarations = ",".join(f"$o{index}:GitObjectID!" for index in range(count))
+        if "...on Tree" in value["query"]:
+            kind = "tree"
+            if count > 16:
+                raise AssertionError("Oversized GraphQL tree batch")
+            selection = "...on Tree{entries{nameRaw mode type oid size}}"
+        elif "...on Blob" in value["query"]:
+            kind = "blob"
+            selection = "...on Blob{byteSize isBinary isTruncated text}"
+        else:
+            raise AssertionError("Unexpected GraphQL read selection")
+        objects = "".join(
+            f"o{index}:object(oid:$o{index}){{__typename oid {selection}}}"
+            for index in range(count)
+        )
+        expected = (
+            f'query({declarations}){{repository(owner:"cylon58",'
+            f'name:"omarchy-community-knowledge"){{databaseId {objects}}}'
+            'rateLimit{cost remaining}}'
+        )
+        if value["query"] != expected:
+            raise AssertionError("Unexpected GraphQL read grammar")
+
+        repository = {"databaseId": self.REPOSITORY_ID}
+        for index, oid in enumerate(variables.values()):
+            raw = self.reader.raw(kind, oid)
+            if kind == "blob":
+                try:
+                    text = raw.decode("utf-8")
+                except UnicodeDecodeError:
+                    text = None
+                repository[f"o{index}"] = {
+                    "__typename": "Blob", "oid": oid, "byteSize": len(raw),
+                    "isBinary": text is None, "isTruncated": False, "text": text,
+                }
+                continue
+            rows, offset = [], 0
+            while offset < len(raw):
+                space = raw.index(b" ", offset)
+                nul = raw.index(b"\0", space + 1)
+                mode_raw = raw[offset:space]
+                name = raw[space + 1:nul]
+                child = raw[nul + 1:nul + 21].hex()
+                kinds = {b"40000": "tree", b"100644": "blob", b"100755": "blob",
+                         b"120000": "blob", b"160000": "commit"}
+                if mode_raw not in kinds:
+                    raise AssertionError("Unsupported fixture tree mode")
+                child_kind = kinds[mode_raw]
+                rows.append({
+                    "nameRaw": base64.b64encode(name).decode(),
+                    "mode": int(mode_raw, 8), "type": child_kind, "oid": child,
+                    "size": len(self.reader.raw("blob", child))
+                            if child_kind == "blob" else None,
+                })
+                offset = nul + 21
+            repository[f"o{index}"] = {
+                "__typename": "Tree", "oid": oid, "entries": rows,
+            }
+        return ({"data": {"repository": repository,
+                          "rateLimit": {"cost": 1, "remaining": 5000}}},
+                {"object_kind": kind, "object_count": count})
+
     def _mutation(self, body: bytes):
         from omarchy_knowledge.github_native import strict_json
         value = strict_json(body)
@@ -475,8 +566,12 @@ class _NativeFixture:
             if isinstance(body, bytes) and SYNTHETIC_TOKEN.encode() in body:
                 raise AssertionError("Synthetic token leaked into request body")
             prefix = "/repos/" + self.REPOSITORY
+            metadata = {}
             if method == "POST" and path == "/graphql" and isinstance(body, bytes):
-                value = self._mutation(body)
+                if b'"query":"query(' in body:
+                    value, metadata = self._read_query(body)
+                else:
+                    value = self._mutation(body)
             elif method == "GET" and body is None and path == prefix:
                 value = self._repository_value()
             elif method == "GET" and body is None and path == prefix + "/git/ref/heads/main":
@@ -501,7 +596,7 @@ class _NativeFixture:
                              allow_nan=False).encode()
             self.requests.append({"host": host, "method": method, "path": path,
                                   "request_bytes": len(body or b""),
-                                  "response_bytes": len(raw)})
+                                  "response_bytes": len(raw), **metadata})
             return _Response(200, raw)
         except AssertionError:
             self.contract_violations += 1
@@ -519,6 +614,9 @@ def _adapter_metrics(adapter, *, seed_outcome, elapsed, completed_return,
         "elapsed_scope": "seed-plus-production-wrapper",
         "completed_return": completed_return,
         "emulated_requests": len(requests),
+        "graphql_calls": adapter.http.graphql_calls,
+        "graphql_points": adapter.http.graphql_points,
+        "graphql_remaining": adapter.http.graphql_remaining,
         "methods": {method: sum(row["method"] == method for row in requests)
                     for method in ("GET", "POST")},
     }

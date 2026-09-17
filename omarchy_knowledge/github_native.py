@@ -28,6 +28,11 @@ MAX_RESPONSE = 1024 * 1024
 MAX_BYTES = 32 * 1024 * 1024
 MAX_CALLS = 512
 TOTAL_SECONDS = 180
+MAX_GRAPHQL_CALLS = 192
+MAX_GRAPHQL_POINTS = 192
+GRAPHQL_POINT_RESERVE = 100
+MAX_CACHE_OBJECTS = 5000
+MAX_CACHE_BYTES = 20 * 1024 * 1024
 PAGES = {
     "production": ("cylon58.github.io", "/omarchy-community-knowledge/canonical-objects.bundle"),
     "pilot": ("cylon58.github.io", "/omarchy-community-knowledge-pilot/canonical-objects.bundle"),
@@ -163,6 +168,9 @@ class _HTTP:
         self.factory = connection_factory
         self.calls = 0
         self.bytes = 0
+        self.graphql_calls = 0
+        self.graphql_points = 0
+        self.graphql_remaining = None
         self.deadline = time.monotonic() + TOTAL_SECONDS
 
     def seed_request(self):
@@ -176,7 +184,7 @@ class _HTTP:
         self.bytes += amount
         require(self.bytes <= MAX_BYTES and time.monotonic() < self.deadline)
 
-    def request(self, method, path, body=None, token=None):
+    def request(self, method, path, body=None, token=None, *, charge_unknown=False):
         prefix = "/repos/" + self.repository
         suffix = path[len(prefix):] if path.startswith(prefix) else None
         allowed_read = suffix is not None and (suffix in {"", "/git/ref/heads/main"}
@@ -188,24 +196,32 @@ class _HTTP:
         self.calls += 1
         require(self.calls <= MAX_CALLS and self.bytes < MAX_BYTES and time.monotonic() < self.deadline)
         require(body is None or len(body) <= MAX_RESPONSE)
-        if self.factory is not http.client.HTTPSConnection:
-            raw = _exchange(self.factory, method, path, body, token)
-        else:
-            # Hard wall deadline covers DNS, TLS and response headers as well.
-            root = str(Path(__file__).resolve().parent.parent)
-            code = "import sys;sys.path.insert(0," + repr(root) + ");from omarchy_knowledge.github_native import _stdio_worker;_stdio_worker()"
-            env = {"PATH": "/usr/bin:/bin", "LC_ALL": "C"}
-            payload = json.dumps({"method": method, "path": path, "token": token,
-                                  "body": base64.b64encode(body).decode() if body is not None else None}).encode()
-            with subprocess.Popen([sys.executable, "-I", "-c", code], stdin=subprocess.PIPE,
-                                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, cwd="/") as process:
-                try:
-                    raw, _ = process.communicate(payload, timeout=min(15, max(.001, self.deadline - time.monotonic())))
-                    require(process.returncode == 0 and 0 < len(raw) <= MAX_RESPONSE)
-                except BaseException:
-                    process.kill()
-                    process.wait()
-                    raise
+        try:
+            if self.factory is not http.client.HTTPSConnection:
+                raw = _exchange(self.factory, method, path, body, token)
+            else:
+                # Hard wall deadline covers DNS, TLS and response headers as well.
+                root = str(Path(__file__).resolve().parent.parent)
+                code = "import sys;sys.path.insert(0," + repr(root) + ");from omarchy_knowledge.github_native import _stdio_worker;_stdio_worker()"
+                env = {"PATH": "/usr/bin:/bin", "LC_ALL": "C"}
+                payload = json.dumps({"method": method, "path": path, "token": token,
+                                      "body": base64.b64encode(body).decode() if body is not None else None}).encode()
+                with subprocess.Popen([sys.executable, "-I", "-c", code], stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, cwd="/") as process:
+                    try:
+                        raw, _ = process.communicate(payload, timeout=min(15, max(.001, self.deadline - time.monotonic())))
+                        require(process.returncode == 0 and 0 < len(raw) <= MAX_RESPONSE)
+                    except BaseException:
+                        process.kill()
+                        process.wait()
+                        raise
+        except (NativeUnavailable, OSError, subprocess.SubprocessError) as exc:
+            if charge_unknown:
+                self.bytes += MAX_RESPONSE + 1
+                require(self.bytes <= MAX_BYTES and time.monotonic() < self.deadline)
+            if isinstance(exc, NativeUnavailable):
+                raise
+            raise NativeUnavailable() from exc
         self.bytes += len(raw)
         require(self.bytes <= MAX_BYTES and time.monotonic() < self.deadline)
         return strict_json(raw)
@@ -223,6 +239,10 @@ class GitHubRead:
         require(read_token is None or (isinstance(read_token, str) and 1 <= len(read_token) <= 4096
                                        and not any(c.isspace() for c in read_token)))
         self.__read_token = read_token
+        self.__batch_failed = False
+
+    def _object_batch_configured(self):
+        return self.__read_token is not None
 
     def _get(self, suffix):
         try:
@@ -260,6 +280,42 @@ class GitHubRead:
 
     def git_blob(self, oid):
         return self._get("/git/blobs/" + _oid(oid))
+
+    def _read_object_batch(self, kind, oids):
+        """Attempt one fixed authenticated batch; failure leaves REST authoritative."""
+        if self.__read_token is None or self.__batch_failed or self.objects.bundle_only:
+            return None
+        from .github_object_batch import build_request, decode_response
+        try:
+            body = build_request(self.deployment, kind, oids)
+        except ValueError as exc:
+            raise NativeUnavailable() from exc
+        require(self.http.graphql_calls < MAX_GRAPHQL_CALLS
+                and self.http.calls < MAX_CALLS and self.http.bytes < MAX_BYTES
+                and time.monotonic() < self.http.deadline)
+        self.http.graphql_calls += 1
+        try:
+            data = self.http.request(
+                "POST", "/graphql", body, self.__read_token, charge_unknown=True)
+        except NativeUnavailable:
+            self.__batch_failed = True
+            require(self.http.bytes <= MAX_BYTES and time.monotonic() < self.http.deadline)
+            return None
+        try:
+            decoded, cost, remaining = decode_response(
+                self.deployment, kind, oids, data)
+        except (KeyError, TypeError, ValueError, RecursionError):
+            self.__batch_failed = True
+            return None
+        self.http.graphql_points += cost
+        self.http.graphql_remaining = remaining
+        if self.http.graphql_points > MAX_GRAPHQL_POINTS:
+            self.__batch_failed = True
+            raise NativeUnavailable()
+        if remaining < GRAPHQL_POINT_RESERVE:
+            self.__batch_failed = True
+            return None
+        return decoded
 
     def commit_info(self, oid):
         return self.objects.info(oid)
@@ -356,6 +412,56 @@ class APIObjects:
         """Bounded retrieval before the offline check's shorter parsing deadline."""
         from projections import validate_ingestion_receipt
         self.retrieval()
+        if self.bundle_only:
+            return
+        if (hasattr(self.api, "_read_object_batch")
+                and self.api._object_batch_configured()):
+            roots = []
+            for commit in set(commits):
+                raw = self._commit_raw(commit, prefetch=True)
+                first = raw.partition(b"\n")[0]
+                require(first.startswith(b"tree "))
+                roots.append(_oid(first[5:].decode("ascii")))
+            current = self._prefetch_trees(roots)
+            if current is None:
+                return
+            relevant = {}
+            for path, entry in current:
+                if entry.kind != "blob" or not path.startswith((b"records/", b"provenance/")):
+                    continue
+                require(0 <= entry.size <= 65536)
+                if entry.oid in relevant:
+                    require(relevant[entry.oid] == entry.size)
+                relevant[entry.oid] = entry.size
+            missing = [(oid, size) for oid, size in relevant.items()
+                       if ("blob", oid) not in self.cache]
+            for batch in self._blob_batches(missing):
+                decoded = self.api._read_object_batch("blob", [oid for oid, _size in batch])
+                if decoded is None:
+                    return
+                self._install_batch("blob", decoded)
+            historical = set()
+            for path, entry in current:
+                if entry.kind != "blob" or not path.startswith(b"provenance/ingestion/"):
+                    continue
+                raw = self.cache.get(("blob", entry.oid))
+                require(isinstance(raw, bytes) and len(raw) == entry.size)
+                receipt = strict_json(raw)
+                validate_ingestion_receipt(receipt)
+                key = ("merge_commit_oid" if receipt["receipt_version"] == 1
+                       else "accepted_commit_oid")
+                historical.add(receipt["source"][key]["hex"])
+            historical_roots = []
+            for commit in historical:
+                raw = self._commit_raw(commit, prefetch=True)
+                first = raw.partition(b"\n")[0]
+                require(first.startswith(b"tree "))
+                historical_roots.append(_oid(first[5:].decode("ascii")))
+            if historical_roots:
+                self._prefetch_trees(historical_roots, collect=False)
+            return
+
+        # Non-native adapters and anonymous readers retain the original REST path.
         historical = set()
         for commit in set(commits):
             for entry in self.entries(self.commit(commit)):
@@ -371,24 +477,129 @@ class APIObjects:
         for commit in historical:
             self.entries(self.commit(commit))
 
+    @staticmethod
+    def _blob_batches(rows):
+        """Bound response JSON for worst-case escaping, with at most 32 blobs."""
+        batches, batch, estimated = [], [], 8192
+        for oid, size in rows:
+            require(_oid(oid) == oid and type(size) is int and 0 <= size <= 65536)
+            item = 6 * size + 512
+            require(8192 + item < MAX_RESPONSE)
+            if batch and (len(batch) >= 32 or estimated + item >= MAX_RESPONSE):
+                batches.append(batch)
+                batch, estimated = [], 8192
+            batch.append((oid, size))
+            estimated += item
+        if batch:
+            batches.append(batch)
+        return batches
+
+    def _prefetch_trees(self, roots, *, collect=True):
+        """Load a bounded tree frontier without consuming validation visits/touches."""
+        roots = list(dict.fromkeys(map(_oid, roots)))
+        require(not collect or len(roots) <= 3)
+        frontier = list(roots)
+        seen = set()
+        depth = 0
+        while frontier:
+            require(depth <= 8)
+            level = list(dict.fromkeys(oid for oid in frontier if oid not in seen))
+            seen.update(level)
+            require(len(seen) <= MAX_CACHE_OBJECTS)
+            missing = [oid for oid in level if ("tree", oid) not in self.cache]
+            for offset in range(0, len(missing), 8):
+                batch = missing[offset:offset + 8]
+                decoded = self.api._read_object_batch("tree", batch)
+                if decoded is None:
+                    return None
+                self._install_batch("tree", decoded)
+            following = []
+            for oid in level:
+                key = ("entries", oid)
+                if key not in self.cache:
+                    self.cache[key] = self._tree_entries(self.cache[("tree", oid)])
+                following.extend(entry.oid for entry in self.cache[key]
+                                 if entry.kind == "tree" and entry.oid not in seen)
+            frontier = following
+            depth += 1
+
+        if not collect:
+            return []
+        combined = []
+        for root in roots:
+            result = []
+            def walk(oid, prefix, nested):
+                require(nested <= 8)
+                for entry in self.cache[("entries", oid)]:
+                    path = prefix + entry.path
+                    require(len(path) <= 512 and len(result) < 4096)
+                    result.append((path, entry))
+                    if entry.kind == "tree":
+                        walk(entry.oid, path + b"/", nested + 1)
+            walk(root, b"", 0)
+            combined.extend(result)
+        return combined
+
     def _visit(self):
         self.visits += 1
         require(self.visits <= 5000 and time.monotonic() < self.deadline)
 
     def _save(self, kind, requested, raw, *, touched=True):
         require(_hash(kind, raw) == requested)
-        self.cache_bytes += len(raw)
-        require(self.cache_bytes <= 20 * 1024 * 1024)
+        if (kind, requested) in self.cache:
+            require(self.cache[(kind, requested)] == raw)
+            if touched:
+                self.touched.add((kind, requested))
+            return raw
+        typed_count = sum(
+            isinstance(key, tuple) and len(key) == 2
+            and key[0] in {"commit", "tree", "blob"}
+            for key in self.cache
+        )
+        require(typed_count < MAX_CACHE_OBJECTS
+                and self.cache_bytes + len(raw) <= MAX_CACHE_BYTES)
         self.cache[(kind, requested)] = raw
+        self.cache_bytes += len(raw)
         if touched:
             self.touched.add((kind, requested))
         return raw
 
-    def _commit_raw(self, requested):
-        self._visit()
+    def _install_batch(self, kind, decoded):
+        """Atomically install a fully decoded batch without validation side effects."""
+        require(kind in {"tree", "blob"} and isinstance(decoded, dict))
+        additions = {}
+        entry_rows = {}
+        for oid, value in decoded.items():
+            require(_oid(oid) == oid and isinstance(value.raw, bytes)
+                    and _hash(kind, value.raw) == oid)
+            key = (kind, oid)
+            if key in self.cache:
+                require(self.cache[key] == value.raw)
+            else:
+                additions[key] = value.raw
+            if kind == "tree":
+                require(value.entries is not None)
+                entry_rows[("entries", oid)] = list(value.entries)
+            else:
+                require(value.entries is None)
+        typed_count = sum(
+            isinstance(key, tuple) and len(key) == 2
+            and key[0] in {"commit", "tree", "blob"}
+            for key in self.cache
+        )
+        require(typed_count + len(additions) <= MAX_CACHE_OBJECTS
+                and self.cache_bytes + sum(map(len, additions.values())) <= MAX_CACHE_BYTES)
+        self.cache.update(additions)
+        self.cache.update(entry_rows)
+        self.cache_bytes += sum(map(len, additions.values()))
+
+    def _commit_raw(self, requested, *, prefetch=False):
+        if not prefetch:
+            self._visit()
         requested = _oid(requested)
         if ("commit", requested) in self.cache:
-            self.touched.add(("commit", requested))
+            if not prefetch:
+                self.touched.add(("commit", requested))
             return self.cache[("commit", requested)]
         require(not self.bundle_only)
         data = self.api.git_commit(requested)
@@ -408,7 +619,7 @@ class APIObjects:
                 for offset in range(1, len(lines) + 1):
                     candidate = b"\n".join(lines[:offset] + [field] + lines[offset:]) + b"\n\n" + message
                     if _hash("commit", candidate) == requested:
-                        return self._save("commit", requested, candidate)
+                        return self._save("commit", requested, candidate, touched=not prefetch)
         tree = _oid(data["tree"]["sha"])
         parents = data["parents"]
         require(isinstance(parents, list) and len(parents) <= 8)
@@ -439,7 +650,7 @@ class APIObjects:
             for ending in ("", "\n"):
                 raw = (prefix + a + c + "\n" + message + ending).encode()
                 if _hash("commit", raw) == requested:
-                    return self._save("commit", requested, raw)
+                    return self._save("commit", requested, raw, touched=not prefetch)
         raise NativeUnavailable()
 
     def info(self, requested):

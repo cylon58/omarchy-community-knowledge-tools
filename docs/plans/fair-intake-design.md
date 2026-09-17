@@ -21,6 +21,13 @@ older data revision can still be resumed. A forged hint can repeat or
 delay work, but cannot bypass `prepare`, writer re-preparation, complete corpus
 validation, receipt recovery, or the expected-main-head CAS.
 
+Bound the public status response separately from the small internal transition
+envelope: at most 1 MiB, no redirects or credentials, strict JSON, and the existing
+adapter's aggregate request/byte/deadline budget. Public status also contains
+upstream facts, so do not accidentally reuse the internal 64-KiB artifact limit and
+turn ordinary catalog growth into unavailable cursor state. Validate the expected
+public shape and fixed source identity before extracting the scheduling hint.
+
 Using all lifetime PRs makes open/closed transitions and deliberately open
 accepted PRs retain their list positions. Created-ascending traversal makes new
 arrivals append rather than shifting earlier pages. GitHub documents these sort
@@ -52,7 +59,7 @@ page, retain `page=P, offset=20`
 until the next run verifies the anchor, then continue at `P+1`. This makes page
 boundaries resumable without trusting an unverified page number alone.
 
-One scheduled run may read at most 10 consecutive pages / 200 list items and may
+One scheduled run may perform at most 10 list fetches / receive 200 list items and may
 call `prepare` for at most 20 candidates. Closed, already-imported exact heads,
 and other authenticated non-candidates advance the cursor without consuming a
 preparation slot. Deterministic rejection or an authenticated candidate-local
@@ -61,7 +68,13 @@ or a new PR event. Stop after the first plan. Its proposed cursor is immediately
 after that exact list item, so the next successful scheduled run resumes with the
 following item rather than waiting a full cycle. A short page marks the tail;
 stop, set the next cursor to page 1, increment `cycle`, and record a full-cycle
-completion.
+completion only after every returned row of that short page has been consumed.
+Stopping at a planned item or preparation limit with later rows remaining must
+retain the after-item cursor, even when that page is short. Anchor verification,
+repeated-page reads and drift restarts all consume the same ten-fetch/200-returned-
+item budget; no budget resets. Normal traversal is consecutive, with bounded drift
+restart as the explicit exception. A repeated anchor page counts its entire response,
+not only newly examined rows.
 
 The implementation must distinguish these outcomes:
 
@@ -115,12 +128,48 @@ accepted or deterministic exhaustion may advance; recovery retry, receipt-pendin
 or undifferentiated writer retry preserves the old cursor. The final status carries
 `intake_cursor` and `pages_publishable`; build refuses publication when false.
 
+The final publication matrix is independent of whether admission wrote records:
+
+| Lane / outcome | Prior cursor state | Cursor selection | Pages |
+|---|---|---|---|
+| Scheduled accepted or deterministic exhaustion | valid | proposed after | publishable after successful canonical build |
+| Scheduled writer/recovery retry or receipt-pending | valid | before | publishable after successful canonical build, with degraded intake status |
+| Direct PR event, any admission outcome | valid | before | publishable after successful canonical build |
+| Either lane | unavailable or malformed | none | withhold |
+| Scheduled | recognized legacy | explicit bootstrap, then ordinary outcome rules | publishable after successful canonical build |
+| Direct PR event | recognized legacy | none | withhold until scheduled bootstrap |
+
+Uncertain scheduled scans exit nonzero before producing a publishable transition.
+Preserving a known cursor on retry does not claim intake is healthy; monitors must
+still detect retry/receipt-pending and incomplete receipt coverage. A successful
+canonical build remains required; this matrix cannot waive evidence validation.
+
+Carry a strict internal envelope through publish-to-build, not just public status:
+schema version, run ID/attempt, deployment, trusted lane and selected transition.
+Build validates these bindings before creating a site, then projects only allowed
+public fields. Existing same-run workflow artifact naming remains in force.
+Derive lane from the already guarded event: `pull_request_target` is direct;
+`schedule` and `workflow_dispatch` are scheduled traversal. No submitted field can
+select a different lane or relax event/repository/ref guards.
+
 Introduce a distinct fixed-code candidate-not-ready outcome only when a well-formed
 authenticated PR response proves a local condition, such as draft/closed, old base,
 explicitly pending merge, or a changed merge-parent pair. Missing fields, malformed
 IDs, API/object failures and indeterminate responses remain unavailable. A scheduled
 scan may advance past deterministic rejection/not-ready, but must abort on uncertain
 reads instead of continuing to another candidate and publishing skipped progress.
+
+Validate common response shape and numeric identity before classifying readiness;
+validate all OIDs needed for the selected reason before using it. A pending merge
+requires a present `merge_commit_sha: null` and a present `mergeable: null` or
+`mergeable: false`, with otherwise valid open-candidate identity/base/head fields.
+Missing keys, wrong types and inconsistent combinations remain unavailable. Valid
+merge objects whose validated parent pair no longer matches current base/head are
+not ready; malformed parent arrays/OIDs remain unavailable. An explicitly null
+head repository may be a fixed `source-repository-unavailable` non-candidate only
+after authenticating the PR number and target repository; missing/wrong-type head
+repository is not equivalent. Closed list entries can be skipped using validated
+list identity/state without fetching irrelevant deleted-fork details.
 
 ## Safety and capacity invariants
 

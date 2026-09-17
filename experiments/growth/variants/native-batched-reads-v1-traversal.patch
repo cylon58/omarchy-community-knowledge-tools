@@ -1,0 +1,66 @@
+diff --git a/omarchy_knowledge/github_native.py b/omarchy_knowledge/github_native.py
+--- omarchy_knowledge/github_native.py
++++ omarchy_knowledge/github_native.py
+@@ -458,7 +458,7 @@
+                 require(first.startswith(b"tree "))
+                 historical_roots.append(_oid(first[5:].decode("ascii")))
+             if historical_roots:
+-                self._prefetch_trees(historical_roots, collect=False)
++                self._prefetch_trees(historical_roots)
+             return
+ 
+         # Non-native adapters and anonymous readers retain the original REST path.
+@@ -494,16 +494,14 @@
+             batches.append(batch)
+         return batches
+ 
+-    def _prefetch_trees(self, roots, *, collect=True):
++    def _prefetch_trees(self, roots):
+         """Load a bounded tree frontier without consuming validation visits/touches."""
+-        roots = list(dict.fromkeys(map(_oid, roots)))
+-        require(not collect or len(roots) <= 3)
+-        frontier = list(roots)
++        frontier = list(dict.fromkeys(map(_oid, roots)))
+         seen = set()
+         depth = 0
+         while frontier:
+             require(depth <= 8)
+-            level = list(dict.fromkeys(oid for oid in frontier if oid not in seen))
++            level = [oid for oid in frontier if oid not in seen]
+             seen.update(level)
+             require(len(seen) <= MAX_CACHE_OBJECTS)
+             missing = [oid for oid in level if ("tree", oid) not in self.cache]
+@@ -523,22 +521,18 @@
+             frontier = following
+             depth += 1
+ 
+-        if not collect:
+-            return []
+-        combined = []
+-        for root in roots:
+-            result = []
+-            def walk(oid, prefix, nested):
+-                require(nested <= 8)
+-                for entry in self.cache[("entries", oid)]:
+-                    path = prefix + entry.path
+-                    require(len(path) <= 512 and len(result) < 4096)
+-                    result.append((path, entry))
+-                    if entry.kind == "tree":
+-                        walk(entry.oid, path + b"/", nested + 1)
++        result = []
++        def walk(oid, prefix, nested):
++            require(nested <= 8)
++            for entry in self.cache[("entries", oid)]:
++                path = prefix + entry.path
++                require(len(path) <= 512 and len(result) < 4096)
++                result.append((path, entry))
++                if entry.kind == "tree":
++                    walk(entry.oid, path + b"/", nested + 1)
++        for root in dict.fromkeys(map(_oid, roots)):
+             walk(root, b"", 0)
+-            combined.extend(result)
+-        return combined
++        return result
+ 
+     def _visit(self):
+         self.visits += 1
