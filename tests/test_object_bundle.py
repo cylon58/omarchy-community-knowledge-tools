@@ -64,6 +64,7 @@ class ObjectBundle(unittest.TestCase):
                 super().__init__(fixture)
                 self.objects = APIObjects(self)
                 self.object_calls = 0
+                self.seed_attempts = 0
             def git_commit(self, oid):
                 self.object_calls += 1
                 raw = fixture.reader._typed(oid, "commit", 65536)
@@ -95,8 +96,13 @@ class ObjectBundle(unittest.TestCase):
                         "content": base64.b64encode(raw).decode()}
             def commit_info(self, oid):
                 return self.objects.info(oid)
+            def seed_canonical(self):
+                # Hosted jobs may now attempt optional Pages reuse; a missing
+                # seed deliberately leaves this fixture on its cold API path.
+                self.seed_attempts += 1
+                return False
             def prefill_canonical(self, revision):
-                raise AssertionError("hosted builder must not consume its Pages bundle")
+                raise AssertionError("hosted builder must not use the strict client loader")
         return NativeAPI()
 
     def test_anonymous_sync_uses_two_api_reads_and_bundle_capacity_does_not_add_api_reads(self):
@@ -107,9 +113,12 @@ class ObjectBundle(unittest.TestCase):
         from omarchy_knowledge.coordinator import Policy, prepare, publish
         source = self._native_api(); policy = Policy("a" * 40, "b" * 40)
         self.assertEqual(publish(source, policy, prepare(source, policy, 1)).status, "accepted")
-        # This is the hosted builder path: authenticate/validate via APIObjects,
-        # then export exactly the cache that read_canonical populated.
+        # This is the hosted cold-builder path after its optional Pages seed is
+        # unavailable: authenticate/validate via APIObjects, then export exactly
+        # the cache that read_canonical populated.
         from omarchy_knowledge.github_native import APIObjects
+        self.assertFalse(source.seed_canonical())
+        self.assertEqual(source.seed_attempts, 1)
         source.objects = APIObjects(source)
         from omarchy_knowledge.canonical import read_canonical
         read_canonical(source, policy)

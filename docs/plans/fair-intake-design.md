@@ -43,8 +43,11 @@ The public cursor contains only fixed-schema data such as:
 
 Integers are bounded like existing PR identifiers. `offset` is 0 through 20.
 When `offset > 0`, the scanner first verifies that item `offset - 1` is the stored
-`after_pull_request`. A mismatch never skips ahead: restart that page at offset 0
-and expose `cursor_drift`. After consuming a full page, retain `page=P, offset=20`
+`after_pull_request`. On mismatch, reset traversal to page 1 / offset 0 and expose
+`cursor_drift`; restarting only the current page can miss rows shifted across an
+earlier page boundary. Restarting costs repeated work, so repeated drift must be
+visible rather than presented as successful fair progress. After consuming a full
+page, retain `page=P, offset=20`
 until the next run verifies the anchor, then continue at `P+1`. This makes page
 boundaries resumable without trusting an unverified page number alone.
 
@@ -70,9 +73,13 @@ The implementation must distinguish these outcomes:
   bounded artifact. Persist after writer revalidation/outcome and successful
   build/deploy; a failed pipeline leaves the older cursor and safely repeats work.
 
-This distinction is necessary: treating ordinary exhaustion as the current broad
-`unavailable` result prevents cursor publication and lets invalid candidates pin
-the scan. Conversely, claiming progress after an uncertain read could skip data.
+This distinction is necessary: the current broad `unavailable` result does not
+distinguish a completed scan from uncertain transport. Inspection of the service
+entrypoint confirms that status can currently be published with exit zero (unlike
+the separate coordinator CLI); it does not inherently stop publication. The new
+cursor path must permit progress after deterministic exhaustion but withhold it
+after uncertain reads, rather than assuming existing exit behavior supplies that
+guard. Otherwise invalid candidates can pin scanning or uncertainty can skip data.
 Typed internal outcomes should be fixed enums and must not echo contributor text.
 
 Only scheduled runs advance the cursor. Direct PR-event runs preserve it exactly.

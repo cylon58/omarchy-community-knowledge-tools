@@ -109,3 +109,12 @@ one favorable hash distribution. Keep the existing one-file cold download. Do no
 raise resource limits or silently substitute a larger denominator to pass the
 25% target. Security cases include missing/tampered/swapped chunks, stale head,
 partial seed, cache pressure, interrupted refresh, and unavailable Pages.
+
+The update-pack comparison should include a bounded direct-predecessor delta,
+not only indefinitely accumulated import packs: one optional patch plus the full
+current proof, usable only for a matching cached base and fully revalidated after
+combination. Older caches fall back to the full proof. This avoids an ever-growing
+pack chain but has a smaller reuse window, especially across repeated builds.
+Likewise, evaluate per-object request counts for a warm ten-record update rather
+than rejecting them solely on cold-start counts; cold starts can keep the complete
+bundle. Neither alternative is adopted before measurement and security review.

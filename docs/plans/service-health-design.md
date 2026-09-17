@@ -7,6 +7,9 @@ Status: design; no monitor is installed by this document.
 Separate availability, capacity and evidence freshness. A running service with no
 authenticated upstream resolution is not equivalent to a failed service, and a
 successful Actions job is not proof that the static catalog is current.
+The current service can publish an `unavailable`/`retry` intake status while its
+entrypoint exits zero. Inspect public intake status and timestamps independently
+of the workflow conclusion; a green job alone is not healthy intake.
 
 Public build health should include record/receipt counts, proof object/byte totals,
 distribution bytes, source revision, build time, intake outcomes and queue traversal

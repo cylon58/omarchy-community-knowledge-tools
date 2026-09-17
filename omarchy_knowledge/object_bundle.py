@@ -9,6 +9,8 @@ import zlib
 MAGIC = b"OMARCHY-KNOWLEDGE-GIT-OBJECTS\x00\x01"
 MAX_OBJECTS = 5000
 MAX_RAW_OBJECTS = 20 * 1024 * 1024
+MAX_SEED_OBJECTS = MAX_OBJECTS * 3 // 4
+MAX_SEED_RAW_OBJECTS = MAX_RAW_OBJECTS * 3 // 4
 MAX_BUNDLE = 24 * 1024 * 1024
 MAX_COMPRESSED_BUNDLE = 16 * 1024 * 1024
 KINDS = {"commit": b"C", "tree": b"T", "blob": b"B"}
@@ -84,18 +86,13 @@ def _inflate(value):
         raise BundleUnavailable() from exc
 
 
-def decode(value, expected_head):
-    """Return verified typed objects only when the bundle matches the API head."""
-    _require(isinstance(expected_head, str) and len(expected_head) == 40)
-    try:
-        expected = bytes.fromhex(expected_head)
-    except ValueError as exc:
-        raise BundleUnavailable() from exc
+def decode_seed(value):
+    """Return the embedded head and verified objects without trusting that head."""
     raw = _inflate(value)
     header = len(MAGIC) + 20 + 4
     _require(len(raw) >= header and raw.startswith(MAGIC))
     offset = len(MAGIC)
-    _require(raw[offset:offset + 20] == expected)
+    embedded_head = raw[offset:offset + 20].hex()
     offset += 20
     count = struct.unpack(">I", raw[offset:offset + 4])[0]
     offset += 4
@@ -117,5 +114,17 @@ def decode(value, expected_head):
         key = (kind, oid)
         _require(key not in objects)
         objects[key] = content
-    _require(offset == len(raw) and ("commit", expected_head) in objects)
+    _require(offset == len(raw) and ("commit", embedded_head) in objects)
+    return embedded_head, objects
+
+
+def decode(value, expected_head):
+    """Return verified typed objects only when the bundle matches the API head."""
+    _require(isinstance(expected_head, str) and len(expected_head) == 40)
+    try:
+        bytes.fromhex(expected_head)
+    except ValueError as exc:
+        raise BundleUnavailable() from exc
+    embedded_head, objects = decode_seed(value)
+    _require(embedded_head == expected_head)
     return objects

@@ -120,18 +120,19 @@ def _stdio_worker():
         pass
 
 
-def _bundle_exchange(factory, deployment):
+def _bundle_exchange(factory, deployment, deadline=None):
     from .object_bundle import MAX_COMPRESSED_BUNDLE
     require(deployment in PAGES)
     host, path = PAGES[deployment]
-    connection = factory(host, timeout=5)
+    deadline = time.monotonic() + 10 if deadline is None else min(deadline, time.monotonic() + 10)
+    connection = factory(host, timeout=min(5, max(.001, deadline - time.monotonic())))
     try:
         headers = {"Accept": "application/octet-stream",
                    "User-Agent": "omarchy-knowledge-native/1"}
         connection.request("GET", path, body=None, headers=headers)
         response = connection.getresponse()
         require(response.status == 200)
-        raw, deadline = bytearray(), time.monotonic() + 10
+        raw = bytearray()
         while True:
             require(time.monotonic() < deadline)
             chunk = response.read(min(65536, MAX_COMPRESSED_BUNDLE + 1 - len(raw)))
@@ -163,6 +164,17 @@ class _HTTP:
         self.calls = 0
         self.bytes = 0
         self.deadline = time.monotonic() + TOTAL_SECONDS
+
+    def seed_request(self):
+        """Charge the optional Pages attempt to this adapter's one outer budget."""
+        self.calls += 1
+        require(self.calls <= MAX_CALLS and self.bytes < MAX_BYTES
+                and time.monotonic() < self.deadline)
+
+    def seed_bytes(self, amount):
+        require(type(amount) is int and amount >= 0)
+        self.bytes += amount
+        require(self.bytes <= MAX_BYTES and time.monotonic() < self.deadline)
 
     def request(self, method, path, body=None, token=None):
         prefix = "/repos/" + self.repository
@@ -207,7 +219,7 @@ class GitHubRead:
         self.deployment = deployment
         self.connection_factory = connection_factory
         self.http = _HTTP(deployment=deployment, connection_factory=connection_factory)
-        self.objects = APIObjects(self)
+        self.objects = APIObjects(self, total_deadline=self.http.deadline)
         require(read_token is None or (isinstance(read_token, str) and 1 <= len(read_token) <= 4096
                                        and not any(c.isspace() for c in read_token)))
         self.__read_token = read_token
@@ -276,6 +288,43 @@ class GitHubRead:
         except (OSError, subprocess.SubprocessError) as exc:
             raise NativeUnavailable() from exc
 
+    def seed_canonical(self):
+        """Optionally load the preceding fixed-origin proof as an inert cache."""
+        downloaded = False
+        try:
+            self.http.seed_request()
+            if self.connection_factory is not http.client.HTTPSConnection:
+                raw = _bundle_exchange(self.connection_factory, self.deployment, self.http.deadline)
+            else:
+                root = str(Path(__file__).resolve().parent.parent)
+                code = ("import sys;sys.path.insert(0," + repr(root)
+                        + ");from omarchy_knowledge.github_native import _bundle_stdio_worker;_bundle_stdio_worker()")
+                env = {"PATH": "/usr/bin:/bin", "LC_ALL": "C"}
+                with subprocess.Popen([sys.executable, "-I", "-c", code], stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, cwd="/") as process:
+                    try:
+                        raw, _ = process.communicate(
+                            self.deployment.encode(),
+                            timeout=min(15, max(.001, self.http.deadline - time.monotonic())))
+                        from .object_bundle import MAX_COMPRESSED_BUNDLE
+                        require(process.returncode == 0 and 0 < len(raw) <= MAX_COMPRESSED_BUNDLE)
+                    except BaseException:
+                        process.kill()
+                        process.wait()
+                        raise
+            downloaded = True
+            self.http.seed_bytes(len(raw))
+            self.objects.load_seed(raw)
+            return True
+        except (NativeUnavailable, OSError, subprocess.SubprocessError, ValueError):
+            if not downloaded:
+                from .object_bundle import MAX_COMPRESSED_BUNDLE
+                try:
+                    self.http.seed_bytes(MAX_COMPRESSED_BUNDLE + 1)
+                except NativeUnavailable:
+                    pass
+            return False
+
 
 class APIObjects:
     """Hash-verified raw Git objects reconstructed from bounded GitHub API values.
@@ -284,11 +333,14 @@ class APIObjects:
     normalized dates require bounded recovery of quarter-hour timezone offsets.
     Unknown headers/encodings/signature layouts fail unavailable, not trusted.
     """
-    def __init__(self, api):
+    def __init__(self, api, *, total_deadline=None):
         self.api = api
         self.cache = {}
         self.cache_bytes = 0
-        self.total_deadline = time.monotonic() + TOTAL_SECONDS
+        self.seeded = set()
+        self.touched = set()
+        self.total_deadline = (time.monotonic() + TOTAL_SECONDS
+                               if total_deadline is None else total_deadline)
         self.bundle_only = False
         self.retrieval()
 
@@ -323,17 +375,20 @@ class APIObjects:
         self.visits += 1
         require(self.visits <= 5000 and time.monotonic() < self.deadline)
 
-    def _save(self, kind, requested, raw):
+    def _save(self, kind, requested, raw, *, touched=True):
         require(_hash(kind, raw) == requested)
         self.cache_bytes += len(raw)
         require(self.cache_bytes <= 20 * 1024 * 1024)
         self.cache[(kind, requested)] = raw
+        if touched:
+            self.touched.add((kind, requested))
         return raw
 
     def _commit_raw(self, requested):
         self._visit()
         requested = _oid(requested)
         if ("commit", requested) in self.cache:
+            self.touched.add(("commit", requested))
             return self.cache[("commit", requested)]
         require(not self.bundle_only)
         data = self.api.git_commit(requested)
@@ -409,6 +464,7 @@ class APIObjects:
         if ("tree", requested) in self.cache:
             if ("entries", requested) not in self.cache:
                 self.cache[("entries", requested)] = self._tree_entries(self.cache[("tree", requested)])
+            self.touched.add(("tree", requested))
             return self.cache[("entries", requested)]
         require(not self.bundle_only)
         data = self.api.git_tree(_oid(requested))
@@ -434,7 +490,8 @@ class APIObjects:
         self.cache[("entries", requested)] = entries
         return entries
 
-    def _tree_entries(self, raw):
+    def _tree_entries(self, raw, cache=None):
+        cache = self.cache if cache is None else cache
         entries, names, offset, previous = [], set(), 0, None
         modes = {b"40000": ("040000", "tree"), b"100644": ("100644", "blob"),
                  b"100755": ("100755", "blob"), b"120000": ("120000", "blob"),
@@ -454,7 +511,7 @@ class APIObjects:
             require(previous is None or previous < sort_key)
             previous = sort_key
             oid = raw[nul + 1:nul + 21].hex()
-            size = len(self.cache[("blob", oid)]) if kind == "blob" and ("blob", oid) in self.cache else -1
+            size = len(cache[("blob", oid)]) if kind == "blob" and ("blob", oid) in cache else -1
             entries.append(TreeEntry(name, normalized, kind, oid, size))
             require(len(entries) <= 4096)
             offset = nul + 21
@@ -481,6 +538,7 @@ class APIObjects:
         if ("blob", requested) in self.cache:
             raw = self.cache[("blob", requested)]
             require(len(raw) <= max_bytes)
+            self.touched.add(("blob", requested))
             return raw
         require(not self.bundle_only)
         data = self.api.git_blob(requested)
@@ -494,7 +552,37 @@ class APIObjects:
     def export_bundle(self, revision):
         from .object_bundle import BundleUnavailable, encode
         try:
-            return encode(_oid(revision), self.cache)
+            require(time.monotonic() < self.total_deadline)
+            objects = {key: raw for key, raw in self.cache.items()
+                       if key not in self.seeded or key in self.touched}
+            result = encode(_oid(revision), objects)
+            require(time.monotonic() < self.total_deadline)
+            return result
+        except BundleUnavailable as exc:
+            raise NativeUnavailable() from exc
+
+    def load_seed(self, raw):
+        """Atomically install an old proof as inert, capacity-reserved objects."""
+        from .object_bundle import (BundleUnavailable, MAX_SEED_OBJECTS,
+                                    MAX_SEED_RAW_OBJECTS, decode_seed)
+        require(not self.cache and not self.bundle_only)
+        try:
+            require(time.monotonic() < self.total_deadline)
+            head, decoded = decode_seed(raw)
+            require(len(decoded) <= MAX_SEED_OBJECTS
+                    and sum(len(content) for content in decoded.values()) <= MAX_SEED_RAW_OBJECTS)
+            retained = dict(decoded)
+            for key, content in decoded.items():
+                if key[0] != "tree":
+                    continue
+                entries = self._tree_entries(content, decoded)
+                if any(entry.kind == "blob" and entry.size < 0 for entry in entries):
+                    retained.pop(key)
+            require(time.monotonic() < self.total_deadline)
+            self.cache = retained
+            self.cache_bytes = sum(len(content) for content in retained.values())
+            self.seeded = set(retained)
+            return head
         except BundleUnavailable as exc:
             raise NativeUnavailable() from exc
 
@@ -502,9 +590,11 @@ class APIObjects:
         from .object_bundle import BundleUnavailable, decode
         require(not self.cache and not self.bundle_only)
         try:
+            require(time.monotonic() < self.total_deadline)
             objects = decode(raw, _oid(revision))
+            require(time.monotonic() < self.total_deadline)
             for (kind, oid), content in objects.items():
-                self._save(kind, oid, content)
+                self._save(kind, oid, content, touched=False)
             self.bundle_only = True
         except BundleUnavailable as exc:
             raise NativeUnavailable() from exc

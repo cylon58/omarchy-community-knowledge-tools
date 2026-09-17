@@ -72,6 +72,8 @@ GraphQL request builder, reject eleven and invalid lane/head/message inputs, and
 reject mismatched or mixed-source authority grants. Independent scoped re-review
 closed both findings. The timing files remain pre-adapter-fix observations; live
 pilot and production deployment have not occurred.
+The reviewed follow-up commit `a86ce9e` passed both Python 3.11 and 3.13 in
+[GitHub Actions run 35248406633](https://github.com/cylon58/omarchy-community-knowledge-tools/actions/runs/35248406633).
 
 The 500-record/100-import target, incremental-transfer target, concentrated evidence
 case, fair-backlog traversal, hosted pilot and production rollout remain unproven.

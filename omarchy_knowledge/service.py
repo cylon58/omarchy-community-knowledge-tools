@@ -13,6 +13,41 @@ from .snapshots import _read_regular
 MAX_ATTEMPTS = 20
 
 
+def _validated_proof(api, policy, data):
+    """Export only the current graph, then replay it with object I/O forbidden."""
+    from .canonical import read_canonical
+    from .github_native import APIObjects
+    revision = object_id(data['source']['data_revision'])
+    proof = api.objects.export_bundle(revision)
+
+    class Replay:
+        def repository(self):
+            return {'id': policy.repository_id, 'full_name': policy.repository,
+                    'default_branch': 'main'}
+
+        def branch(self):
+            return revision
+
+        def git_commit(self, _oid):
+            raise NativeUnavailable()
+
+        git_tree = git_commit
+        git_blob = git_commit
+
+        def commit_info(self, oid):
+            return self.objects.info(oid)
+
+    replay = Replay()
+    replay.objects = APIObjects(replay, total_deadline=api.objects.total_deadline)
+    replay.objects.load_bundle(proof, revision)
+    checked = read_canonical(replay, policy, now=data['source']['verified_at'])
+    # REST tree arrays need not arrive in raw Git-tree order. Receipt order is
+    # nonsemantic, but every receipt (including duplicates) must replay exactly.
+    comparable = lambda value: {**value, 'receipts': sorted(value['receipts'], key=canonical)}
+    require(comparable(checked) == comparable(data))
+    return proof
+
+
 def guard_event(policy, environment, event):
     """Trusted event identity/ref gate, before token use or any API call."""
     require(environment.get('GITHUB_REPOSITORY') == policy.repository
@@ -125,12 +160,16 @@ def main(argv=None):
         run_id, attempt = int(os.environ['GITHUB_RUN_ID']), int(os.environ['GITHUB_RUN_ATTEMPT'])
         require(run_id > 0 and attempt > 0)
         if args.command == 'plan':
-            value = plan_run(GitHubRead(deployment=args.deployment, read_token=token), policy,
+            api = GitHubRead(deployment=args.deployment, read_token=token)
+            api.seed_canonical()
+            value = plan_run(api, policy,
                              pull_request=number, run_number=int(os.environ['GITHUB_RUN_NUMBER']),
                              run_id=run_id, run_attempt=attempt)
             status = value['status']
         elif args.command == 'publish':
-            value = publish_run(GitHubWriter(token, deployment=args.deployment), policy,
+            api = GitHubWriter(token, deployment=args.deployment)
+            api.seed_canonical()
+            value = publish_run(api, policy,
                                 strict_json(_read_regular(Path(args.input), MAX_PLAN)), run_id=run_id, run_attempt=attempt)
             status = value
         else:
@@ -139,8 +178,10 @@ def main(argv=None):
             from .resolution import refresh_canonical
             status = safe_status(strict_json(_read_regular(Path(args.input), 64 * 1024)))
             api = GitHubRead(deployment=args.deployment, read_token=token)
-            data = refresh_canonical(read_canonical(api, policy))
-            proof = api.objects.export_bundle(data['source']['data_revision'])
+            api.seed_canonical()
+            data = read_canonical(api, policy)
+            proof = _validated_proof(api, policy, data)
+            data = refresh_canonical(data)
             value = build_site(data, args.output, status=status, proof_bundle=proof)
         if args.command != 'build':
             from .snapshots import _open_directory, _write_regular_at

@@ -7,6 +7,29 @@ from unittest.mock import patch
 
 
 class GrowthBaselineTests(unittest.TestCase):
+    def test_proof_reuse_measurement_separates_identity_object_and_seed_reads(self):
+        """Break caught: the reuse report labels raw-object reads as all requests."""
+        from experiments.growth.proof_reuse import run_measurement
+
+        result = run_measurement()
+
+        self.assertEqual(result["status"], "success", result)
+        self.assertEqual(result["network"]["actual_requests"], 0)
+        self.assertTrue(result["parity"]["canonical_equal"])
+        self.assertEqual(result["parity"]["records"], 10)
+        self.assertEqual(result["parity"]["receipts"], 10)
+        cold = result["results"]["cold"]
+        seeded = result["results"]["seeded"]
+        self.assertEqual(cold["canonical_validation"]["modeled_identity_ref_requests"], 2)
+        self.assertEqual(cold["canonical_validation"]["modeled_object_requests"], 40)
+        self.assertEqual(cold["total"]["modeled_total_requests"], 42)
+        self.assertEqual(seeded["seed_decode"]["modeled_seed_requests"], 1)
+        self.assertEqual(seeded["canonical_validation"]["modeled_identity_ref_requests"], 2)
+        self.assertEqual(seeded["canonical_validation"]["modeled_object_requests"], 21)
+        self.assertEqual(seeded["total"]["modeled_total_requests"], 24)
+        self.assertEqual(cold["export_and_offline_replay"]["modeled_total_requests"], 0)
+        self.assertEqual(seeded["export_and_offline_replay"]["modeled_total_requests"], 0)
+
     def test_tiny_roundtrip_reports_real_counts_and_ranked_result(self):
         """Break caught: a stage is stubbed or its accepted artifacts are omitted."""
         from experiments.growth.baseline import run_baseline

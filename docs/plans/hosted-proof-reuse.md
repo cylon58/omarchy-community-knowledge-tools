@@ -1,6 +1,7 @@
 # Hosted immutable proof reuse — implementation brief
 
-Status: queued after recovery optimization and review, not implemented.
+Status: implemented and independently task-reviewed; not deployed. See
+`../testing/hosted-proof-reuse.md` for the bounded measurement and remaining gates.
 
 ## Goal and contract
 
@@ -24,10 +25,17 @@ use the old head to select current data or accept old source attribution.
 
 Seed only an empty object store, leave explicit capacity reserve, and omit raw
 trees whose direct blob sizes cannot be determined from available verified blobs.
+Initially bound the installed seed to at most three quarters of the existing raw
+object byte and object-count limits; this reserve is a conservative ceiling, not
+a measured capacity claim. Invalid seeds are discarded atomically.
 Track objects touched by the current traversal separately from loaded seed objects.
 Export only touched raw objects and replay the result without object-network reads
 before publishing it. Keep one outer deadline and API-call/byte budget; no reset on
 fallback. No repeated old-head schema/evidence validation is needed for inert bytes.
+Count the optional Pages request and its bytes against the hosted operation's
+budget, including a conservative accounting of failed/oversized downloads. Keep
+the absolute deadline across decode, traversal and proof replay. Missing proof in
+the strict client path remains unavailable, not permission for API fallback.
 
 Wire the optional acceleration into hosted planning, recovery/publish and build
 without accepting an arbitrary source URL or adding credentials to Pages requests.

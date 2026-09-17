@@ -1,0 +1,150 @@
+{
+  "configuration": {
+    "current_imports": 2,
+    "prior_imports": 1,
+    "reports_per_import": 1
+  },
+  "environment": {
+    "code_revision": "a86ce9e0ddb0ed44d4238eef90109247c5e32b8c",
+    "python_version": "3.14.7",
+    "source_sha256": {
+      "experiments/growth/baseline.py": "fe20879bbf2084e0bd694ea176bc37879da54fa226eb31a5ef31547a76a4cc34",
+      "experiments/growth/proof_reuse.py": "fc015d74bd1e07cd6b08af36c9c545dfb2ba0156f6ec117bd464e89403702a9a",
+      "omarchy_knowledge/github_native.py": "c8e4d8d111888e663125c5fa6daf5bc06a32832c0316f581c86989aa691e3263",
+      "omarchy_knowledge/object_bundle.py": "ba6772bf0686815b536896433a43943e811a45b2dfe3b7e19c40b58e45e9759f",
+      "omarchy_knowledge/service.py": "c1335314e769dac3d008dffa4e1e1df3453281c6650053d91b2b5b87a312c9ed"
+    }
+  },
+  "fixture": {
+    "prior_proof_bytes": 3333
+  },
+  "limitations": [
+    "Small synthetic local Git fixture; no GitHub or Pages request occurred.",
+    "Single-run CPU timings are descriptive, not production capacity evidence.",
+    "Modeled adapter payload bytes do not include HTTP headers, TLS, latency, throttling, or retries.",
+    "Existing corpus, object, history, request, byte, visit, and deadline caps remain unchanged."
+  ],
+  "network": {
+    "actual_requests": 0,
+    "counting_contract": "Modeled total requests are seed requests plus repository/ref adapter reads plus raw commit/tree/blob adapter reads. Byte totals are the compressed seed bundle plus compact serialized adapter return values; they are not observed HTTP bytes."
+  },
+  "parity": {
+    "adverse_failure_records": 2,
+    "canonical_equal": true,
+    "receipts": 10,
+    "records": 10,
+    "source_equal": true
+  },
+  "results": {
+    "cold": {
+      "canonical_validation": {
+        "cpu_seconds": 0.110288,
+        "modeled_identity_ref_bytes": 133,
+        "modeled_identity_ref_requests": 2,
+        "modeled_object_requests": 40,
+        "modeled_object_requests_by_kind": {
+          "blob": 20,
+          "commit": 3,
+          "tree": 17
+        },
+        "modeled_object_response_bytes": 32937,
+        "modeled_seed_requests": 0,
+        "modeled_total_bytes": 33070,
+        "modeled_total_requests": 42,
+        "seed_bundle_bytes": 0
+      },
+      "export_and_offline_replay": {
+        "cpu_seconds": 0.043155,
+        "modeled_identity_ref_bytes": 0,
+        "modeled_identity_ref_requests": 0,
+        "modeled_object_requests": 0,
+        "modeled_object_requests_by_kind": {},
+        "modeled_object_response_bytes": 0,
+        "modeled_seed_requests": 0,
+        "modeled_total_bytes": 0,
+        "modeled_total_requests": 0,
+        "published_proof_bytes": 4920,
+        "seed_bundle_bytes": 0
+      },
+      "seed_decode": {
+        "cpu_seconds": 2e-06,
+        "modeled_identity_ref_bytes": 0,
+        "modeled_identity_ref_requests": 0,
+        "modeled_object_requests": 0,
+        "modeled_object_requests_by_kind": {},
+        "modeled_object_response_bytes": 0,
+        "modeled_seed_requests": 0,
+        "modeled_total_bytes": 0,
+        "modeled_total_requests": 0,
+        "seed_bundle_bytes": 0
+      },
+      "total": {
+        "cpu_seconds": 0.153445,
+        "modeled_identity_ref_bytes": 133,
+        "modeled_identity_ref_requests": 2,
+        "modeled_object_requests": 40,
+        "modeled_object_response_bytes": 32937,
+        "modeled_seed_requests": 0,
+        "modeled_total_bytes": 33070,
+        "modeled_total_requests": 42,
+        "seed_bundle_bytes": 0
+      }
+    },
+    "seeded": {
+      "canonical_validation": {
+        "cpu_seconds": 0.09061,
+        "modeled_identity_ref_bytes": 133,
+        "modeled_identity_ref_requests": 2,
+        "modeled_object_requests": 21,
+        "modeled_object_requests_by_kind": {
+          "blob": 10,
+          "commit": 2,
+          "tree": 9
+        },
+        "modeled_object_response_bytes": 17611,
+        "modeled_seed_requests": 0,
+        "modeled_total_bytes": 17744,
+        "modeled_total_requests": 23,
+        "seed_bundle_bytes": 0
+      },
+      "export_and_offline_replay": {
+        "cpu_seconds": 0.050966,
+        "modeled_identity_ref_bytes": 0,
+        "modeled_identity_ref_requests": 0,
+        "modeled_object_requests": 0,
+        "modeled_object_requests_by_kind": {},
+        "modeled_object_response_bytes": 0,
+        "modeled_seed_requests": 0,
+        "modeled_total_bytes": 0,
+        "modeled_total_requests": 0,
+        "published_proof_bytes": 4920,
+        "seed_bundle_bytes": 0
+      },
+      "seed_decode": {
+        "cpu_seconds": 0.000264,
+        "modeled_identity_ref_bytes": 0,
+        "modeled_identity_ref_requests": 0,
+        "modeled_object_requests": 0,
+        "modeled_object_requests_by_kind": {},
+        "modeled_object_response_bytes": 0,
+        "modeled_seed_requests": 1,
+        "modeled_total_bytes": 3333,
+        "modeled_total_requests": 1,
+        "seed_bundle_bytes": 3333
+      },
+      "total": {
+        "cpu_seconds": 0.14184,
+        "modeled_identity_ref_bytes": 133,
+        "modeled_identity_ref_requests": 2,
+        "modeled_object_requests": 21,
+        "modeled_object_response_bytes": 17611,
+        "modeled_seed_requests": 1,
+        "modeled_total_bytes": 21077,
+        "modeled_total_requests": 24,
+        "seed_bundle_bytes": 3333
+      }
+    }
+  },
+  "schema_version": 1,
+  "status": "success"
+}

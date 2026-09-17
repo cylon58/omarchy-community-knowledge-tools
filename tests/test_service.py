@@ -134,11 +134,15 @@ class Service(unittest.TestCase):
         common = ['--deployment', 'production', '--policy-revision', 'a' * 40, '--toolkit-revision', 'b' * 40]
         plan = self.root / 'plan/plan.json'; status = self.root / 'status/status.json'; site = self.root / 'site'
         api.objects.export_bundle = lambda revision: b'proof-bundle-fixture'
+        seed_calls = []
+        api.seed_canonical = lambda: seed_calls.append(api.base) or False
         for command, arguments in [('plan', ['--output', str(plan)]),
                                    ('publish', ['--input', str(plan), '--output', str(status)]),
                                    ('build', ['--input', str(status), '--output', str(site)])]:
             with patch.dict(os.environ, env), patch('omarchy_knowledge.service.GitHubRead', return_value=api), \
-                    patch('omarchy_knowledge.service.GitHubWriter', return_value=api), contextlib.redirect_stdout(io.StringIO()):
+                    patch('omarchy_knowledge.service.GitHubWriter', return_value=api), \
+                    patch('omarchy_knowledge.service._validated_proof', return_value=b'proof-bundle-fixture'), \
+                    contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(main([command, *common, *arguments]), 0)
                 self.assertNotIn('GITHUB_TOKEN', os.environ)
         self.assertLessEqual(plan.stat().st_size, 1024 * 1024)
@@ -146,6 +150,7 @@ class Service(unittest.TestCase):
         self.assertEqual(json.loads(status.read_bytes())['status'], 'idle')
         self.assertEqual((site / 'records.jsonl').read_bytes(), b'')
         self.assertEqual((site / 'canonical-objects.bundle').read_bytes(), b'proof-bundle-fixture')
+        self.assertEqual(seed_calls, [api.base, api.base, api.base])
         self.assertEqual(json.loads((site / 'status.json').read_bytes())['upstream']['status'], 'unknown')
         self.assertIn('CATALOG_UNAVAILABLE', (site / 'index.html').read_text())
         self.assertEqual(api.writes, 0)
