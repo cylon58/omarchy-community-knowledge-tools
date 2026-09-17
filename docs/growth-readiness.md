@@ -58,9 +58,17 @@ the separate local replay is not a native capacity pass. See the
 [cold postmortem](testing/cold-recovery-postmortem.md). Bounded authenticated object
 batching subsequently passed the exact cold comparison in238 emulated requests
 with full evidence/proof parity. A live compatibility check then exposed a fixture/
-parser directory-size mismatch, which is being corrected separately. Fair intake,
+parser directory-size mismatch, corrected and checked against the live API; the
+public 26-record corpus also passed cold authenticated recovery. Fair intake,
 incremental client transfer and health reporting remain unfinished. None of these
 branch changes is deployed yet.
+
+The [format comparison](testing/proof-formats.md) favored one direct-predecessor
+update pack over prefix buckets or individual object downloads. Three subsequent
+synthetic updates used 4.90–5.37% of their full proof bytes, retaining exact evidence
+parity. These are prototype results, not deployed-client savings. The production
+integration must still prove bounded fallback, safe caching and publication
+retention; full validation CPU and older-cache downloads remain unchanged.
 
 The 500-record local reference used4,414 of5,000 logical object visits; the batched
 candidate used2,507 because speculative warming no longer charged logical visits.

@@ -1,0 +1,24 @@
+--- a/experiments/growth/update_pack_variants.py
++++ b/experiments/growth/update_pack_variants.py
+@@ -25,6 +25,7 @@
+ OVERALL_SECONDS = 600
+ SUCCESSOR_SECONDS = proof_formats.SUCCESSOR_SECONDS
+ SOURCES = ("experiments/growth/update_pack_variants.py", *proof_formats.SOURCES)
++_write_json_output = proof_formats._write_json_output
+ 
+ 
+ def _load_inputs(source_report, prerequisite_report, first_result):
+@@ -49,12 +50,10 @@
+ def _measure_update_pack(base_head, base_objects, base_proof, successor_head,
+                          successor_objects, successor_proof, successor_data, policy):
+     """Measure only the reviewed update-pack family."""
+-    result = proof_formats._measure_family(
++    return proof_formats._measure_family(
+         "update-pack", base_head, base_objects, successor_head,
+         successor_objects, successor_proof, successor_data, policy,
+     )
+-    result["base_full_proof_bytes"] = len(base_proof)
+-    return result
+ 
+ 
+ def _refresh_ratio_range(measurement):
