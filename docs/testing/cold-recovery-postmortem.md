@@ -29,7 +29,7 @@ python -m experiments.growth.cold_postmortem --output /new/path/postmortem.json
 Output paths must not already exist. Optional `--artifact-output` retains the
 bounded proof in a new private directory, with a manifest written last. Synthetic
 fixture construction and diagnostic execution use no network or credentials.
-Use the diagnostic's historical source revision when reproducing this failure:
+Use revision `e06b40c` when reproducing this diagnostic with its reviewed fixes:
 the loader intentionally rejects measured-source changes instead of silently
 calling a different implementation the same experiment.
 
@@ -42,7 +42,7 @@ The original failed report is unchanged.
 Review subsequently found that the diagnostic could swallow its overall deadline
 while recording the expected native failure. Deadline and user-interrupt signals
 now propagate; focused tests cover that correction. The direct fixture module was
-also added to future source-hash reports. The original18.72-second result retains
+also added to future source-hash reports. The original 18.72-second result retains
 its original hashes rather than being rewritten to claim it ran corrected code.
 
 Next experiment: batch immutable Git object reads while preserving the same

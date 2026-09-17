@@ -109,16 +109,22 @@ cold-recovery failure, nor do synthetic reports establish independent users.
 
 ## Later regression: wall-clock comparison
 
-A fresh25-test focused run after these measurements produced one failure in the
+A fresh 25-test focused run after these measurements produced one failure in the
 service-wrapper regression, despite exact proof parity. A direct one-import repeat
 passed. A controlled status clock advancing one second per search reproduced the
-failure: the six compact responses had ages93601..93606seconds. The comparison was
+failure: the six compact responses had ages 93,601–93,606 seconds. The comparison was
 including live `age_seconds`, so otherwise identical cold/warm results could differ
 at a second boundary. This is a harness defect, not evidence of a search regression.
 
-The correction is to evaluate real status logic at one declared fixture time for
+The candidate correction evaluates real status logic at one declared fixture time for
 both searches, while leaving performance/deadline clocks real and retaining all
-freshness and evidence checks. Failed query details must be saved before enforcing
+freshness and evidence checks. Failed query details are saved before enforcing
 the gate. Historical raw results above are unchanged; their full-data successes
 were actual observations, but their comparison was susceptible to this false
 negative. See the [regression brief](../plans/growth-search-clock.md).
+
+Two new regressions failed before the correction and passed afterward: one checks
+all six calls use the same real status-evaluation time, and the other injects a
+genuine evidence mismatch and requires both a failed gate and saved query details.
+The focused harness module passed 20 tests, and the one-import smoke passed with
+three queries. This remains a measurement correction, not a production speedup.

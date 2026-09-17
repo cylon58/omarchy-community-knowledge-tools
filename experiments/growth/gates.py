@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from unittest.mock import patch
 
 from experiments.growth.baseline import (FIXED_NOW, _FixtureRepository,
                                           _OfflineUpstream, _cohort, _record_id)
@@ -656,7 +657,8 @@ def _shell(profile: str, batches: list[list[dict]]):
         "search": {"query_set_version": 1, "cold_warm_equal": None,
                    "cold_cache_scope": "fresh-per-query", "queries": [],
                    "worst_warm_seconds": None,
-                   "warm_gate_seconds": WARM_SEARCH_SECONDS},
+                   "warm_gate_seconds": WARM_SEARCH_SECONDS,
+                   "status_evaluation_at": FIXED_NOW},
         "artifact": {"requested": False, "exported": False,
                      "export_seconds": None},
         "limitations": [
@@ -666,6 +668,7 @@ def _shell(profile: str, batches: list[list[dict]]):
             "Provider latency, hourly quotas, scheduler throughput, fairness, and outages are not measured.",
             "The CLI/event environment layer and independent community reproduction remain unmeasured.",
             "Fixture preparation and local Git object-serving work are reported outside admission timing.",
+            "Search freshness is evaluated at one synthetic fixture time; elapsed and deadline clocks remain live.",
         ],
     }
 
@@ -880,42 +883,57 @@ def run_gate(profile: str, *, artifact_output: Path | None = None):
                     })
 
                     cached_data = _refresh_offline(warm_data)
-                    from omarchy_knowledge.discovery import search_snapshot
+                    from omarchy_knowledge import discovery
+                    fixed_status_now = datetime.fromisoformat(
+                        FIXED_NOW.replace("Z", "+00:00"))
+                    real_snapshot_status = discovery.snapshot_status
+
+                    def fixed_snapshot_status(snapshot, *, now=None,
+                                              stale_after_seconds=86400):
+                        return real_snapshot_status(
+                            snapshot, now=fixed_status_now,
+                            stale_after_seconds=stale_after_seconds)
+
                     query_results = []
-                    for query_number, spec in enumerate(_query_specs(profile, batches), 1):
-                        cache = root / ("cache-" + str(query_number))
-                        _install_cache(cached_data, cache)
-                        query_started = time.monotonic()
-                        cold_result = search_snapshot(
-                            cache, spec["query"], method=spec["method"],
-                            broad=spec["broad"], compact=True)
-                        query_cold = time.monotonic() - query_started
-                        query_started = time.monotonic()
-                        warm_result = search_snapshot(
-                            cache, spec["query"], method=spec["method"],
-                            broad=spec["broad"], compact=True)
-                        query_warm = time.monotonic() - query_started
-                        query_results.append({**spec,
-                            "cold_seconds": round(query_cold, 6),
-                            "warm_seconds": round(query_warm, 6),
-                            "cold_warm_equal": cold_result == warm_result,
-                            "result_count": len(warm_result["results"]),
-                            "adverse_evidence_visible": any(
-                                row["safety"]["has_failure_or_partial_reports"]
-                                for row in warm_result["results"]),
-                        })
+                    with patch.object(discovery, "snapshot_status",
+                                      fixed_snapshot_status):
+                        for query_number, spec in enumerate(
+                                _query_specs(profile, batches), 1):
+                            cache = root / ("cache-" + str(query_number))
+                            _install_cache(cached_data, cache)
+                            query_started = time.monotonic()
+                            cold_result = discovery.search_snapshot(
+                                cache, spec["query"], method=spec["method"],
+                                broad=spec["broad"], compact=True)
+                            query_cold = time.monotonic() - query_started
+                            query_started = time.monotonic()
+                            warm_result = discovery.search_snapshot(
+                                cache, spec["query"], method=spec["method"],
+                                broad=spec["broad"], compact=True)
+                            query_warm = time.monotonic() - query_started
+                            query_results.append({**spec,
+                                "cold_seconds": round(query_cold, 6),
+                                "warm_seconds": round(query_warm, 6),
+                                "cold_warm_equal": cold_result == warm_result,
+                                "result_count": len(warm_result["results"]),
+                                "adverse_evidence_visible": any(
+                                    row["safety"]["has_failure_or_partial_reports"]
+                                    for row in warm_result["results"]),
+                            })
                     worst_warm = max(row["warm_seconds"] for row in query_results)
-                    if (not all(row["cold_warm_equal"] for row in query_results)
+                    cold_warm_equal = all(
+                        row["cold_warm_equal"] for row in query_results)
+                    report["search"].update({
+                        "cold_warm_equal": cold_warm_equal,
+                        "queries": query_results,
+                        "worst_warm_seconds": worst_warm,
+                    })
+                    if (not cold_warm_equal
                             or worst_warm >= WARM_SEARCH_SECONDS
                             or not query_results[0]["adverse_evidence_visible"]
                             or query_results[1]["result_count"] == 0
                             or query_results[2]["result_count"] != 0):
                         raise RuntimeError("Warm search gate failed")
-                    report["search"].update({
-                        "cold_warm_equal": True,
-                        "queries": query_results,
-                        "worst_warm_seconds": worst_warm,
-                    })
 
                     report["counts"].update({
                         "records": len(warm_data["records"]),

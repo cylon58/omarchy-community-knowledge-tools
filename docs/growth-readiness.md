@@ -51,13 +51,21 @@ results were accepted. Fixing the measuring instrument is part of the experiment
 not evidence that production capacity improved. See the
 [native-gate brief](plans/native-growth-gates.md) for the declared contract.
 
-The ten-import calibration and concentrated100-report profile passed. The larger
+The ten-import calibration and concentrated 100-report profile passed. The larger
 500-record/100-import run completed all imports/builds but failed final cold
-recovery. Exact graph reconstruction reproduced exhaustion of the512-request cap;
+recovery. Exact graph reconstruction reproduced exhaustion of the 512-request cap;
 the separate local replay is not a native capacity pass. See the
 [cold postmortem](testing/cold-recovery-postmortem.md). Bounded authenticated object
 batching is the next candidate; fair intake, incremental client transfer and health
 reporting remain unfinished. None of these branch changes is deployed yet.
+
+The 500-record local postmortem also used 4,414 of 5,000 logical object visits. Batched
+network reads cannot remove that validation cost. Treat the target as a bounded
+beta envelope, not an assertion that thousands of historical imports will fit.
+Capacity monitoring must expose proximity to this bound; further growth will need
+a separately measured verification/layout improvement, not just a faster query
+engine or raised caps. Any replacement of authenticated history with a checkpoint
+would require its own explicit trust design.
 
 ## Predeclared gates
 

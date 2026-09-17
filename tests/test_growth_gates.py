@@ -1,5 +1,7 @@
 """Native-adapter synthetic growth gate contracts."""
 from contextlib import contextmanager, redirect_stdout
+from copy import deepcopy
+from datetime import datetime, timezone
 import io
 from pathlib import Path
 import json
@@ -160,6 +162,63 @@ class GrowthGateTests(unittest.TestCase):
         self.assertEqual(result["search"]["queries"][-1]["result_count"], 0)
         self.assertTrue(result["search"]["queries"][0]["adverse_evidence_visible"])
         self.assertLess(result["search"]["worst_warm_seconds"], 1.0)
+
+    def test_searches_use_one_fixed_status_time_without_freezing_elapsed_clocks(self):
+        """Break caught: six search status reads cross wall-clock second boundaries."""
+        from experiments.growth import gates
+        from omarchy_knowledge import discovery
+
+        status_times = []
+        monotonic_reads = []
+        original_status = discovery.snapshot_status
+        original_monotonic = gates.time.monotonic
+
+        def record_status(snapshot, **kwargs):
+            status_times.append(kwargs.get("now"))
+            return original_status(snapshot, **kwargs)
+
+        def record_monotonic():
+            value = original_monotonic()
+            monotonic_reads.append(value)
+            return value
+
+        with patch.object(discovery, "snapshot_status", record_status), \
+                patch.object(gates.time, "monotonic", record_monotonic):
+            result = gates.run_gate("one-import")
+
+        expected = datetime(2026, 9, 16, 16, tzinfo=timezone.utc)
+        self.assertEqual(status_times, [expected] * 6)
+        self.assertEqual(result["status"], "success", result)
+        self.assertGreater(len(set(monotonic_reads)), 1)
+
+    def test_search_mismatch_fails_and_preserves_per_query_evidence(self):
+        """Break caught: a result mismatch raises before observations reach the report."""
+        from experiments.growth import gates
+        from omarchy_knowledge import discovery
+
+        original_search = discovery.search_snapshot
+        calls = 0
+
+        def unequal_search(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            result = original_search(*args, **kwargs)
+            if calls == 2:
+                result = deepcopy(result)
+                result["results"][0]["case_evidence"]["report_count"] += 1
+            return result
+
+        with patch.object(discovery, "search_snapshot", unequal_search):
+            result = gates.run_gate("one-import")
+
+        self.assertEqual(result["status"], "failure", result)
+        self.assertEqual(result["failure_stage"], "recovery-distribution")
+        self.assertEqual(result["failure_kind"], "RuntimeError")
+        self.assertFalse(result["search"]["cold_warm_equal"])
+        self.assertEqual(len(result["search"]["queries"]), 3)
+        self.assertFalse(result["search"]["queries"][0]["cold_warm_equal"])
+        self.assertTrue(result["search"]["queries"][0]["adverse_evidence_visible"])
+        self.assertGreater(result["search"]["queries"][0]["result_count"], 0)
 
     def test_interruption_after_mutation_preserves_known_acceptance_without_inference(self):
         """Break caught: interrupted return erases mutation facts or invents counts."""
