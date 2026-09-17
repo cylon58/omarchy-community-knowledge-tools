@@ -48,7 +48,8 @@ Future recorded runs should preserve stdout and place commentary alongside it.
 | GitHub GraphQL field probe | Two public GitHub reads; one tree and one text blob reconstructed to exact Git hashes | [Probe and limitations](graphql-field-probe.md); compatibility sample, not a scale benchmark |
 | Live reconciliation cadence | Hourly configuration did not correspond to hourly recent production runs | [Timestamped read-only observation](scheduled-service-observation.md); cause undiagnosed, unattended cadence still a launch check |
 | Authenticated object batching | First candidate failed traversal; corrected exact500 comparison passed with 238 requests and exact proof parity | [Raw failure/success and limitations](batched-object-reads.md); narrower than full pipeline, no deployment |
-| Live native batch compatibility | First tree rejected because fixture/parser assumed null rather than GitHub's zero directory size | [Live failure and reproduction](live-native-batch.md); fixture gap exposed, correction pending |
+| Live native batch compatibility | Initial tree rejected on directory-size mismatch; reviewed correction passed two live object/hash checks | [Live failure, repeat and reproduction](live-native-batch.md); tiny compatibility sample, not capacity |
+| Warm proof format comparison | Single update pack used5.48% of full proof bytes in the first ten-record update; all formats preserved exact data | [All candidates, reviewed reporting fixes and limitations](proof-formats.md); no production format adopted |
 
 The public repository contains the regression tests named above. Historical private
 exploration is explicitly labeled; it is not presented as a public reproducible
@@ -64,6 +65,14 @@ returned the same result: this was an incorrect test expectation, not a persiste
 index regression. The narrower `ethernet packet loss` query was empty in both.
 We did not retune ranking during the performance update. This illustrates why
 candidate relevance and technical applicability remain separate checks.
+
+CI [run35265816419](https://github.com/cylon58/omarchy-community-knowledge-tools/actions/runs/35265816419)
+later exposed a separate older-baseline clock defect on Python3.13: the test that
+injects a cleanup failure encountered a cold/warm query mismatch first. Root
+reproduced it with snapshot ages1 and2 seconds on successive searches. Full response
+comparison included legitimately advancing freshness metadata. The newer native
+harness already fixed its clock; the historical baseline still needed the same
+narrow correction. Production freshness checks must remain live and unchanged.
 
 ## Reporting rules
 

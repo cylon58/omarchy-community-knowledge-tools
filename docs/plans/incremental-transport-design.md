@@ -142,3 +142,30 @@ before adoption. Explicitly label a fixed-base/multiple-successor experiment as 
 it is not independent proof across many history shapes. Count manifest bytes,
 changed-object bytes, requests and total publication size against the full successor
 proof, and keep the existing single-file cold path.
+
+### Production questions exposed by the format comparison
+
+The first measured update pack was80,207 bytes versus a1,462,685-byte full proof,
+but production must solve more than the prototype's byte layout:
+
+- Bind the complete base object set, not just its commit label. Prefer a precisely
+  specified digest over sorted typed-object framing to a digest of gzip bytes:
+  clients rebuilding a proof can use a different compressor/runtime while holding
+  identical objects. Verify both base and assembled target set digests, then retain
+  all ordinary current-head/canonical checks. Digests remain transport checks.
+- Store at most one bounded reusable local proof without changing the meaning of
+  the canonical snapshot seal. A failed refresh must preserve the last canonical
+  CURRENT. Use existing no-follow/descriptor-relative primitives and atomic writes;
+  a cache file alone must never authorize a record or upstream resolution.
+- Retain the existing full proof for older clients and caches outside the supported
+  update window. Count manifest, attempted pack and any fallback together against
+  a single request/byte/time budget; never reset the budget after failure.
+- Decide explicitly what unchanged hourly rebuilds do to the last useful pack.
+  Replacing it with a no-op pack can shorten the reuse window even without new
+  records. Any retention mechanism needs bounded fixed-origin reads and validation;
+  do not silently add a chain or assume clients always sync after every build.
+- Report applicability of the optimization: cold clients and wrong-base clients
+  use the full download. The measured5.48% ratio is not an all-user bandwidth claim.
+
+Resolve these in a separate implementation brief after the experimental review
+and bounded variation check. Do not install the prototype parser as production code.

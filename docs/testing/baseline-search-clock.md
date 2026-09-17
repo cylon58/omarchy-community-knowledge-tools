@@ -12,7 +12,13 @@ unchanged. This is experimental harness behavior, not a frozen production clock.
 
 The focused baseline suite passed six tests, and the original cleanup-injection
 test passed independently. Root's fresh six-test run passed in5.52 seconds.
-Independent task review found no spec or quality issues. Reproduce with:
+Independent task review found no spec or quality issues.
+
+The correction subsequently passed hosted
+[CI run35267643176](https://github.com/cylon58/omarchy-community-knowledge-tools/actions/runs/35267643176)
+on commit `b33067068d7b546683b84eed03ffd6734e9c9af4`.
+
+Reproduce with:
 
 ```sh
 python -m unittest tests.test_growth_baseline

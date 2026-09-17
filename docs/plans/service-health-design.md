@@ -17,6 +17,14 @@ progress. Show warning thresholds relative to actual enforced bounds. Unknown
 backlog size stays unknown until the tail is observed; do not report a partial scan
 as the full queue.
 
+Do not derive a universal full-cycle deadline from the hourly cron alone. Scheduled
+recovery admits at most one eligible snapshot per run; direct PR events provide
+the ordinary fast path. A backlog with many eligible entries can take many runs,
+even if every run works correctly. Report time since progress, cycle age and the
+tested backlog shape separately. A healthy scanner is not a promise of short wait
+times under arrivals above its throughput. Do not hide this by calling a cursor
+position an estimated queue length.
+
 ## Unattended checker
 
 A separately scheduled read-only toolkit workflow can check the fixed production

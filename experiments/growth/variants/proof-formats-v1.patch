@@ -1,0 +1,308 @@
+--- a/experiments/growth/proof_formats.py
++++ b/experiments/growth/proof_formats.py
+@@ -463,10 +463,10 @@
+     results = []
+     final_data = final_proof = None
+     for number in numbers:
++        started = time.monotonic()
++        mutation_start = len(fixture.successful_mutations)
++        fixture.add_candidate(number, _cohort(number, 1))
+         with gates._phase_deadline(budget, alarm, SUCCESSOR_SECONDS):
+-            started = time.monotonic()
+-            mutation_start = len(fixture.successful_mutations)
+-            fixture.add_candidate(number, _cohort(number, 1))
+             planning = GitHubRead(
+                 read_token=gates.SYNTHETIC_TOKEN,
+                 connection_factory=fixture.connection_factory,
+@@ -507,27 +507,27 @@
+             built, build_metrics = gates._run_job(fixture, builder, build)
+             final_data, final_proof = built
+             fixture.publish_pages(final_proof, number)
+-            mutations = fixture.successful_mutations[mutation_start:]
+-            if not (
+-                len(mutations) == 2
+-                and [row["addition_count"] for row in mutations] == [5, 5]
+-                and {row["headline"] for row in mutations}
+-                    == {"Omarchy knowledge snapshot import",
+-                        "Record source-bound ingestion receipt"}
+-            ):
+-                raise RuntimeError("Successor mutation audit failed")
+-            results.append({
+-                "number": number,
+-                "records_added": 5,
+-                "receipts_added": 5,
+-                "mutations": mutations,
+-                "planning": planning_metrics,
+-                "publish": publish_metrics,
+-                "build": build_metrics,
+-                "elapsed_seconds": round(time.monotonic() - started, 6),
+-                "elapsed_scope": "candidate-creation-plus-plan-publish-canonical-proof",
+-                "phase_limit_seconds": SUCCESSOR_SECONDS,
+-            })
++        mutations = fixture.successful_mutations[mutation_start:]
++        if not (
++            len(mutations) == 2
++            and [row["addition_count"] for row in mutations] == [5, 5]
++            and {row["headline"] for row in mutations}
++                == {"Omarchy knowledge snapshot import",
++                    "Record source-bound ingestion receipt"}
++        ):
++            raise RuntimeError("Successor mutation audit failed")
++        results.append({
++            "number": number,
++            "records_added": 5,
++            "receipts_added": 5,
++            "mutations": mutations,
++            "planning": planning_metrics,
++            "publish": publish_metrics,
++            "build": build_metrics,
++            "elapsed_seconds": round(time.monotonic() - started, 6),
++            "elapsed_scope": "candidate-creation-plus-plan-publish-canonical-proof",
++            "phase_limit_seconds": SUCCESSOR_SECONDS,
++        })
+     return final_data, final_proof, results
+ 
+ 
+@@ -639,54 +639,10 @@
+     }
+ 
+ 
+-def _measure_candidates(measurement, base_head, base_objects, base_proof,
+-                        successor_head, successor_objects, successor_proof,
+-                        successor_data, policy):
+-    """Append each completed candidate and preserve a sanitized failed candidate."""
+-    for family in FAMILIES:
+-        try:
+-            item = _measure_family(
+-                family, base_head, base_objects, successor_head,
+-                successor_objects, successor_proof, successor_data, policy,
+-            )
+-        except (gates._DeadlineExpired, KeyboardInterrupt, SystemExit):
+-            raise
+-        except Exception as error:
+-            measurement["formats"].append({
+-                "family": family,
+-                "status": "failure",
+-                "failure_kind": type(error).__name__,
+-                "failure_traceback": _sanitized_trace(error),
+-            })
+-            raise
+-        item["status"] = "success"
+-        item["base_full_proof_bytes"] = len(base_proof)
+-        measurement["formats"].append(item)
+-
+-
+-def _fixture_metrics(fixture):
+-    return {
+-        "git_commands": fixture.repository.commands,
+-        "contract_violations": fixture.contract_violations,
+-        "emulated_https_requests": len(fixture.requests),
+-        "emulated_response_bytes": sum(
+-            row["response_bytes"] for row in fixture.requests
+-        ),
+-        "pages_publications": fixture.pages_publications,
+-        "object_reader": {
+-            "cached_objects": len(fixture.reader.cache),
+-            "cached_object_bytes": fixture.reader.bytes,
+-            "object_cap": fixture.reader._max_objects,
+-            "byte_cap": fixture.reader._max_bytes,
+-        },
+-    }
+-
+-
+-def _run_fixture_comparison(source, budget, alarm, measurement=None):
++def _run_fixture_comparison(source, budget, alarm):
+     from omarchy_knowledge.coordinator import Policy
+     from omarchy_knowledge.object_bundle import decode
+ 
+-    measurement = {} if measurement is None else measurement
+     with tempfile.TemporaryDirectory(prefix="omarchy-proof-formats-") as temporary:
+         with gates._NativeFixture(Path(temporary)) as fixture:
+             policy = Policy("a" * 40, "b" * 40)
+@@ -695,19 +651,9 @@
+             reconstructed["elapsed_seconds"] = round(
+                 time.monotonic() - reconstruction_started, 6
+             )
+-            measurement["reconstruction"] = reconstructed
+             base_data, base_proof, base_native = _native_proof(fixture, policy)
+             base_head = base_data["source"]["data_revision"]
+             base_objects = decode(base_proof, base_head)
+-            measurement["base"] = {
+-                "head": base_head,
+-                "records": len(base_data["records"]),
+-                "receipts": len(base_data["receipts"]),
+-                "full_proof_bytes": len(base_proof),
+-                "full_proof_sha256": _sha256(base_proof),
+-                "typed_objects": len(base_objects),
+-                "native_generation": base_native,
+-            }
+             fixture.publish_pages(base_proof, len(source["imports"]))
+             successor_data, successor_proof, successors = _append_successors(
+                 fixture,
+@@ -729,71 +675,97 @@
+                 and fixture.contract_violations == 0
+             ):
+                 raise RuntimeError("Fixture comparison count or identity mismatch")
++            formats = [
++                _measure_family(
++                    family, base_head, base_objects, successor_head,
++                    successor_objects, successor_proof, successor_data, policy,
++                )
++                for family in FAMILIES
++            ]
++            for item in formats:
++                item["base_full_proof_bytes"] = len(base_proof)
+             added = set(successor_objects) - set(base_objects)
+             removed = set(base_objects) - set(successor_objects)
+-            measurement["successor"] = {
+-                "head": successor_head,
+-                "records": len(successor_data["records"]),
+-                "receipts": len(successor_data["receipts"]),
+-                "records_added": 10,
+-                "receipts_added": 10,
+-                "full_proof_bytes": len(successor_proof),
+-                "full_proof_sha256": _sha256(successor_proof),
+-                "typed_objects": len(successor_objects),
++            full_replay_started = time.monotonic()
++            replayed = _ordinary_replay(
++                successor_proof, successor_head, policy,
++                successor_data["source"]["verified_at"],
++            )
++            full_replay_seconds = round(time.monotonic() - full_replay_started, 6)
++            control = {
++                "family": "existing-full-download-control",
++                "base_full_proof_bytes": len(base_proof),
++                "full_successor_bytes": len(successor_proof),
++                "manifest_bytes": 0,
++                "changed_payload_bytes": len(successor_proof),
++                "total_warm_bytes": len(successor_proof),
++                "warm_to_full_ratio": 1.0,
++                "current_published_bytes_including_retained_full": len(successor_proof),
++                "proof_chunk_requests": 1,
++                "total_requests": 1,
++                "additional_requests_vs_full": 0,
+                 "changed_objects": len(added),
+                 "removed_objects": len(removed),
+-                "imports": successors,
++                "round_trip": {
++                    "exact_typed_object_map": True,
++                    "ordinary_full_proof_equal": True,
++                    "ordinary_canonical_replay_equal": (
++                        _comparable(replayed) == _comparable(successor_data)
++                    ),
++                    "source_equal": replayed["source"] == successor_data["source"],
++                },
++                "timings_seconds": {
++                    "ordinary_canonical_replay": full_replay_seconds,
++                    "scope": "Local production full-bundle decode and canonical replay.",
++                },
++                "same_head": {
++                    "proof_chunk_requests": 0,
++                    "changed_payload_bytes": 0,
++                    "total_warm_bytes": 0,
++                    "total_requests": 0,
++                },
+             }
+-            measurement["formats"] = []
+-            try:
+-                _measure_candidates(
+-                    measurement, base_head, base_objects, base_proof,
+-                    successor_head, successor_objects, successor_proof,
+-                    successor_data, policy,
+-                )
+-                full_replay_started = time.monotonic()
+-                replayed = _ordinary_replay(
+-                    successor_proof, successor_head, policy,
+-                    successor_data["source"]["verified_at"],
+-                )
+-                full_replay_seconds = round(time.monotonic() - full_replay_started, 6)
+-                measurement["formats"].append({
+-                    "family": "existing-full-download-control",
+-                    "status": "success",
+-                    "base_full_proof_bytes": len(base_proof),
+-                    "full_successor_bytes": len(successor_proof),
+-                    "manifest_bytes": 0,
+-                    "changed_payload_bytes": len(successor_proof),
+-                    "total_warm_bytes": len(successor_proof),
+-                    "warm_to_full_ratio": 1.0,
+-                    "current_published_bytes_including_retained_full": len(successor_proof),
+-                    "proof_chunk_requests": 1,
+-                    "total_requests": 1,
+-                    "additional_requests_vs_full": 0,
++            return {
++                "reconstruction": reconstructed,
++                "base": {
++                    "head": base_head,
++                    "records": len(base_data["records"]),
++                    "receipts": len(base_data["receipts"]),
++                    "full_proof_bytes": len(base_proof),
++                    "full_proof_sha256": _sha256(base_proof),
++                    "typed_objects": len(base_objects),
++                    "native_generation": base_native,
++                },
++                "successor": {
++                    "head": successor_head,
++                    "records": len(successor_data["records"]),
++                    "receipts": len(successor_data["receipts"]),
++                    "records_added": 10,
++                    "receipts_added": 10,
++                    "full_proof_bytes": len(successor_proof),
++                    "full_proof_sha256": _sha256(successor_proof),
++                    "typed_objects": len(successor_objects),
+                     "changed_objects": len(added),
+                     "removed_objects": len(removed),
+-                    "round_trip": {
+-                        "exact_typed_object_map": True,
+-                        "ordinary_full_proof_equal": True,
+-                        "ordinary_canonical_replay_equal": (
+-                            _comparable(replayed) == _comparable(successor_data)
+-                        ),
+-                        "source_equal": replayed["source"] == successor_data["source"],
+-                    },
+-                    "timings_seconds": {
+-                        "ordinary_canonical_replay": full_replay_seconds,
+-                        "scope": "Local production full-bundle decode and canonical replay.",
++                    "imports": successors,
++                },
++                "formats": formats + [control],
++                "fixture": {
++                    "git_commands": fixture.repository.commands,
++                    "contract_violations": fixture.contract_violations,
++                    "emulated_https_requests": len(fixture.requests),
++                    "emulated_response_bytes": sum(
++                        row["response_bytes"] for row in fixture.requests
++                    ),
++                    "pages_publications": fixture.pages_publications,
++                    "object_reader": {
++                        "cached_objects": len(fixture.reader.cache),
++                        "cached_object_bytes": fixture.reader.bytes,
++                        "object_cap": fixture.reader._max_objects,
++                        "byte_cap": fixture.reader._max_bytes,
+                     },
+-                    "same_head": {
+-                        "proof_chunk_requests": 0,
+-                        "changed_payload_bytes": 0,
+-                        "total_warm_bytes": 0,
+-                        "total_requests": 0,
+-                    },
+-                })
+-            finally:
+-                measurement["fixture"] = _fixture_metrics(fixture)
+-            return measurement
++                },
++            }
+ 
+ 
+ def run_comparison(*, source_report=SOURCE_REPORT,
+@@ -849,8 +821,8 @@
+         result["failure_stage"] = "fixture-comparison"
+         budget = gates._DeadlineBudget(OVERALL_SECONDS)
+         with gates._alarm_handler(budget) as alarm:
+-            _run_fixture_comparison(
+-                source["value"], budget, alarm, result["measurement"]
++            result["measurement"] = _run_fixture_comparison(
++                source["value"], budget, alarm
+             )
+         result["status"] = "success"
+         result["failure_stage"] = None
+
