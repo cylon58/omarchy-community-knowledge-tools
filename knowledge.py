@@ -24,6 +24,9 @@ SECRET_OR_PII = re.compile(
 TOKENISH = re.compile(r"[A-Za-z0-9_+/=-]{32,}")
 IPV6_CANDIDATE = re.compile(r"(?<![0-9A-Fa-f:])(?:[0-9A-Fa-f]{0,4}:){2,}[0-9A-Fa-f:.%]*(?![0-9A-Fa-f:])")
 EMBEDDED_URL = re.compile(r"https?://[^\s<>()\[\]{}\"'`]+", re.IGNORECASE)
+GITHUB_SLUG_PART = re.compile(r"[A-Za-z0-9_.-]{1,100}")
+FULL_GIT_OID = re.compile(r"[0-9a-f]{40}")
+GITHUB_NUMBER = re.compile(r"[1-9][0-9]*")
 
 
 def _load_validators():
@@ -77,6 +80,57 @@ def _public_https_url(value):
         return False
 
 
+def _github_reference_parts(value):
+    """Return semantic components only for bounded, recognizable GitHub references."""
+    try:
+        parsed = urlsplit(value)
+    except (TypeError, ValueError):
+        return None
+    if parsed.scheme != "https" or parsed.netloc.lower() != "github.com":
+        return None
+    parts = parsed.path.removeprefix("/").split("/")
+    if len(parts) < 4 or any(not part for part in parts):
+        return None
+    owner, repository, kind, target, *remainder = parts
+    if any(part in {".", ".."} or not GITHUB_SLUG_PART.fullmatch(part)
+           for part in (owner, repository)):
+        return None
+    if kind == "commit":
+        recognized = not remainder and FULL_GIT_OID.fullmatch(target)
+    elif kind in {"issues", "pull"}:
+        recognized = not remainder and GITHUB_NUMBER.fullmatch(target)
+    elif kind == "compare":
+        revisions = target.split("...")
+        recognized = not remainder and len(revisions) == 2 \
+            and all(FULL_GIT_OID.fullmatch(revision) for revision in revisions)
+    elif kind == "blob":
+        recognized = bool(remainder) and FULL_GIT_OID.fullmatch(target)
+    elif kind == "tree":
+        recognized = FULL_GIT_OID.fullmatch(target)
+    else:
+        recognized = False
+    if not recognized:
+        return None
+    return (*parts, parsed.query, parsed.fragment)
+
+
+def _entropy_candidates(value):
+    """Keep URL path delimiters from joining distinct public reference components."""
+    cursor = 0
+    for match in EMBEDDED_URL.finditer(value):
+        yield from TOKENISH.findall(value[cursor:match.start()])
+        raw_url = match.group()
+        url = raw_url.rstrip(".,;:!?")
+        parts = _github_reference_parts(url)
+        if parts is None:
+            yield from TOKENISH.findall(raw_url)
+        else:
+            for part in parts:
+                yield from TOKENISH.findall(part)
+        cursor = match.end()
+    yield from TOKENISH.findall(value[cursor:])
+
+
 def _privacy(value, key=""):
     if isinstance(value, dict):
         for child_key, child_value in value.items():
@@ -108,7 +162,7 @@ def _privacy(value, key=""):
         raise ValueError("Forbidden, credentialed, private, or local URL")
     if any(unicodedata.category(char) in {"Cf", "Cs", "Cc"} and char not in "\n\t" for char in value):
         raise ValueError("Hidden or control characters are not allowed")
-    for token in TOKENISH.findall(value):
+    for token in _entropy_candidates(decoded):
         if len(token) >= 40 and _entropy(token) >= 4.0:
             raise ValueError("Potential high-entropy secret; review locally")
 

@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from test_records import case, change, event, report
+from test_records import PUBLIC_COMMIT_URL, case, change, event, report
 
 
 NOW = datetime(2026, 9, 16, 16, 0, tzinfo=timezone.utc)
@@ -468,6 +468,19 @@ class ContributionWorkflow(unittest.TestCase):
             record_consent(preview, routes(), approved_at="2026-09-16T16:00:00Z")
         with self.assertRaisesRegex(ValueError, "timestamp"):
             record_consent(preview, routes(), approved_at="yesterday", explicit_local_command=True)
+
+    def test_public_commit_reference_survives_record_parsing_and_preview(self):
+        import knowledge
+        from omarchy_knowledge.contributions import build_preview
+
+        record = case()
+        record["provenance"] = {"kind": "external-source", "sources": [PUBLIC_COMMIT_URL]}
+        parsed = knowledge.parse_record(json.dumps(record))
+        preview = build_preview(
+            parsed, routes(), destination="ledger", title="Public source observation",
+            body="Reviewed inert public evidence.", attribution="Submitted by @fixture-account",
+        )
+        self.assertEqual(preview["record"], record)
 
     def test_preview_privacy_covers_all_public_text_and_direct_consent_objects(self):
         from omarchy_knowledge.contributions import build_preview, publication_bytes, record_consent

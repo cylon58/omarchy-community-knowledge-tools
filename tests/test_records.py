@@ -13,6 +13,14 @@ REPORT_ID = "aa3e61da-3b3c-4e4e-9fba-970ef606672f"
 EVENT_ID = "cc3e61da-3b3c-4e4e-9fba-970ef606672f"
 EVENT_TWO_ID = "ec3e61da-3b3c-4e4e-9fba-970ef606672f"
 EVENT_THREE_ID = "fc3e61da-3b3c-4e4e-9fba-970ef606672f"
+PUBLIC_COMMIT_URL = (
+    "https://github.com/example-contributor/omarchy-community-layout-plugin/commit/"
+    "0123456789012345678901234567890123456789"
+)
+HIGH_ENTROPY_VALUE = "A7b9C2d4E6f8G1h3J5k7L9m2N4p6Q8r1S3t5U7v9W2x4"
+PERCENT_ENCODED_HIGH_ENTROPY_VALUE = "".join(
+    f"%{ord(character):02X}" for character in HIGH_ENTROPY_VALUE
+)
 
 
 def case(identifier=CASE_ID):
@@ -155,6 +163,62 @@ class CompleteRecords(unittest.TestCase):
         record["payload"]["observed"] = "The local endpoint was 2001:db8:85a3::8a2e:370:7334."
         with self.assertRaisesRegex(ValueError, "sensitive"):
             knowledge.parse_record(json.dumps(record))
+
+    def test_accepts_exact_public_github_references_without_joining_path_entropy(self):
+        record = case()
+        record["provenance"] = {"kind": "external-source", "sources": [
+            PUBLIC_COMMIT_URL,
+            "https://github.com/example-community/example-plugin-marketplace/issues/7308",
+            (
+                "https://github.com/example-contributor/example-plugin/compare/"
+                "1111111111111111111111111111111111111111..."
+                "2222222222222222222222222222222222222222"
+            ),
+            (
+                "https://github.com/example-contributor/example-plugin/blob/"
+                "1111111111111111111111111111111111111111/src/plugin"
+            ),
+            (
+                "https://github.com/example-contributor/example-plugin/tree/"
+                "1111111111111111111111111111111111111111/src/components"
+            ),
+        ]}
+        self.assertEqual(knowledge.parse_record(json.dumps(record)), record)
+
+    def test_github_reference_paths_do_not_exempt_url_secret_bypasses(self):
+        unsafe_sources = {
+            "credentials": PUBLIC_COMMIT_URL.replace("github.com", "account@github.com"),
+            "private-host": PUBLIC_COMMIT_URL.replace("github.com", "github.internal"),
+            "encoded-secret-marker": PUBLIC_COMMIT_URL + "?api%5Fkey=short-value",
+            "percent-encoded-entropy": PUBLIC_COMMIT_URL + "?context=" + PERCENT_ENCODED_HIGH_ENTROPY_VALUE,
+            "high-entropy-query": PUBLIC_COMMIT_URL + "?context=" + HIGH_ENTROPY_VALUE,
+            "high-entropy-fragment": PUBLIC_COMMIT_URL + "#" + HIGH_ENTROPY_VALUE,
+            "unexpected-commit-suffix": PUBLIC_COMMIT_URL + "/" + HIGH_ENTROPY_VALUE,
+            "high-entropy-blob-path": (
+                "https://github.com/example-contributor/example-plugin/blob/"
+                "1111111111111111111111111111111111111111/" + HIGH_ENTROPY_VALUE
+            ),
+            "unknown-host": PUBLIC_COMMIT_URL.replace("github.com", "code.example.org"),
+            "lookalike-host": PUBLIC_COMMIT_URL.replace("github.com", "github.com.example.org"),
+            "explicit-port": PUBLIC_COMMIT_URL.replace("github.com", "github.com:443"),
+        }
+        for label, source in unsafe_sources.items():
+            with self.subTest(label=label):
+                record = case()
+                record["provenance"] = {"kind": "external-source", "sources": [source]}
+                with self.assertRaises(ValueError):
+                    knowledge.parse_record(json.dumps(record))
+
+    def test_github_reference_does_not_exempt_adjacent_prose_or_sensitive_markers(self):
+        for label, observed in {
+            "high-entropy-prose": PUBLIC_COMMIT_URL + " evidence " + HIGH_ENTROPY_VALUE,
+            "forbidden-marker": PUBLIC_COMMIT_URL + " private_key=short-value",
+        }.items():
+            with self.subTest(label=label):
+                record = case()
+                record["payload"]["observed"] = observed
+                with self.assertRaises(ValueError):
+                    knowledge.parse_record(json.dumps(record))
 
     def test_rejects_non_string_type_as_invalid_input(self):
         record = case()

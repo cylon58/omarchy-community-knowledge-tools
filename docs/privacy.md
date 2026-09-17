@@ -31,6 +31,15 @@ identifiers in free text. These bounded checks still cannot decode every possibl
 encoding or recognize every context-specific identifier. Rejected text is not
 echoed in CLI diagnostics.
 
+The entropy guard recognizes only bounded GitHub source-reference forms: numbered
+issues/pulls, full-commit commit/blob/tree links, and full-commit compares. It scans
+their path, query, fragment, and surrounding prose as separate semantic components
+so a normal public path is not mistaken for one encoded token. Unrecognized URL
+shapes retain the conservative whole-token check. This is only a false-positive
+reduction: a URL or hash does not prove that a source exists, is public, is immutable
+in every meaningful sense, or is safe. The heuristic can still miss encoded or split
+secrets, so exact local preview and human review remain required.
+
 Deletion cannot recall downloaded copies. Report sensitive privacy/security issues
 privately through the [ledger security form](https://github.com/cylon58/omarchy-community-knowledge/security/advisories/new)
 or [toolkit security form](https://github.com/cylon58/omarchy-community-knowledge-tools/security/advisories/new).
