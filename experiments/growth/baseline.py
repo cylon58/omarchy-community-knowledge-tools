@@ -450,11 +450,21 @@ def run_baseline(imports, reports_per_case=1):
                     patch("omarchy_knowledge.resolution.CatalogPublicRead", _OfflineUpstream):
                 synced = sync(api, policy, cache, now=FIXED_NOW)
             query = f"synthetic growth case {imports:08d}"
-            from omarchy_knowledge.discovery import search_snapshot
-            begin_stage("cold-ranked-query")
-            found = search_snapshot(cache, query, method="ranked", compact=True)
-            begin_stage("warm-ranked-query")
-            warm = search_snapshot(cache, query, method="ranked", compact=True)
+            from omarchy_knowledge import discovery
+            fixed_status_now = datetime.fromisoformat(FIXED_NOW.replace("Z", "+00:00"))
+            real_snapshot_status = discovery.snapshot_status
+
+            def fixed_snapshot_status(snapshot, *, now=None,
+                                      stale_after_seconds=86400):
+                return real_snapshot_status(
+                    snapshot, now=fixed_status_now,
+                    stale_after_seconds=stale_after_seconds)
+
+            with patch.object(discovery, "snapshot_status", fixed_snapshot_status):
+                begin_stage("cold-ranked-query")
+                found = discovery.search_snapshot(cache, query, method="ranked", compact=True)
+                begin_stage("warm-ranked-query")
+                warm = discovery.search_snapshot(cache, query, method="ranked", compact=True)
             finish_stage()
             if found != warm:
                 raise RuntimeError("Cold and warm ranked results differ")

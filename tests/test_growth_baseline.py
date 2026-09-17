@@ -1,5 +1,6 @@
 """Bounded, synthetic full-path growth baseline."""
 from contextlib import contextmanager, redirect_stdout
+from datetime import datetime, timedelta, timezone
 import io
 import json
 import unittest
@@ -55,6 +56,49 @@ class GrowthBaselineTests(unittest.TestCase):
         self.assertEqual(result["network"]["actual_requests"], 0)
         self.assertGreater(result["artifacts_bytes"]["proof_bundle"], 0)
         self.assertGreater(result["artifacts_bytes"]["static_distribution"], 0)
+
+    def test_ranked_queries_use_fixed_status_time_without_freezing_elapsed_clocks(self):
+        """Break caught: status-clock advancement makes full cold/warm results differ."""
+        from experiments.growth import baseline
+        from omarchy_knowledge import discovery
+
+        status_times = []
+        search_results = []
+        monotonic_reads = []
+        expected = datetime(2026, 9, 16, 16, tzinfo=timezone.utc)
+        original_status = discovery.snapshot_status
+        original_search = discovery.search_snapshot
+        original_monotonic = baseline.time.monotonic
+
+        def advancing_status(snapshot, *, now=None, stale_after_seconds=86400):
+            if now is None:
+                now = expected + timedelta(seconds=len(status_times) + 1)
+            status_times.append(now)
+            return original_status(snapshot, now=now,
+                                   stale_after_seconds=stale_after_seconds)
+
+        def record_search(*args, **kwargs):
+            result = original_search(*args, **kwargs)
+            search_results.append(result)
+            return result
+
+        def record_monotonic():
+            value = original_monotonic()
+            monotonic_reads.append(value)
+            return value
+
+        with patch.object(discovery, "snapshot_status", advancing_status), \
+                patch.object(discovery, "search_snapshot", record_search), \
+                patch.object(baseline.time, "monotonic", record_monotonic):
+            result = baseline.run_baseline(1)
+
+        self.assertEqual(status_times, [expected] * 2)
+        self.assertEqual(search_results[0], search_results[1])
+        self.assertEqual(result["status"], "success", result)
+        self.assertGreater(len(set(monotonic_reads)), 1)
+        self.assertEqual(result["final_query"]["case_ids"], [
+            "00000001-0000-4000-8000-000000000001",
+        ])
 
     def test_cleanup_failure_overrides_provisional_success_and_cli_fails(self):
         """Break caught: successful work hides a failed cleanup/reporting boundary."""

@@ -1,0 +1,27 @@
+{
+  "calls": 15,
+  "data_revision": "3139acf1d07453d99e3ae72e00f96153eb23e060",
+  "elapsed_seconds": 8.676732,
+  "graphql_calls": 9,
+  "graphql_points": 9,
+  "graphql_remaining": 4987,
+  "limitations": [
+    "Read-only current public catalog; not a synthetic scale load or admission test.",
+    "Existing account token; no Actions hourly quota claim.",
+    "No raw objects, credentials or private system data retained.",
+    "Proof replay is local; upstream release metadata not refreshed."
+  ],
+  "object_visits": 123,
+  "observed_at": "2026-09-17T19:37:16.075408+00:00",
+  "offline_replay_equal": true,
+  "profile": "live-public-cold-canonical",
+  "proof_bytes": 24208,
+  "proof_sha256": "30d3e4adac2ee13a32bbf2d1ec12d50850648a4d1a8d6f5d6c8fdb7c86d89f06",
+  "receipts": 26,
+  "records": 26,
+  "response_bytes": 146249,
+  "schema_version": 1,
+  "source_revision": "ed3a58b7a98aabf078a2fc5dff378a61720ab864",
+  "status": "success",
+  "verified_object_bytes": 98533
+}
