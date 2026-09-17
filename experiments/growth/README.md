@@ -30,8 +30,9 @@ class but omits exception messages.
 Captured results are in `results/`. They identify source revision `2250d3c` and
 the historical measured-harness SHA-256
 `26aab87ee9ef7aa376149b683186c3d4bcfdb260fb0d722fd9c044e4d2d36b58`.
-The current failure-accounting harness is
+The first corrected failure-accounting harness was
 `fe20879bbf2084e0bd694ea176bc37879da54fa226eb31a5ef31547a76a4cc34`;
+later harness changes are recorded in the [testing notebook](../../docs/testing/README.md).
 the historical JSON is intentionally unchanged. Its `imports_accepted` field
 means completed successful `publish` returns observed by the harness, not an
 independent count of canonical import commits. On this machine, 3 and 10 imports

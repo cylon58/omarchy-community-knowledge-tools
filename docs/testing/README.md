@@ -50,7 +50,7 @@ Future recorded runs should preserve stdout and place commentary alongside it.
 | Authenticated object batching | First candidate failed traversal; corrected exact500 comparison passed with 238 requests and exact proof parity | [Raw failure/success and limitations](batched-object-reads.md); narrower than full pipeline, no deployment |
 | Live native batch compatibility | Initial tree rejected on directory-size mismatch; reviewed correction passed two live object/hash checks | [Live failure, repeat and reproduction](live-native-batch.md); tiny compatibility sample, not capacity |
 | Warm proof format comparison | Single update pack used5.48% of full proof bytes in the first ten-record update; all formats preserved exact data | [All candidates, reviewed reporting fixes and limitations](proof-formats.md); no production format adopted |
-| Update-pack variation | Three same-base updates used4.90–5.37% of full bytes with exact proof/data parity | [Raw scenarios and scope](update-pack-variation.md); independent review pending, still one synthetic history |
+| Update-pack variation | Three same-base updates used4.90–5.37% of full bytes with exact proof/data parity | [Raw scenarios, reviewed corrections and scope](update-pack-variation.md); still one synthetic history, not deployed-client measurements |
 
 The public repository contains the regression tests named above. Historical private
 exploration is explicitly labeled; it is not presented as a public reproducible
