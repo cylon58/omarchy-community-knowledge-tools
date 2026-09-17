@@ -34,9 +34,15 @@ GRAPHQL_POINT_RESERVE = 100
 MAX_CACHE_OBJECTS = 5000
 MAX_CACHE_BYTES = 20 * 1024 * 1024
 PAGES = {
-    "production": ("cylon58.github.io", "/omarchy-community-knowledge/canonical-objects.bundle"),
-    "pilot": ("cylon58.github.io", "/omarchy-community-knowledge-pilot/canonical-objects.bundle"),
+    "production": ("cylon58.github.io", "/omarchy-community-knowledge/"),
+    "pilot": ("cylon58.github.io", "/omarchy-community-knowledge-pilot/"),
 }
+PAGE_ARTIFACTS = frozenset({
+    "canonical-objects.bundle",
+    "canonical-update.json",
+    "canonical-update.bundle",
+})
+PAGES_ATTEMPT_SECONDS = 15
 # Admission requires merge_commit_sha to bind the exact GitHub test merge to B/H.
 # 2026-03-10 removes that field; use the supported contract, not an absent-field
 # fallback. 2022-11-28 is supported until at least 2028-03-12, 24 months after the
@@ -125,10 +131,20 @@ def _stdio_worker():
         pass
 
 
-def _bundle_exchange(factory, deployment, deadline=None):
+def _pages_exchange(factory, deployment, artifact, maximum, deadline=None):
+    """Read one enum-selected fixed-origin artifact under a caller-supplied cap."""
     from .object_bundle import MAX_COMPRESSED_BUNDLE
-    require(deployment in PAGES)
-    host, path = PAGES[deployment]
+    from .update_pack import MAX_MANIFEST
+    require(deployment in PAGES and artifact in PAGE_ARTIFACTS
+            and type(maximum) is int)
+    if artifact == "canonical-update.json":
+        require(maximum == MAX_MANIFEST)
+    elif artifact == "canonical-objects.bundle":
+        require(maximum == MAX_COMPRESSED_BUNDLE)
+    else:
+        require(type(maximum) is int and 0 < maximum <= MAX_COMPRESSED_BUNDLE)
+    host, prefix = PAGES[deployment]
+    path = prefix + artifact
     deadline = time.monotonic() + 10 if deadline is None else min(deadline, time.monotonic() + 10)
     connection = factory(host, timeout=min(5, max(.001, deadline - time.monotonic())))
     try:
@@ -140,9 +156,9 @@ def _bundle_exchange(factory, deployment, deadline=None):
         raw = bytearray()
         while True:
             require(time.monotonic() < deadline)
-            chunk = response.read(min(65536, MAX_COMPRESSED_BUNDLE + 1 - len(raw)))
+            chunk = response.read(min(65536, maximum + 1 - len(raw)))
             raw.extend(chunk)
-            require(len(raw) <= MAX_COMPRESSED_BUNDLE)
+            require(len(raw) <= maximum)
             if not chunk:
                 break
         return bytes(raw)
@@ -152,11 +168,15 @@ def _bundle_exchange(factory, deployment, deadline=None):
         connection.close()
 
 
-def _bundle_stdio_worker():
-    """Fixed anonymous Pages GET boundary; accepts only a deployment enum."""
+def _pages_stdio_worker():
+    """Fixed anonymous Pages GET boundary; accepts only deployment/artifact enums."""
     try:
-        deployment = sys.stdin.buffer.read(32).decode("ascii")
-        sys.stdout.buffer.write(_bundle_exchange(http.client.HTTPSConnection, deployment))
+        request = json.loads(sys.stdin.buffer.read(256))
+        require(type(request) is dict and set(request) == {"deployment", "artifact", "maximum"})
+        sys.stdout.buffer.write(_pages_exchange(
+            http.client.HTTPSConnection,
+            request["deployment"], request["artifact"], request["maximum"],
+        ))
     except Exception:
         pass
 
@@ -173,13 +193,24 @@ class _HTTP:
         self.graphql_remaining = None
         self.deadline = time.monotonic() + TOTAL_SECONDS
 
-    def seed_request(self):
-        """Charge the optional Pages attempt to this adapter's one outer budget."""
+    def reserve_pages(self, maximum, *, reserve_calls=0, reserve_bytes=0,
+                      reserve_seconds=0):
+        """Charge one attempt while preserving explicitly reserved fallback budget."""
+        require(all(type(value) is int and value >= 0 for value in (
+            maximum, reserve_calls, reserve_bytes, reserve_seconds,
+        )))
+        now = time.monotonic()
+        enforced = maximum + 1  # one-byte sentinel detects an oversized body
+        require(maximum > 0
+                and self.calls + 1 + reserve_calls <= MAX_CALLS
+                and self.bytes + enforced + reserve_bytes <= MAX_BYTES
+                and now < self.deadline
+                and (reserve_seconds == 0
+                     or now + PAGES_ATTEMPT_SECONDS + reserve_seconds
+                     < self.deadline))
         self.calls += 1
-        require(self.calls <= MAX_CALLS and self.bytes < MAX_BYTES
-                and time.monotonic() < self.deadline)
 
-    def seed_bytes(self, amount):
+    def charge_pages(self, amount):
         require(type(amount) is int and amount >= 0)
         self.bytes += amount
         require(self.bytes <= MAX_BYTES and time.monotonic() < self.deadline)
@@ -320,65 +351,131 @@ class GitHubRead:
     def commit_info(self, oid):
         return self.objects.info(oid)
 
-    def prefill_canonical(self, revision):
-        """Load inert Pages bytes only after the caller authenticates main via API."""
+    def _pages(self, artifact, maximum, *, reserve_calls=0, reserve_bytes=0,
+               reserve_seconds=0):
+        """Use the adapter's aggregate budget for one fixed anonymous Pages read."""
+        self.http.reserve_pages(
+            maximum,
+            reserve_calls=reserve_calls,
+            reserve_bytes=reserve_bytes,
+            reserve_seconds=reserve_seconds,
+        )
         try:
             if self.connection_factory is not http.client.HTTPSConnection:
-                raw = _bundle_exchange(self.connection_factory, self.deployment)
+                raw = _pages_exchange(
+                    self.connection_factory, self.deployment, artifact, maximum,
+                    self.http.deadline,
+                )
             else:
                 root = str(Path(__file__).resolve().parent.parent)
                 code = ("import sys;sys.path.insert(0," + repr(root)
-                        + ");from omarchy_knowledge.github_native import _bundle_stdio_worker;_bundle_stdio_worker()")
+                        + ");from omarchy_knowledge.github_native import _pages_stdio_worker;_pages_stdio_worker()")
                 env = {"PATH": "/usr/bin:/bin", "LC_ALL": "C"}
-                with subprocess.Popen([sys.executable, "-I", "-c", code], stdin=subprocess.PIPE,
-                                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, cwd="/") as process:
+                payload = json.dumps({
+                    "deployment": self.deployment,
+                    "artifact": artifact,
+                    "maximum": maximum,
+                }, separators=(",", ":")).encode()
+                with subprocess.Popen(
+                    [sys.executable, "-I", "-c", code],
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL, env=env, cwd="/",
+                ) as process:
                     try:
-                        raw, _ = process.communicate(self.deployment.encode(), timeout=15)
-                        from .object_bundle import MAX_COMPRESSED_BUNDLE
-                        require(process.returncode == 0 and 0 < len(raw) <= MAX_COMPRESSED_BUNDLE)
+                        raw, _ = process.communicate(
+                            payload,
+                            timeout=min(PAGES_ATTEMPT_SECONDS,
+                                        max(.001, self.http.deadline - time.monotonic())),
+                        )
+                        require(process.returncode == 0 and 0 < len(raw) <= maximum)
                     except BaseException:
                         process.kill()
                         process.wait()
                         raise
-            self.objects.load_bundle(raw, _oid(revision))
-        except (OSError, subprocess.SubprocessError) as exc:
+            require(0 < len(raw) <= maximum)
+        except (NativeUnavailable, OSError, subprocess.SubprocessError) as exc:
+            # The parent cannot observe partial child bytes reliably. Charge the
+            # complete enforced cap, including status, timeout and worker errors.
+            self.http.charge_pages(maximum + 1)
+            if isinstance(exc, NativeUnavailable):
+                raise
             raise NativeUnavailable() from exc
+        self.http.charge_pages(len(raw))
+        return raw
+
+    def canonical_proofs(self, revision, cached):
+        """Yield at most one local/update candidate, then one full fallback proof.
+
+        Every yielded value is an inert, typed-hash-verified complete object map
+        encoded as an object bundle. The caller must still canonically replay it.
+        """
+        from .object_bundle import (BundleUnavailable, MAX_COMPRESSED_BUNDLE,
+                                    decode, decode_seed, encode)
+        from .update_pack import (MAX_MANIFEST, UpdatePackUnavailable, apply,
+                                  decode_manifest)
+        revision = _oid(revision)
+        base_head = None
+        base_objects = None
+        if isinstance(cached, bytes):
+            try:
+                base_head, base_objects = decode_seed(cached)
+                if base_head == revision:
+                    decode(cached, revision)
+                    yield cached
+                    base_head = None  # replay failure permits only full fallback
+            except BundleUnavailable:
+                base_head = base_objects = None
+
+        if base_head is not None and base_head != revision:
+            try:
+                manifest_raw = self._pages(
+                    "canonical-update.json", MAX_MANIFEST,
+                    reserve_calls=1, reserve_bytes=MAX_COMPRESSED_BUNDLE + 1,
+                    reserve_seconds=PAGES_ATTEMPT_SECONDS,
+                )
+                manifest = decode_manifest(
+                    manifest_raw,
+                    expected_deployment=self.deployment,
+                    expected_target_head=revision,
+                )
+                require(manifest.base_head == base_head)
+                pack = self._pages(
+                    "canonical-update.bundle", manifest.pack_size,
+                    reserve_calls=1, reserve_bytes=MAX_COMPRESSED_BUNDLE + 1,
+                    reserve_seconds=PAGES_ATTEMPT_SECONDS,
+                )
+                target = apply(
+                    manifest_raw, pack,
+                    deployment=self.deployment,
+                    base_head=base_head,
+                    base_objects=base_objects,
+                    expected_target_head=revision,
+                )
+                yield encode(revision, target)
+            except (BundleUnavailable, UpdatePackUnavailable, NativeUnavailable):
+                pass
+
+        raw = self._pages("canonical-objects.bundle", MAX_COMPRESSED_BUNDLE)
+        try:
+            decode(raw, revision)
+        except BundleUnavailable as exc:
+            raise NativeUnavailable() from exc
+        yield raw
+
+    def prefill_canonical(self, revision):
+        """Load inert Pages bytes only after the caller authenticates main via API."""
+        from .object_bundle import MAX_COMPRESSED_BUNDLE
+        raw = self._pages("canonical-objects.bundle", MAX_COMPRESSED_BUNDLE)
+        self.objects.load_bundle(raw, _oid(revision))
 
     def seed_canonical(self):
         """Optionally load the preceding fixed-origin proof as an inert cache."""
-        downloaded = False
         try:
-            self.http.seed_request()
-            if self.connection_factory is not http.client.HTTPSConnection:
-                raw = _bundle_exchange(self.connection_factory, self.deployment, self.http.deadline)
-            else:
-                root = str(Path(__file__).resolve().parent.parent)
-                code = ("import sys;sys.path.insert(0," + repr(root)
-                        + ");from omarchy_knowledge.github_native import _bundle_stdio_worker;_bundle_stdio_worker()")
-                env = {"PATH": "/usr/bin:/bin", "LC_ALL": "C"}
-                with subprocess.Popen([sys.executable, "-I", "-c", code], stdin=subprocess.PIPE,
-                                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, cwd="/") as process:
-                    try:
-                        raw, _ = process.communicate(
-                            self.deployment.encode(),
-                            timeout=min(15, max(.001, self.http.deadline - time.monotonic())))
-                        from .object_bundle import MAX_COMPRESSED_BUNDLE
-                        require(process.returncode == 0 and 0 < len(raw) <= MAX_COMPRESSED_BUNDLE)
-                    except BaseException:
-                        process.kill()
-                        process.wait()
-                        raise
-            downloaded = True
-            self.http.seed_bytes(len(raw))
+            from .object_bundle import MAX_COMPRESSED_BUNDLE
+            raw = self._pages("canonical-objects.bundle", MAX_COMPRESSED_BUNDLE)
             self.objects.load_seed(raw)
             return True
-        except (NativeUnavailable, OSError, subprocess.SubprocessError, ValueError):
-            if not downloaded:
-                from .object_bundle import MAX_COMPRESSED_BUNDLE
-                try:
-                    self.http.seed_bytes(MAX_COMPRESSED_BUNDLE + 1)
-                except NativeUnavailable:
-                    pass
+        except (NativeUnavailable, ValueError):
             return False
 
 

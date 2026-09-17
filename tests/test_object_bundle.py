@@ -343,7 +343,11 @@ class ObjectBundle(unittest.TestCase):
             with self.assertRaises(NativeUnavailable) as result:
                 GitHubRead(read_token="must-not-leak").prefill_canonical("a" * 40)
         self.assertEqual(captured["env"], {"PATH": "/usr/bin:/bin", "LC_ALL": "C"})
-        self.assertEqual(captured["payload"], b"production")
+        self.assertEqual(json.loads(captured["payload"]), {
+            "deployment": "production",
+            "artifact": "canonical-objects.bundle",
+            "maximum": 16 * 1024 * 1024,
+        })
         self.assertEqual(captured["timeout"], 15)
         self.assertTrue(Process.killed and Process.waited)
         self.assertNotIn("must-not", str(result.exception))

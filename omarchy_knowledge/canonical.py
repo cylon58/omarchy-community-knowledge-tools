@@ -19,17 +19,19 @@ from projections import record_digest, validate_ingestion_receipt, validate_upst
 def read_canonical(api, policy, *, now=None, prefill=False):
     """Read main once, then exclusively immutable objects under its trusted identity."""
     try:
-        return _read_canonical(api, policy, now=now, prefill=prefill)
+        _identity(api, policy)
+        revision = object_id(api.branch())
+        if prefill:
+            require(hasattr(api, 'prefill_canonical'))
+            api.prefill_canonical(revision)
+        return _read_canonical_at(api, policy, revision, now=now)
     except (Rejected, KeyError, TypeError, ValueError, RecursionError) as exc:
         raise NativeUnavailable() from exc
 
 
-def _read_canonical(api, policy, *, now, prefill):
-    _identity(api, policy)
-    revision = object_id(api.branch())
-    if prefill:
-        require(hasattr(api, 'prefill_canonical'))
-        api.prefill_canonical(revision)
+def _read_canonical_at(api, policy, revision, *, now):
+    """Replay canonical evidence at one already authenticated immutable revision."""
+    revision = object_id(revision)
     if hasattr(api.objects, 'warm'):
         api.objects.warm([revision])
     tree = object_id(api.objects.commit(revision))
@@ -83,6 +85,28 @@ def _read_canonical(api, policy, *, now, prefill):
     }, 'upstream': {'version': 1, 'status': 'not-refreshed', 'observations': []}}
 
 
+def _replay_proof(api, policy, revision, proof, *, now):
+    """Replay one candidate with isolated state and all object network forbidden."""
+    from .github_native import APIObjects
+
+    class Offline:
+        def git_commit(self, _oid):
+            raise NativeUnavailable()
+        git_tree = git_commit
+        git_blob = git_commit
+
+        def commit_info(self, oid):
+            return self.objects.info(oid)
+
+    replay = Offline()
+    replay.objects = APIObjects(replay, total_deadline=api.objects.total_deadline)
+    replay.objects.load_bundle(proof, revision)
+    try:
+        return _read_canonical_at(replay, policy, revision, now=now)
+    except (Rejected, KeyError, TypeError, ValueError, RecursionError) as exc:
+        raise NativeUnavailable() from exc
+
+
 def snapshot_data(data, output):
     source = data['source']
     return _write_snapshot(data['records'], output, data_revision=source['data_revision'],
@@ -93,12 +117,40 @@ def snapshot_data(data, output):
 
 def sync(api, policy, cache, *, now=None):
     from .resolution import refresh_canonical
-    data = read_canonical(api, policy, now=now, prefill=True)
+    proof = None
+    if hasattr(api, 'canonical_proofs'):
+        from .proof_cache import load
+        try:
+            _identity(api, policy)
+            revision = object_id(api.branch())
+            for candidate in api.canonical_proofs(revision, load(cache)):
+                try:
+                    data = _replay_proof(api, policy, revision, candidate, now=now)
+                    proof = candidate
+                    break
+                except NativeUnavailable:
+                    continue
+            else:
+                raise NativeUnavailable()
+        except (Rejected, KeyError, TypeError, ValueError, RecursionError) as exc:
+            raise NativeUnavailable() from exc
+    else:
+        # Explicit compatibility seam for custom adapters: retain strict full
+        # prefill behavior unless they opt into candidate iteration.
+        data = read_canonical(api, policy, now=now, prefill=True)
     refresh_canonical(data)
     with tempfile.TemporaryDirectory(prefix='omarchy-canonical-') as temporary:
         output = Path(temporary) / 'snapshot'
         manifest = snapshot_data(data, output)
         _import_snapshot(output, cache, canonical={k: v for k, v in data.items() if k != 'records'})
+    if proof is not None:
+        try:
+            from .proof_cache import store
+            store(cache, proof)
+        except (OSError, ValueError):
+            # CURRENT already names the authenticated snapshot. Acceleration
+            # cache failure can only cost a later download, never sync success.
+            pass
     return {**data['source'], 'record_count': manifest['record_count'],
             'receipt_count': len(data['receipts']), 'trust': 'canonical-api-receipts',
             'upstream_status': data['upstream']['status']}

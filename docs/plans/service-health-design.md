@@ -56,6 +56,42 @@ configuration. The cause is not diagnosed. Keep missed-run/freshness checks and
 the independent-monitor limitation explicit; do not call the configured cron an
 observed hourly service guarantee.
 
+## Implementation preflight: measured versus inferred
+
+Use fixed production/pilot status and distribution manifests plus fixed main-ref
+and scheduled reconcile-run API reads. Authenticate the fixed repository's numeric
+identity with its repository API response before interpreting main/run facts;
+matching a name in a Pages document is not a replacement for that check.
+Cross-check the fetched status bytes against
+the distribution manifest and require matching source identities. These checks
+establish an operational observation, not canonical evidence authority.
+
+Record count, receipt count/coverage, compressed proof bytes and distribution bytes
+are directly available. The builder can expose object count/raw bytes from its
+already validated proof. A builder adapter's calls/bytes or object visits must be
+labeled as that adapter's scope, never all jobs or all upstream requests. Do not
+compute exact canonical corpus bytes from reserialized records: stored JSON bytes
+can differ. Leave usage unknown unless measured at its enforcement boundary.
+Likewise, record count is not the canonical tree-entry count, which also includes
+receipts and directories. A denominator alone is not a capacity measurement.
+
+A single sample can report revision mismatch, stale generation, missing successful
+scheduled runs, current retry/pending state and measured resource pressure. It
+cannot establish how long a mismatch persisted or whether a cursor repeatedly
+stalled/reset. Those require previous samples or explicitly persisted progress
+metadata. Until available, report unknown rather than inventing duration or a
+backlog estimate. A long full-cycle age is not by itself a missed SLA; no universal
+full-cycle deadline has been established.
+
+Initial policy decisions for implementation: generation older than four hours and
+no successful scheduled run for more than two configured intervals are failures.
+Warn at80% of a genuinely measured hard resource bound. Immediate main/Pages drift,
+scan truncation and current cursor drift are warnings; unknown/partial upstream
+facts are separate evidence-freshness information, not proof of service outage.
+Incomplete receipt coverage and current unavailable/retry/receipt-pending intake
+must remain visibly unhealthy. More precise persistent-drift and queue-time alarms
+need measured pilot data or a defined previous-sample contract, not guessed ages.
+
 Only install after reviewed health code and immutable workflow pins exist. Test
 pilot and production reads without creating synthetic public contributions. Record
 the workflow/run URLs, notification limitations and how to disable the monitor.

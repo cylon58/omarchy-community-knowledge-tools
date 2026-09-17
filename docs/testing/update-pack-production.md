@@ -57,6 +57,40 @@ Independent task review passed both specification and quality checks with no
 findings. Complete canonical replay remains a required integration check in the
 next task, not a guarantee supplied by this data-only decoder.
 
+### Client transport and cache (reviewed)
+
+The integrated client passed74 related regression tests (16.184 seconds); a fresh
+controller run of its13 focused tests passed in6.620 seconds. This is behavioral
+verification on small local fixtures, not the larger transfer benchmark.
+
+```sh
+python -m unittest tests.test_update_client tests.test_update_pack \
+  tests.test_object_bundle tests.test_hosted_proof_reuse tests.test_batched_reads \
+  tests.test_distribution tests.test_live_resolution
+```
+
+Tests exercise actual cold/full, warm/update and unchanged-head sync, corrupt and
+wrong-base candidates, typed-valid but canonically incomplete proofs, isolated full
+fallback, fixed anonymous origins, shared resource limits and safe cache writes.
+The previous valid CURRENT and proof remain after a failed refresh; failure to save
+the optional proof after CURRENT commits does not turn a successful sync into failure.
+
+Self-review found two regressions before handoff: empty worker output initially
+charged zero bytes despite unknown partial transfer, and optional hosted seeding
+was wrongly skipped when less than a fresh worker interval remained. Separate
+failing tests captured both; fixes passed before the related regression run.
+Independent review then caught a one-byte overflow-accounting defect: detecting
+an oversized response can read one byte beyond the payload limit, while the
+candidate reserved and charged only the payload limit. A four-byte-cap reproducer
+read five bytes but charged four, slightly overstating remaining fallback capacity.
+The correction includes that sentinel in reservations and failed-read accounting,
+including the full fallback. Four focused tests passed (fresh controller run:
+0.092 seconds), and28 related tests passed in6.766 seconds. The new regression
+checks actual oversized reads, preserved fallback and rejection one byte short.
+Astra's scoped re-review passed with no new findings. Payload and aggregate caps
+stay unchanged. Publisher integration and large actual-client measurement remain
+outstanding.
+
 The remaining release gate includes an actual-client ten-record update, wrong-base
 fallback, same-head reuse and exact evidence parity. Timing must distinguish
 download/assembly from full validation. A matching-base saving is not an all-user
