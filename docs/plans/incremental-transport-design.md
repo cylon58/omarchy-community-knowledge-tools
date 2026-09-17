@@ -71,3 +71,41 @@ Hosted old-proof reuse should be evaluated first because it can reduce API calls
 without depending on the chunk format. It must retain API fallback for missing
 objects, separately authenticate current main, and never make stale proof bytes
 authoritative. Track the objects touched by current validation before export.
+
+### Safe seed contract to test
+
+Old proof objects are inert cache entries, not an old authority checkpoint. Decode
+and hash-check them atomically with the existing size/object bounds; do not repeat
+old-head record/schema/receipt validation merely to reuse a correctly hashed blob.
+Install only a bounded seed that leaves explicit room for new objects. Oversized
+or malformed seeds are ignored, not partially trusted.
+
+Raw Git trees do not encode blob sizes. The current tree decoder obtains sizes
+from cached blobs and can memoize `-1` when one is absent. A partial seed therefore
+needs special handling: omit any seeded tree whose direct blob children are not
+all present, so normal API tree retrieval supplies sizes. Never preserve a parsed
+blob entry with unknown size and assume a later blob fetch repairs it. Missing
+child subtrees may be fetched normally. Add an explicit regression for this case.
+
+Seed loading must not mark objects as used by the current graph. Track current
+commit/tree/blob accesses, including cache hits, and export only that set. Replay
+the pruned output with object-network reads forbidden to establish complete proof
+and record/receipt parity. Any fallback shares the original absolute deadline and
+API call/byte budget; constructing a new adapter must not reset those limits.
+
+### Staged format experiment
+
+First obtain one successful 500-record/100-import graph and a successor with ten
+new records and receipts. Compare complete gzip, 64/256 prefix chunks, per-object
+gzip and a best-case update pack. Measure actual required objects from canonical
+validation, not all objects retained by Git history. Report manifest plus changed
+bytes relative to the complete successor gzip, changed requests, total published
+bytes, decode/validation cost, and hosted cold versus seeded API calls. Same-head
+reuse should transfer no proof chunks. Preserve failed formats in the notebook.
+
+Reject poor formats before repeating expensive fixtures. For a viable format,
+expand deterministic content/UUID variation rather than declaring capacity from
+one favorable hash distribution. Keep the existing one-file cold download. Do not
+raise resource limits or silently substitute a larger denominator to pass the
+25% target. Security cases include missing/tampered/swapped chunks, stale head,
+partial seed, cache pressure, interrupted refresh, and unavailable Pages.

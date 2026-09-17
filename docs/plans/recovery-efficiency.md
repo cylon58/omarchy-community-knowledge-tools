@@ -23,6 +23,12 @@ Files: `omarchy_knowledge/coordinator.py`, narrowly necessary grant checks in
 `omarchy_knowledge/admission.py`, new `tests/test_recovery_efficiency.py`.
 Read candidate design first. Preserve all existing exact-base/receipt checks.
 
+Review-discovered scope correction: the production writer in `github_native.py`
+also enforces a one-receipt mutation ceiling. Update that exact boundary to accept
+the governed batch, with a regression exercising the actual writer request builder
+and its unchanged expected-head/path/message restrictions. A permissive fake API
+is not sufficient evidence that batched recovery can reach production.
+
 - [ ] Write and run failing tests for a completed multi-record import causing no
   redundant repair and for partial coverage being repaired in one receipt CAS.
   Assert final authenticated receipts and immutable source identity, not only spies.

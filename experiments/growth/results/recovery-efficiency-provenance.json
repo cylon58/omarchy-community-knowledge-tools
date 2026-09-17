@@ -1,0 +1,7 @@
+{
+  "admission_sha256": "c4d2ae08973a1fe131efa0c89c8f9eb3268d9318c8692946a56f3c6e92f098b0",
+  "base_revision_reported_by_harness": "c0aeb0f647b3a10c0508e378c4f1a7c089611ab6",
+  "coordinator_sha256": "1d007eea66426262137995b7d663860fb093ffd00360eee9f7b238b3f2c92df7",
+  "harness_sha256": "fe20879bbf2084e0bd694ea176bc37879da54fa226eb31a5ef31547a76a4cc34",
+  "note": "The measured production files contained uncommitted recovery-efficiency changes; the harness code_revision therefore identifies their base commit, not a commit containing those changes."
+}

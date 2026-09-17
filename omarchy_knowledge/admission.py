@@ -53,8 +53,9 @@ class CoordinatorImportGrant:
     """Trusted native coordinator contract, never a grant read from user JSON.
 
     The coordinator authenticates the import through canonical single-parent
-    history and fixed metadata, then binds exactly one generated receipt here.
-    Constructing this dataclass is not itself authentication.
+    history and fixed metadata, then binds the exact generated receipt additions
+    for one accepted import here. Constructing this dataclass is not itself
+    authentication.
     """
     repository_id: int
     accepted_commit_oid: str
@@ -149,7 +150,9 @@ def check_tree(candidate, objects, *, trusted_bot_grant=None, trusted_import_gra
             else:
                 _require(current[path].kind == "tree" and old.mode == current[path].mode, "NOT_ADDITIONS_ONLY")
         added = {path: entry for path, entry in current.items() if path not in base and entry.kind != "tree"}
-        if len(added) > (10 if candidate.profile == "community" else 1):
+        import_batch = (candidate.profile == "ingestion-receipt"
+                        and isinstance(trusted_import_grant, CoordinatorImportGrant))
+        if len(added) > (10 if candidate.profile == "community" or import_batch else 1):
             raise ObjectUnavailable()
         _require(bool(added), "NO_ADDITIONS")
         for path, entry in current.items():
@@ -210,6 +213,7 @@ def check_tree(candidate, objects, *, trusted_bot_grant=None, trusted_import_gra
             by_id[identifier] = (record, entry, path)
             canonical.append((path, entry.oid))
         knowledge.validate_corpus(records)
+        ingestion_bindings = []
         for path, item in provenance:
             ingestion = path.startswith("provenance/ingestion/")
             target_id = item["record_id" if ingestion else "event_id"]
@@ -228,9 +232,15 @@ def check_tree(candidate, objects, *, trusted_bot_grant=None, trusted_import_gra
                 if path in added and trusted_import_grant is not None:
                     _require(item["receipt_version"] == 2 and accepted == trusted_import_grant.accepted_commit_oid,
                              "AUTHORITY_MISMATCH")
-                historical_tree = objects.commit(accepted)
-                historical = _paths(objects.entries(historical_tree))
-                _require(target_path in historical and historical[target_path] == entry, "PROVENANCE_TARGET_MISMATCH")
+                ingestion_bindings.append((accepted, target_path, entry))
+        historical_accepted = None
+        historical = None
+        for accepted, target_path, entry in sorted(ingestion_bindings, key=lambda row: row[0]):
+            if accepted != historical_accepted:
+                historical = _paths(objects.entries(objects.commit(accepted)))
+                historical_accepted = accepted
+            _require(target_path in historical and historical[target_path] == entry,
+                     "PROVENANCE_TARGET_MISMATCH")
         report["corpus_digest"] = "sha256:" + hashlib.sha256(json.dumps(canonical, separators=(",", ":")).encode()).hexdigest()
         report["additions"] = [{"path_class": "record" if p.startswith("records/") else candidate.profile,
                                 "blob_oid": e.oid, "size": e.size} for p, e in sorted(added.items())]

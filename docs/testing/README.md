@@ -17,6 +17,10 @@ without it, that test reports a skip. CI covers Python 3.11 and 3.13. See workfl
 logs for the exact dependency setup and runtime; do not assume your local timings
 will match ours.
 
+The reviewed baseline/reporting revision `c0aeb0f` passed both Python versions in
+[GitHub Actions run 35245682114](https://github.com/cylon58/omarchy-community-knowledge-tools/actions/runs/35245682114).
+This validates the suite and synthetic smoke flow, not live service capacity.
+
 Local-only scaling probe: `python -m experiments.local_search --cases 1000`.
 [Recorded run](local-search-2026-09-17.json) includes the source revision, harness
 hash, cold/warm timings and limitations. It is not the hosted growth baseline.
@@ -37,6 +41,7 @@ Future recorded runs should preserve stdout and place commentary alongside it.
 | Code-graph alternative | Kept explicit case/change/report/event links rather than introducing a code graph | Architectural comparison, not a measured experiment; graph navigation does not replace applicability and adverse-evidence checks |
 | Optional TypeSafe/Jev input experiments | Compared text/named fields, pair/batch questions and richer context; no mandatory cloud dependency added | Synthetic/public-only inputs with user approval. Provider performance outputs withheld pending publication permission; not evidence of production reliability |
 | Core data-path growth baseline | 3/10 imports completed; 30-import run hit its 120-second workload alarm after 18 completed publish returns | [Harness, methods and results](../../experiments/growth/README.md); interrupted acceptance count unknown; real Git/admission/receipts/build/sync/search with a local API boundary, not live Actions throughput |
+| Batched receipt recovery | Candidate cut the ten-import run from 37.0 to 21.1 seconds; thirty-import run still hit its alarm | [Comparison, raw results and limitations](recovery-efficiency.md); not yet deployed or a larger-capacity claim |
 
 The public repository contains the regression tests named above. Historical private
 exploration is explicitly labeled; it is not presented as a public reproducible

@@ -530,7 +530,8 @@ class GitHubWriter(GitHubRead):
         headline, separator, body = message.partition("\n\n")
         require(headline in {"Omarchy knowledge snapshot import", "Record source-bound ingestion receipt"})
         if headline == "Record source-bound ingestion receipt":
-            require(len(files) == 1 and files[0]["path"].startswith("provenance/ingestion/") and not separator)
+            require(all(item["path"].startswith("provenance/ingestion/") for item in files)
+                    and not separator)
         else:
             require(all(item["path"].startswith("records/") for item in files) and bool(separator))
         inputs = {"branch": {"repositoryNameWithOwner": self.repository_name, "branchName": "main"},

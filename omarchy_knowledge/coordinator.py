@@ -76,6 +76,18 @@ class Result:
     source_head: str | None = None
 
 
+@dataclass(frozen=True)
+class _ReceiptCoverage:
+    pull_request: int
+    head: str
+    manifest_additions: tuple[tuple[str, str], ...]
+    authenticated_additions: frozenset[tuple[str, str]]
+
+    @property
+    def complete(self):
+        return self.authenticated_additions == frozenset(self.manifest_additions)
+
+
 class Overlay:
     """In-memory Git objects derived only from verified base entries/exact bytes."""
     def __init__(self, objects):
@@ -307,7 +319,7 @@ def _import_plan(api, policy, info):
     return plan
 
 
-def _receipted_snapshots(api, policy, *, base=None, receipt_sink=None):
+def _receipted_snapshots(api, policy, *, base=None, receipt_sink=None, coverage_sink=None):
     """Canonical receipts retain completed imports beyond the recovery window.
 
     Validate receipt bytes against immutable import metadata and the exact current
@@ -319,7 +331,12 @@ def _receipted_snapshots(api, policy, *, base=None, receipt_sink=None):
     if hasattr(api.objects, "warm"):
         api.objects.warm([base])
     entries = _paths(api.objects.entries(api.objects.commit(base)))
-    imported, imports, total = set(), {}, 0
+    imported, total = set(), 0
+    grouped_v1, grouped_v2, authenticated = {}, {}, []
+    record_paths = {}
+    for path, entry in entries.items():
+        if entry.kind != "tree" and path.startswith("records/"):
+            record_paths.setdefault(path.rsplit("/", 1)[1], []).append(path)
     for path, entry in entries.items():
         if entry.kind == "tree" or not path.startswith("provenance/ingestion/"):
             continue
@@ -337,43 +354,60 @@ def _receipted_snapshots(api, policy, *, base=None, receipt_sink=None):
                 require(source['merge_commit_oid']['algorithm'] == 'sha1'
                         and source['record_blob_oid']['algorithm'] == 'sha1')
                 accepted = object_id(source['merge_commit_oid']['hex'])
-                historical = _paths(api.objects.entries(api.objects.commit(accepted)))
-                matches = [p for p in entries if p.startswith('records/')
-                           and p.endswith('/' + receipt['record_id'] + '.json')]
-                require(len(matches) == 1)
-                target = matches[0]
-                require(target in historical and entries[target] == historical[target]
-                        and entries[target].kind == 'blob' and entries[target].mode == '100644'
-                        and entries[target].oid == source['record_blob_oid']['hex'])
-                record = knowledge.parse_record(api.objects.blob(entries[target].oid))
-                require(target == f"records/{record['type']}s/{record['id']}.json"
-                        and record_digest(record) == receipt['record_sha256'])
-                receipt_sink.append(receipt)
+                grouped_v1.setdefault(accepted, []).append((path, raw, receipt))
             continue  # V1 does not assert a source head, so cannot deduplicate it.
         accepted = object_id(receipt["source"]["accepted_commit_oid"]["hex"])
-        if accepted not in imports:
-            info = api.commit_info(accepted)
-            require(info["oid"] == accepted)
-            # Retain metadata only, not full historical trees or duplicate record
-            # contents per receipt. Object retrieval retains its existing bounds.
-            imports[accepted] = (info, _manifest(_import_plan(api, policy, info)))
-        info, plan = imports[accepted]
+        grouped_v2.setdefault(accepted, []).append((path, raw, receipt))
+
+    for accepted, rows in grouped_v1.items():
         historical = _paths(api.objects.entries(api.objects.commit(accepted)))
-        matches = [item for item in plan["additions"]
-                   if item["path"].rsplit("/", 1)[1] == receipt["record_id"] + ".json"]
-        require(len(matches) == 1)
-        item = matches[0]
-        target = item["path"]
-        require(target in entries and target in historical and entries[target] == historical[target]
-                and entries[target].kind == "blob" and entries[target].mode == "100644"
-                and entries[target].oid == item["blob"])
-        record = knowledge.parse_record(api.objects.blob(item["blob"]))
-        require(record["id"] == receipt["record_id"] and target == f"records/{record['type']}s/{record['id']}.json")
-        require(raw == canonical(_receipt(plan, info, item, record)) + b"\n"
-                and path == _receipt_path(policy.repository_id, accepted, record["id"]))
-        imported.add((plan["pull_request"], plan["head"]))
-        if receipt_sink is not None:
-            receipt_sink.append(receipt)
+        for _, _, receipt in rows:
+            source = receipt["source"]
+            matches = record_paths.get(receipt["record_id"] + ".json", [])
+            require(len(matches) == 1)
+            target = matches[0]
+            require(target in historical and entries[target] == historical[target]
+                    and entries[target].kind == "blob" and entries[target].mode == "100644"
+                    and entries[target].oid == source["record_blob_oid"]["hex"])
+            record = knowledge.parse_record(api.objects.blob(entries[target].oid))
+            require(target == f"records/{record['type']}s/{record['id']}.json"
+                    and record_digest(record) == receipt["record_sha256"])
+            authenticated.append(receipt)
+
+    for accepted, rows in grouped_v2.items():
+        info = api.commit_info(accepted)
+        require(info["oid"] == accepted)
+        plan = _manifest(_import_plan(api, policy, info))
+        historical = _paths(api.objects.entries(api.objects.commit(accepted)))
+        by_name = {}
+        for item in plan["additions"]:
+            by_name.setdefault(item["path"].rsplit("/", 1)[1], []).append(item)
+        covered = set()
+        for path, raw, receipt in rows:
+            matches = by_name.get(receipt["record_id"] + ".json", [])
+            require(len(matches) == 1)
+            item = matches[0]
+            target = item["path"]
+            require(target in entries and target in historical and entries[target] == historical[target]
+                    and entries[target].kind == "blob" and entries[target].mode == "100644"
+                    and entries[target].oid == item["blob"])
+            record = knowledge.parse_record(api.objects.blob(item["blob"]))
+            require(record["id"] == receipt["record_id"]
+                    and target == f"records/{record['type']}s/{record['id']}.json")
+            require(raw == canonical(_receipt(plan, info, item, record)) + b"\n"
+                    and path == _receipt_path(policy.repository_id, accepted, record["id"]))
+            covered.add((target, item["blob"]))
+            authenticated.append(receipt)
+        coverage = _ReceiptCoverage(
+            plan["pull_request"], plan["head"],
+            tuple((item["path"], item["blob"]) for item in plan["additions"]),
+            frozenset(covered))
+        if coverage_sink is not None:
+            coverage_sink[accepted] = coverage
+        if coverage.complete:
+            imported.add((coverage.pull_request, coverage.head))
+    if receipt_sink is not None:
+        receipt_sink.extend(authenticated)
     return imported
 
 
@@ -399,6 +433,9 @@ def _repair(api, policy, plan, info):
     predecessor = _paths(api.objects.entries(api.objects.commit(plan["base"])))
     require(sorted((p, e.oid) for p, e in accepted.items() if p not in predecessor and e.kind != "tree")
             == [(i["path"], i["blob"]) for i in plan["additions"]])
+    base = object_id(api.branch())
+    existing = _paths(api.objects.entries(api.objects.commit(base)))
+    missing = {}
     for item in plan["additions"]:
         path = item["path"]
         require(path in accepted and accepted[path].oid == item["blob"])
@@ -408,26 +445,29 @@ def _repair(api, policy, plan, info):
         validate_ingestion_receipt(receipt)
         destination = _receipt_path(plan["repository_id"], info["oid"], record["id"])
         content = canonical(receipt) + b"\n"
-        base = object_id(api.branch())
-        existing = _paths(api.objects.entries(api.objects.commit(base)))
         if destination in existing:
             require(existing[destination].mode == "100644" and existing[destination].oid == oid("blob", content))
             continue
-        overlay = Overlay(api.objects)
-        evaluated, tree = overlay.add(base, {destination: content})
-        grant = CoordinatorImportGrant(policy.repository_id, info["oid"], policy.policy_revision,
-                                       ((destination, oid("blob", content)),))
-        _check(overlay, policy, base, evaluated, evaluated, tree, "ingestion-receipt", grant)
-        try:
-            published = api.create_commit(base, {destination: content}, RECEIPT_MESSAGE)
-        except NativeUnavailable:
-            # The mutation may have succeeded. Inspect only, never blindly retry.
-            current = _paths(api.objects.entries(api.objects.commit(api.branch())))
-            require(destination in current and current[destination].oid == oid("blob", content)
-                    and current[destination].mode == "100644")
-        else:
-            audit = api.commit_info(published)
-            require(audit["parents"] == [base] and audit["tree"] == tree)
+        missing[destination] = content
+    if not missing:
+        return
+    overlay = Overlay(api.objects)
+    evaluated, tree = overlay.add(base, missing)
+    grant = CoordinatorImportGrant(
+        policy.repository_id, info["oid"], policy.policy_revision,
+        tuple(sorted((path, oid("blob", content)) for path, content in missing.items())))
+    _check(overlay, policy, base, evaluated, evaluated, tree, "ingestion-receipt", grant)
+    try:
+        published = api.create_commit(base, missing, RECEIPT_MESSAGE)
+    except NativeUnavailable:
+        # The mutation may have succeeded. Inspect every exact path, never retry.
+        current = _paths(api.objects.entries(api.objects.commit(api.branch())))
+        require(all(path in current and current[path].oid == oid("blob", content)
+                    and current[path].mode == "100644"
+                    for path, content in missing.items()))
+    else:
+        audit = api.commit_info(published)
+        require(audit["parents"] == [base] and audit["tree"] == tree)
 
 
 def publish(api, policy, plan):
@@ -471,8 +511,12 @@ def reconcile(api, policy):
     """Repair the latest 100 canonical commits without consulting mutable PR identity."""
     try:
         _identity(api, policy)
+        coverage = {}
+        _receipted_snapshots(api, policy, coverage_sink=coverage)
         imports = [i for i in _history(api) if i["message"].startswith(IMPORT_PREFIX)]
         for info in reversed(imports):
+            if info["oid"] in coverage and coverage[info["oid"]].complete:
+                continue
             plan = _import_plan(api, policy, info)
             _repair(api, policy, plan, info)
         return Result("complete")

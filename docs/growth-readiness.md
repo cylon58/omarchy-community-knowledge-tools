@@ -55,6 +55,8 @@ than causing the target to be silently lowered.
 - Report first-load separately from warm refresh/search; report bytes, API calls,
   elapsed time, corpus size and history shape, not just a favorable average.
 - Exercise cases with many reports/events, not only one case/change/report triplet.
+  Include concentrated evidence on a single case as well as evenly distributed
+  cases; the initial five-record-per-import baseline does not prove that envelope.
 - Measure queue reachability beyond the current newest-200 window; disclose the
   finite tested backlog and behavior under changing lists, rejection and outages.
 - No synthetic load against public contribution intake. Live pilot only uses

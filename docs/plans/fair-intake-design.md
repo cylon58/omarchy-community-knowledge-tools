@@ -82,6 +82,12 @@ can wait for reconciliation. This adds prior-Pages availability to immediate sta
 publication, not to admission safety. It is an explicit availability-contract
 change and must be exercised in the pilot.
 
+Bootstrap must distinguish a successful fixed-origin read of a legacy status
+without a cursor from an unavailable/malformed response. A scheduled run may
+initialize legacy state explicitly and report it; a direct event must not treat a
+network failure as permission to erase established progress. Test initial rollout
+as well as steady-state preservation.
+
 ## Safety and capacity invariants
 
 List results are scheduling input only. `prepare` still reads the individual PR,
