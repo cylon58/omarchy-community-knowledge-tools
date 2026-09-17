@@ -15,8 +15,9 @@ state=all&sort=created&direction=asc&per_page=20&page=P
 The cursor is a strictly validated, bounded scheduling hint copied through the
 existing static `status.json`; it is not canonical evidence, a deduplication fact,
 or permission to write. The fixed GitHub Pages origin is read anonymously without
-redirects or credentials. Invalid, missing, stale, or unavailable cursor data
-falls back to page 1 and is reported as degraded. A forged hint can repeat or
+redirects or credentials. Invalid, missing, or unavailable cursor state withholds
+Pages publication rather than resetting unknown progress. A valid cursor from an
+older data revision can still be resumed. A forged hint can repeat or
 delay work, but cannot bypass `prepare`, writer re-preparation, complete corpus
 validation, receipt recovery, or the expected-main-head CAS.
 
@@ -95,6 +96,32 @@ initialize legacy state explicitly and report it; a direct event must not treat 
 network failure as permission to erase established progress. Test initial rollout
 as well as steady-state preservation.
 
+The same withholding rule applies to scheduled prior-status failures. An earlier
+design allowed a degraded page-1 reset; that could erase arbitrary established
+progress during a temporary Pages outage. Only a successful, identity-bound,
+recognized legacy status permits automatic bootstrap. Permanent missing/malformed
+state needs an explicit governed bootstrap/repair, not a silent reset. This makes
+Pages availability a dependency for persistent scan progress and static publication,
+but not for admission authority. Last-good revision need not equal current main.
+
+## Implementation boundary
+
+Keep scheduling state separate from admission plans. A versioned batch carries a
+strict cursor transition: lane, current/legacy/unavailable observation, before and
+proposed cursors, advance/preserve/withhold action, and fixed-enum health counters.
+None of these fields enters the exact snapshot plan, import grant or CAS authority.
+Publishing selects the final cursor only after reconciliation and import outcome:
+accepted or deterministic exhaustion may advance; recovery retry, receipt-pending
+or undifferentiated writer retry preserves the old cursor. The final status carries
+`intake_cursor` and `pages_publishable`; build refuses publication when false.
+
+Introduce a distinct fixed-code candidate-not-ready outcome only when a well-formed
+authenticated PR response proves a local condition, such as draft/closed, old base,
+explicitly pending merge, or a changed merge-parent pair. Missing fields, malformed
+IDs, API/object failures and indeterminate responses remain unavailable. A scheduled
+scan may advance past deterministic rejection/not-ready, but must abort on uncertain
+reads instead of continuing to another candidate and publishing skipped progress.
+
 ## Safety and capacity invariants
 
 List results are scheduling input only. `prepare` still reads the individual PR,
@@ -147,8 +174,10 @@ on the 100-commit recovery window without weakening source binding.
 - The scan never exceeds 10 pages, 200 items, or 20 preparations in one run.
 - Exhaustion publishes progress; injected HTTP/object/quota uncertainty publishes
   none; a stale main/head never bypasses writer re-preparation or CAS.
-- Missing/tampered/oversized/redirected Pages status resets with a degraded signal,
-  and a direct event cannot overwrite the last good cursor with that reset.
+- Missing/tampered/oversized/redirected Pages status withholds publication with a
+  degraded signal; neither scheduled nor direct events erase unknown progress.
+- Recognized legacy status bootstraps explicitly; a valid older-data cursor resumes
+  without requiring its source revision to equal current main.
 - A failed build/deploy repeats the prior cursor on the next run.
 - Exact full receipt coverage skips repair; one missing or mismatched receipt takes
   the validated repair path, with at most one receipt CAS for that import.

@@ -47,3 +47,22 @@ local fixtures, synthetic reports, generated YAML, or this checklist for hosted
 proof. Production has no promise of Omarchy endorsement, indefinite free hosting,
 or zero exceptional governance. See [deployment](deployment.md) and
 [recovery](recovery.md).
+
+## Growth-readiness before broad promotion
+
+Hosted activation is not a scalability claim. Before promoting the service broadly:
+
+- Meet or explicitly report failures against the predeclared
+  [growth gates](growth-readiness.md), including distributed and concentrated evidence.
+- Preserve reproducible harnesses, raw measurements, source hashes, corrections and
+  failed runs in the [testing notebook](testing/README.md).
+- Exercise production request adapters and per-job bounds in local simulations;
+  report provider latency, quotas and scheduling separately from simulated results.
+- Demonstrate bounded refresh, backlog traversal beyond the newest-200 window,
+  adverse-evidence parity and visible stale/unavailable service status.
+- Independently review infrastructure changes, run pinned hosted CI, then perform
+  a bounded pilot before updating production or the installed toolkit.
+- Publish the supported envelope and remaining limits. Never call synthetic
+  accounts independent users or describe a finite test as unlimited scalability.
+
+These are pending gates, not boxes checked by the presence of this document.

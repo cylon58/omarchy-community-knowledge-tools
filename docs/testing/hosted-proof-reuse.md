@@ -2,6 +2,11 @@
 
 Date: 2026-09-17. Candidate implementation, not deployed.
 
+The reviewed implementation is commit `23cd350`. Its complete suite passed on
+Python 3.11 and 3.13 in [GitHub Actions run 35251189974](https://github.com/cylon58/omarchy-community-knowledge-tools/actions/runs/35251189974).
+Hosted CI includes the final receipt-order fix and saved measurement regression;
+it is separate from the earlier local full-suite run described in development notes.
+
 The hosted service can reuse the preceding published proof as an optional cache
 of hash-checked Git objects. It still authenticates current repository/main and
 validates the current records and receipt history. This does not change client

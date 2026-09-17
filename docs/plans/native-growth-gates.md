@@ -1,6 +1,7 @@
 # Native-boundary growth gates — implementation brief
 
-Status: queued after hosted proof reuse and review. No recorded gate result yet.
+Status: harness implemented and independently task-reviewed, including two fix
+rounds for measurement fidelity. Larger gate measurements are pending.
 
 ## Goal
 
@@ -86,3 +87,13 @@ Do not run timing workloads concurrently with production edits or heavy tests.
 Review the fake-server boundary and negative tests before claiming native-path
 coverage. Passing this local model is not proof of GitHub latency, hourly quota,
 scheduler throughput, fairness or independent community reproduction.
+
+An optional explicit local artifact directory may preserve the successful final
+proof for subsequent transport experiments without rerunning the full history.
+The target must be new, with an existing parent; never overwrite or follow a
+symlink. Write only bounded proof bytes and a final completion manifest binding
+profile, revision, measured source hashes, size and SHA-256. Exclusive directory/
+file creation with the manifest last is sufficient; a failed write may leave a
+clearly incomplete directory and must not report success. Keep local paths out of
+public result JSON and report export overhead separately. Default counts and
+profiles remain unchanged; no synthetic production contribution is authorized.

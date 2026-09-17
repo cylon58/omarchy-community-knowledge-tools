@@ -34,6 +34,23 @@ it must not be smuggled in as a performance cache.
 3. Add freshness/capacity/backlog health signals and independent outage detection.
 4. Review, run bounded pilot checks, document supported envelope, publish results.
 
+## Evidence so far
+
+The [testing notebook](testing/README.md) is the experiment register. Reviewed
+candidate work on this branch includes batched receipt recovery and optional hosted
+proof reuse; neither is a claim that the whole growth milestone has passed.
+The initial baseline exposed both fixture subprocess overhead and repeated
+recovery work. Its thirty-import timeout remains recorded. A later small proof
+reuse comparison reduced modeled requests while preserving adverse evidence.
+
+The next native-boundary benchmark must measure the real service wrappers,
+including reconciliation, and enforce the production per-job bounds. Its review
+caught an initial omission of reconciliation, ambiguous timeout/interruption
+accounting, narrow search coverage, and overwriteable report output before larger
+results were accepted. Fixing the measuring instrument is part of the experiment,
+not evidence that production capacity improved. See the
+[native-gate brief](plans/native-growth-gates.md) for the declared contract.
+
 ## Predeclared gates
 
 Initial beta targets (targets, not achieved measurements): at least 500 synthetic
