@@ -114,6 +114,18 @@ Offline canonical receipts persist with source and age/stale disclosure; this is
 not a claim of current upstream facts. Every sync replaces the upstream envelope;
 no favorable observation is silently carried into a newer unknown result.
 
+## Disposable local search index
+
+The optional local derivation cache uses a separate private key to authenticate a
+bounded SQLite byte image. Its seal binds the verified manifest and relevant
+installed validator, schema and index code. Source file hashes are checked on every
+load; only then may a valid local derivation avoid repeated corpus validation.
+Authenticated bytes are deserialized into an in-memory database, not reopened by
+path. This is local bookkeeping, not a signature from upstream or protection from
+same-user code that can read the key. Missing or invalid derivations fall back to
+full validation. No derivation supplies canonical receipts, freshness or release
+authority; these remain separately checked and projected for each query.
+
 ## Sensitive reports and development
 
 Use the private [ledger](https://github.com/cylon58/omarchy-community-knowledge/security/advisories/new)

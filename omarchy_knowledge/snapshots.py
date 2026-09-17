@@ -42,6 +42,7 @@ class Snapshot:
     records: tuple[dict[str, Any], ...]
     index: tuple[dict[str, Any], ...]
     canonical: dict[str, Any] | None = None
+    local_index: bytes | None = None
 
 
 def _pairs(pairs):
@@ -390,7 +391,7 @@ def _validate_manifest(value: Any) -> dict[str, Any]:
     return value
 
 
-def _load_snapshot_directory(directory_fd: int, display_path: Path) -> Snapshot:
+def _load_snapshot_directory(directory_fd: int, display_path: Path, *, cache_fd=None) -> Snapshot:
     entries = set(_bounded_directory_names(directory_fd, len(_SNAPSHOT_FILES) + 1))
     if entries != {"manifest.json", *_SNAPSHOT_FILES}:
         raise ValueError("Snapshot contains unknown or missing files")
@@ -407,6 +408,15 @@ def _load_snapshot_directory(directory_fd: int, display_path: Path) -> Snapshot:
         raw_files[name] = raw
     if len(raw_files["index.json"]) + len(raw_files["records.jsonl"]) > MAX_SNAPSHOT_BYTES:
         raise ValueError("Snapshot exceeds total size bound")
+    local_index = None
+    binding = None
+    if cache_fd is not None:
+        from . import persistent
+        try:
+            binding = hashlib.sha256(manifest_raw + persistent.fingerprint()).digest()
+            local_index = persistent.read(cache_fd, binding)
+        except (OSError, ValueError):
+            pass
     lines = raw_files["records.jsonl"].splitlines(keepends=True)
     if not 0 <= len(lines) <= MAX_RECORD_FILES:
         raise ValueError("Snapshot record count exceeds bound")
@@ -418,7 +428,7 @@ def _load_snapshot_directory(directory_fd: int, display_path: Path) -> Snapshot:
         if line != _canonical(record):
             raise ValueError("Snapshot record is not canonical JSON")
         records.append(record)
-    parsed = validate_corpus(records)
+    parsed = validate_corpus(records) if local_index is None else records
     if [record["id"] for record in parsed] != sorted(record["id"] for record in parsed):
         raise ValueError("Snapshot JSONL is not in deterministic canonical order")
     if len(parsed) != manifest["record_count"]:
@@ -428,7 +438,9 @@ def _load_snapshot_directory(directory_fd: int, display_path: Path) -> Snapshot:
         raise ValueError("Snapshot index is not canonical JSON")
     if index != _build_index(parsed):
         raise ValueError("Snapshot index integrity mismatch")
-    return Snapshot(display_path, manifest, tuple(parsed), tuple(index))
+    if cache_fd is not None and binding is not None and local_index is None:
+        local_index = persistent.write(cache_fd, binding, parsed)
+    return Snapshot(display_path, manifest, tuple(parsed), tuple(index), local_index=local_index)
 
 
 def load_snapshot(path: str | Path) -> Snapshot:
@@ -575,10 +587,10 @@ def load_cache(cache: str | Path) -> Snapshot:
         if not isinstance(pointer, str) or not _SHA256.fullmatch(pointer):
             raise ValueError("Cache pointer is invalid")
         destination_fd = _open_directory_at(snapshots_fd, pointer, "Cache snapshot slot")
-        result = _load_snapshot_directory(destination_fd, cache_path / "snapshots" / pointer)
+        result = _load_snapshot_directory(destination_fd, cache_path / "snapshots" / pointer, cache_fd=cache_fd)
         if hashlib.sha256(_canonical(result.manifest)).hexdigest() != pointer:
             raise ValueError('Cache manifest identity mismatch')
-        return Snapshot(result.path, result.manifest, result.records, result.index, provenance)
+        return Snapshot(result.path, result.manifest, result.records, result.index, provenance, result.local_index)
     finally:
         if destination_fd is not None:
             os.close(destination_fd)

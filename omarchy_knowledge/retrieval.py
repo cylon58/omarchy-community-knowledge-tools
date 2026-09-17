@@ -1,6 +1,6 @@
 """Dependency-free local candidate ranking, never an applicability decision.
 
-SQLite is a transient index derived only from validated records. No downloaded
+SQLite is a local index derived only from validated records. No downloaded
 database, SQL, extensions, model, credentials or network access is involved.
 """
 from collections import Counter
@@ -47,7 +47,31 @@ def _values(value):
             yield from _values(child)
 
 
-def rank_cases(records, query, *, intent='corrective', broad=False):
+def build_index(db, records):
+    cases = {r['id']: r for r in records if r['type'] == 'case'}
+    extra = {key: [] for key in cases}
+    for record in records:
+        payload = record['payload']
+        key = payload.get('case_id')
+        if key in extra:
+            if record['type'] == 'change':
+                extra[key].extend(_values(payload['applicability']))
+            elif record['type'] == 'report':
+                extra[key].extend(_values(payload['environment'].get('components', [])))
+    # Separate corpora preserve the original intent-filtered BM25 statistics.
+    for intent in ('all', 'corrective', 'optional', 'undetermined'):
+        table = 'docs_' + intent
+        db.execute(f"CREATE VIRTUAL TABLE {table} USING fts5(id UNINDEXED, title, body, identifiers, tokenize='porter unicode61')")
+        for key, case in cases.items():
+            payload = case['payload']
+            if intent != 'all' and payload['intent'] != intent:
+                continue
+            body = ' '.join((payload['observed'], payload['expectation']['text'], *payload['domains']))
+            db.execute(f'INSERT INTO {table} VALUES (?,?,?,?)',
+                       (key, payload['title'], body, ' '.join(extra[key])))
+
+
+def rank_cases(records, query, *, intent='corrective', broad=False, local_index=None):
     """Return ranked IDs and lexical coverage; unknown conditions remain eligible.
 
     Half the meaningful concept groups must match by default. This is a search
@@ -69,30 +93,21 @@ def rank_cases(records, query, *, intent='corrective', broad=False):
     groups = _groups(query)
     if not groups:
         return []
-    extra = {key: [] for key in cases}
-    for record in records:
-        payload = record['payload']
-        key = payload.get('case_id')
-        if key in extra:
-            # Relevant identifiers/selectors only, not procedures or arbitrary logs.
-            if record['type'] == 'change':
-                extra[key].extend(_values(payload['applicability']))
-            elif record['type'] == 'report':
-                extra[key].extend(_values(payload['environment'].get('components', [])))
     db = sqlite3.connect(':memory:')
     try:
-        db.execute("CREATE VIRTUAL TABLE docs USING fts5(id UNINDEXED, title, body, identifiers, tokenize='porter unicode61')")
-        for key, case in cases.items():
-            payload = case['payload']
-            body = ' '.join((payload['observed'], payload['expectation']['text'], *payload['domains']))
-            db.execute('INSERT INTO docs VALUES (?,?,?,?)', (key, payload['title'], body, ' '.join(extra[key])))
+        if local_index is None:
+            build_index(db, records)
+        else:
+            db.deserialize(local_index)
+            db.execute('PRAGMA query_only=ON')
+        table = 'docs_' + intent
         counts = Counter()
         for group in groups:
-            counts.update(row[0] for row in db.execute('SELECT id FROM docs WHERE docs MATCH ?', (group,)))
+            counts.update(row[0] for row in db.execute(f'SELECT id FROM {table} WHERE {table} MATCH ?', (group,)))
         threshold = 0 if broad else 0.5
         expression = ' OR '.join(groups)
         return [{'case_id': key, 'coverage': round(counts[key] / len(groups), 3), 'basis': 'local-lexical-candidate'}
-                for key, _ in db.execute('SELECT id,bm25(docs,0,3,1,2) AS rank FROM docs WHERE docs MATCH ? ORDER BY rank,id', (expression,))
+                for key, _ in db.execute(f'SELECT id,bm25({table},0,3,1,2) AS rank FROM {table} WHERE {table} MATCH ? ORDER BY rank,id', (expression,))
                 if counts[key] / len(groups) >= threshold]
     except sqlite3.OperationalError as exc:
         raise ValueError('Local SQLite FTS5 unavailable; use substring search') from exc

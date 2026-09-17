@@ -139,18 +139,25 @@ def search_snapshot(cache: str | Path, query: str, *, environment: Mapping[str, 
     if method == 'ranked':
         from .retrieval import rank_cases
         ranking = {row['case_id']: (position, row) for position, row in enumerate(
-            rank_cases(records, query, intent=intent, broad=broad))}
+            rank_cases(records, query, intent=intent, broad=broad, local_index=snapshot.local_index))}
+    # Bound expensive projection to the chosen cases, retaining the whole
+    # validated corpus for every selected case's evidence and event guards.
+    candidates = []
+    for case in cases:
+        payload = case['payload']
+        if intent != 'all' and payload['intent'] != intent:
+            continue
+        search_text = ' '.join((payload['title'], payload['observed'],
+                               payload['expectation']['text'], *payload['domains'])).casefold()
+        if (case['id'] in ranking if ranking is not None
+                else all(term in search_text for term in terms)):
+            candidates.append(case)
+    candidates.sort(key=lambda case: ranking[case['id']][0] if ranking is not None else case['id'])
+    total_matches = len(candidates)
+    cases = candidates[:limit] if compact else candidates
     results = []
     for case in cases:
         payload = case["payload"]
-        if intent != "all" and payload["intent"] != intent:
-            continue
-        search_text = " ".join((payload["title"], payload["observed"],
-                                payload["expectation"]["text"], *payload["domains"])).casefold()
-        if ranking is not None and case['id'] not in ranking:
-            continue
-        if ranking is None and not all(term in search_text for term in terms):
-            continue
         projected, incompatible = [], []
         for change in changes:
             if change["payload"]["case_id"] != case["id"]:
@@ -197,7 +204,12 @@ def search_snapshot(cache: str | Path, query: str, *, environment: Mapping[str, 
             "trust": "canonical-api-receipts" if snapshot.canonical else "attributed-claims-only"}
     response['retrieval'] = {'method': method, 'broad': broad,
         'meaning': 'Candidate relevance only; lexical coverage is not evidence or applicability. No matches does not establish that no solution exists.'}
-    return compact_search(response, limit=limit) if compact else response
+    if compact:
+        short = compact_search(response, limit=limit)
+        short['total_matches'] = total_matches
+        short['truncated'] = total_matches > limit
+        return short
+    return response
 
 
 def _compact_events(related):

@@ -22,9 +22,9 @@ should explicitly select `--full --method substring`.
 ## Ranking
 
 The default is local SQLite FTS5/BM25 with a small reviewed alias vocabulary,
-weighted titles and relevant reported identifiers. The index is transient and
-built from already-validated cached records, not downloaded executable database
-content. No SQL, commands, extensions or model output from records is executed.
+weighted titles and relevant reported identifiers. A disposable local SQLite index
+is built from validated cached records and reused between queries. It is not a
+downloaded database. No SQL, commands, extensions or model output from records is executed.
 SQLite FTS5 must be available in Python's standard SQLite library. The literal
 `--method substring` fallback does not require FTS5.
 
@@ -42,6 +42,29 @@ incompatible changes: those flags request inspection, not a claim that all failu
 apply to the current system. Report/account counts are not independent-machine
 counts. Upstream and ledger freshness remain separate.
 
+## Reusing work safely
+
+Every query still checks the snapshot's source bytes and hashes. A separately
+sealed local index also binds the relevant installed code and schemas. When that
+binding is valid, the client can skip repeated whole-corpus schema validation and
+index construction. Missing, altered or incompatible derived data triggers full
+validation and rebuilding, or the uncached path if storage is unavailable.
+
+The derived index does not contain authority: canonical provenance is checked
+separately, and upstream recommendations are computed afresh. Ordinary imports
+remain claims-only. This protects against accidental corruption and untrusted
+imports, not malicious software running as the same local user.
+
+Compact search selects its case shortlist before expensive evidence projections.
+Each selected case still uses the complete validated evidence cohort, including
+adverse reports and relevant disputes. Omitted cases are counted explicitly;
+`--full` still projects all matches.
+
+This improves repeated local queries, not unlimited service capacity. The existing
+4,096-record snapshot cap and separate proof, byte and API bounds remain enforced.
+Larger deployments need a separately reviewed incremental-sync/checkpoint and
+partitioning design; increasing those limits alone is not a scaling plan.
+
 ## Optional experiments
 
 Local embedding/hybrid retrieval and Jev-assisted ranking are experimental, not
@@ -57,5 +80,5 @@ Core local search continues working without Jev, credentials, or a network.
 
 Code graphs do not replace structured case/change/report/event relationships.
 Existing typed links remain the source for failures, disputes and supersessions.
-Persistent SQLite and vector artifacts are deferred until index-build costs or
-measured retrieval quality justify the added distribution/security surface.
+Downloaded SQLite/vector artifacts remain deferred. A locally derived persistent
+index avoids introducing those artifacts into the distribution trust boundary.
