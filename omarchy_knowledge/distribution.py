@@ -10,7 +10,7 @@ from .snapshots import (_canonical, _open_directory, _write_regular_at,
                         _bounded_directory_names, MAX_SNAPSHOT_BYTES)
 
 
-def build_site(data, output, *, status):
+def build_site(data, output, *, status, proof_bundle=None):
     from .service import safe_status
     status = safe_status(status)
     with tempfile.TemporaryDirectory(prefix='omarchy-export-') as temporary:
@@ -24,6 +24,11 @@ def build_site(data, output, *, status):
                 'receipted_records': len({r['record_id'] for r in data['receipts']})}
     files['status.json'] = _canonical({**status, 'source': data['source'], 'receipt_coverage': coverage,
                                       'upstream': data['upstream'], 'pr_behavior': 'snapshots-imported-prs-remain-open'})
+    if proof_bundle is not None:
+        from .object_bundle import MAX_COMPRESSED_BUNDLE
+        if not isinstance(proof_bundle, bytes) or not 0 < len(proof_bundle) <= MAX_COMPRESSED_BUNDLE:
+            raise ValueError('Invalid canonical object bundle')
+        files['canonical-objects.bundle'] = proof_bundle
     text = html.escape(_canonical({'source': data['source'], 'intake': status,
                                   'receipt_coverage': coverage, 'upstream': data['upstream']}).decode())
     rows = ''.join('<li><code>' + html.escape(r['id']) + '</code> ' + html.escape(r['payload']['title']) + '</li>'

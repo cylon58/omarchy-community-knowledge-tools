@@ -517,6 +517,21 @@ class FakeAPI:
                 "parents": [line[7:] for line in headers.splitlines() if line.startswith("parent ")],
                 "message": message.rstrip("\n"), "date": "2026-09-16T00:00:00Z"}
 
+    def prefill_canonical(self, revision):
+        """Exercise the production proof loader while retaining fixture metadata."""
+        from omarchy_knowledge.github_native import APIObjects
+        reader = self.fixture.reader
+        source = APIObjects(object())
+        for row in self.fixture.git("rev-list", "--objects", revision).splitlines():
+            oid = row.split(" ", 1)[0]
+            kind = self.fixture.git("cat-file", "-t", oid).strip()
+            if kind in {"commit", "tree", "blob"}:
+                maximum = 1024 * 1024 if kind == "tree" else 65536
+                source._save(kind, oid, reader._typed(oid, kind, maximum))
+        proof = source.export_bundle(revision)
+        self.objects = APIObjects(self)
+        self.objects.load_bundle(proof, revision)
+
     def create_commit(self, expected_base, additions, message):
         from omarchy_knowledge.github_native import NativeUnavailable
         if self.before_write:

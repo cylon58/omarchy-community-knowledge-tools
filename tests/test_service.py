@@ -133,6 +133,7 @@ class Service(unittest.TestCase):
                'GITHUB_RUN_NUMBER': '1', 'GITHUB_TOKEN': 'fixture-token'}
         common = ['--deployment', 'production', '--policy-revision', 'a' * 40, '--toolkit-revision', 'b' * 40]
         plan = self.root / 'plan/plan.json'; status = self.root / 'status/status.json'; site = self.root / 'site'
+        api.objects.export_bundle = lambda revision: b'proof-bundle-fixture'
         for command, arguments in [('plan', ['--output', str(plan)]),
                                    ('publish', ['--input', str(plan), '--output', str(status)]),
                                    ('build', ['--input', str(status), '--output', str(site)])]:
@@ -144,6 +145,7 @@ class Service(unittest.TestCase):
         self.assertLessEqual(status.stat().st_size, 64 * 1024)
         self.assertEqual(json.loads(status.read_bytes())['status'], 'idle')
         self.assertEqual((site / 'records.jsonl').read_bytes(), b'')
+        self.assertEqual((site / 'canonical-objects.bundle').read_bytes(), b'proof-bundle-fixture')
         self.assertEqual(json.loads((site / 'status.json').read_bytes())['upstream']['status'], 'unknown')
         self.assertIn('CATALOG_UNAVAILABLE', (site / 'index.html').read_text())
         self.assertEqual(api.writes, 0)

@@ -155,7 +155,7 @@ class Distribution(unittest.TestCase):
         api = FakeAPI(self)
         api.base = self.commit({self.path: ('100644', json.dumps(malicious).encode())}, self.base)
         result = build_site(read_canonical(api, Policy('a' * 40, 'b' * 40)), self.root / 'site',
-                            status={'status': 'idle', 'outcomes': []})
+                            status={'status': 'idle', 'outcomes': []}, proof_bundle=b'proof-fixture')
         site = self.root / 'site'
         html = (site / 'index.html').read_text()
         self.assertNotIn('<script>', html)
@@ -163,7 +163,8 @@ class Distribution(unittest.TestCase):
         self.assertIn('No Omarchy endorsement', html)
         manifest = json.loads((site / 'distribution.json').read_bytes())
         self.assertEqual(set(manifest['files']), {'index.html', 'manifest.json', 'index.json',
-                                                'records.jsonl', 'canonical.json', 'status.json'})
+                                                'records.jsonl', 'canonical.json', 'status.json',
+                                                'canonical-objects.bundle'})
         for name, metadata in manifest['files'].items():
             self.assertEqual(hashlib.sha256((site / name).read_bytes()).hexdigest(), metadata['sha256'])
         self.assertLess(result['bytes'], 32 * 1024 * 1024)

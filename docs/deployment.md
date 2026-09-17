@@ -76,11 +76,14 @@ trigger ordinary push workflows, so publication is explicit in this run.
 
 The 4096-entry/16-MiB corpus ceiling is a validation bound, not a throughput
 promise. Each API adapter instance permits at most 512 calls, 32 MiB of responses,
-180 seconds, and a 20-MiB verified-object cache. Initial sync must retrieve record
+180 seconds, and a 20-MiB verified-object cache. The hosted builder must retrieve record
 blobs, current trees and receipt-linked historical trees/commits; pending selection
 and recovery also inspect up to 100 commits. Many small imports or deep trees can
 exhaust these limits well below 4096 records. Shared object caching helps but does
-not remove the cost. Anonymous CLI quotas can be lower still. Safe status reports
+not remove the cost. The anonymous CLI instead uses two canonical API reads and a
+bounded static proof bundle, so its canonical API request count does not grow per
+record or import. This does not remove hosted API/resource ceilings or client
+object/byte limits, and upstream refresh requests are separate. Safe status reports
 unavailable/scan-truncated rather than claiming a complete fresh result. The native
 unavailable outcome intentionally does not echo remote error bodies and does not
 distinguish every quota, timeout or unsupported-object cause. Hosted capacity must
@@ -88,15 +91,26 @@ be measured with the pilot before growth; the service is not unlimited maintenan
 
 The site contains `index.json`, `records.jsonl`, the compatible snapshot
 `manifest.json`, `canonical.json` (receipt/source/upstream envelope), `status.json`,
-and escaped `index.html`. `distribution.json` binds each component's SHA-256 and
+escaped `index.html`, and `canonical-objects.bundle` (raw Git-object proof).
+The bundle is deterministic gzip-compressed typed binary data, not an archive to
+extract: at most 16 MiB compressed, 24 MiB decoded, 5,000 objects and 20 MiB of raw
+object bytes. Individual commits/blobs are at most 64 KiB; trees at most 1 MiB.
+`distribution.json` binds each component's SHA-256 and
 size, plus repository/tree/data/toolkit/policy and timestamps. Its own digest is
 returned by `build_site`; no manifest claims to hash itself. The whole action
 artifact also has GitHub's same-run artifact boundary. An empty ledger produces
 valid empty arrays/JSONL and zero receipt coverage. No public query fetch is needed
 for the HTML's ordinary browser Find or data links.
 
-The CLI `sync` bypasses static transport and authenticates the fixed GitHub API
-repository/main/immutable object boundary independently. Configuration pins label
+The CLI `sync` authenticates the fixed GitHub API repository/main boundary, then
+hash-verifies a static raw-Git-object proof bundle against that exact main revision.
+The bundle is transport, not an authority source: it must contain the current
+objects and the historical objects required to authenticate receipts. It adds no
+application server, secret, or executable contribution path. If main advances
+before Pages has deployed the matching bundle, sync fails closed and retains the
+previous cache; retry after the successful Pages build. There is no fallback that
+silently trusts static assertions or consumes dozens of anonymous API calls.
+Configuration pins label
 the reviewed matching installed client; arbitrary configuration does not prove a
 different installed executable's revision. See [canonical trust](security.md#canonical-cache-trust).
 There is no static-JSON authority shortcut. Sync and build independently invoke

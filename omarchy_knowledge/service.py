@@ -138,8 +138,10 @@ def main(argv=None):
             from .distribution import build_site
             from .resolution import refresh_canonical
             status = safe_status(strict_json(_read_regular(Path(args.input), 64 * 1024)))
-            value = build_site(refresh_canonical(read_canonical(GitHubRead(deployment=args.deployment, read_token=token), policy)),
-                               args.output, status=status)
+            api = GitHubRead(deployment=args.deployment, read_token=token)
+            data = refresh_canonical(read_canonical(api, policy))
+            proof = api.objects.export_bundle(data['source']['data_revision'])
+            value = build_site(data, args.output, status=status, proof_bundle=proof)
         if args.command != 'build':
             from .snapshots import _open_directory, _write_regular_at
             raw = canonical(value) + b'\n'

@@ -44,13 +44,18 @@ Inspect this configuration and use it with the matching toolkit installation:
 Alternatively supply `--deployment production --toolkit-revision FULL_COMMIT
 --policy-revision FULL_COMMIT` instead of `--config`. These must be actual reviewed
 40-character commits, not the illustrative words in this sentence. The client
-uses anonymous, bounded reads from GitHub's fixed API and never discovers account
-credentials. API quotas or unsupported objects can make sync unavailable; an
-existing cache remains usable.
+uses two anonymous GitHub API reads to establish the canonical repository and main
+revision, then downloads a bounded Git-object proof bundle from the deployment's
+fixed GitHub Pages location. It never discovers account credentials. The separate
+upstream-resolution refresh has its own bounded requests. API quotas, unavailable
+Pages, or a bundle that has not caught up with main can make sync unavailable;
+an existing cache remains usable. Retry after the site's next successful build.
 
 Sync verifies repository numeric identity, main, immutable Git hashes, full record
 validation, and receipt bindings. Offline queries display source, revision, age,
-and staleness. Static JSON hashes establish integrity only. Ordinary local index
+and staleness. Every bundled Git object is checked against its Git hash, starting
+from the API-confirmed revision; the bundle does not supply its own authority.
+Static JSON hashes alone establish integrity only. Ordinary local index
 imports are attributed claims and clear canonical cache provenance.
 [The trust boundary](docs/security.md#canonical-cache-trust) explains local seals.
 An empty ledger is valid and yields zero results. No seed data is required.

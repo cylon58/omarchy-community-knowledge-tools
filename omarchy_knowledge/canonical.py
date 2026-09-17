@@ -16,17 +16,20 @@ from .snapshots import _import_snapshot, _write_snapshot, _timestamp
 from projections import record_digest, validate_ingestion_receipt, validate_upstream_observation
 
 
-def read_canonical(api, policy, *, now=None):
+def read_canonical(api, policy, *, now=None, prefill=False):
     """Read main once, then exclusively immutable objects under its trusted identity."""
     try:
-        return _read_canonical(api, policy, now=now)
+        return _read_canonical(api, policy, now=now, prefill=prefill)
     except (Rejected, KeyError, TypeError, ValueError, RecursionError) as exc:
         raise NativeUnavailable() from exc
 
 
-def _read_canonical(api, policy, *, now):
+def _read_canonical(api, policy, *, now, prefill):
     _identity(api, policy)
     revision = object_id(api.branch())
+    if prefill:
+        require(hasattr(api, 'prefill_canonical'))
+        api.prefill_canonical(revision)
     if hasattr(api.objects, 'warm'):
         api.objects.warm([revision])
     tree = object_id(api.objects.commit(revision))
@@ -90,7 +93,7 @@ def snapshot_data(data, output):
 
 def sync(api, policy, cache, *, now=None):
     from .resolution import refresh_canonical
-    data = read_canonical(api, policy, now=now)
+    data = read_canonical(api, policy, now=now, prefill=True)
     refresh_canonical(data)
     with tempfile.TemporaryDirectory(prefix='omarchy-canonical-') as temporary:
         output = Path(temporary) / 'snapshot'

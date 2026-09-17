@@ -79,10 +79,23 @@ reviewed upstream adapter; a structurally valid receipt is not self-authenticati
 ## Canonical cache trust
 
 `sync` authenticates only the compiled production/pilot numeric repository and
-main ref through GitHub's fixed HTTPS API, then reconstructs and verifies immutable
-commit/tree/blob hashes and full corpus/receipt bindings. GitHub, repository owners,
+main ref through two reads of GitHub's fixed HTTPS API. A bounded raw-Git-object
+bundle from the deployment's fixed Pages location transports the remaining bytes.
+The client verifies immutable commit/tree/blob hashes and full corpus/receipt
+bindings, anchored to that API-confirmed revision. A bundle cannot choose a different
+head, repository, policy, contributor identity, or upstream authority. No archive
+is extracted and no downloaded code is executed. GitHub, repository owners,
 the reviewed installed toolkit, and the local user are trusted. Static HTTPS JSON
 and self-asserted hashes alone cannot establish this provenance.
+
+The bundle download carries no token, follows no redirects, and does not discover
+credentials, proxies or arbitrary source URLs. Stale, missing, malformed, oversized
+or incomplete proof fails closed before replacing the cache. In particular, a
+Pages deployment lag is an availability failure, not permission to accept an old
+head as current or bypass receipt authentication. Previously verified cached
+queries remain available with their original age. The hosted publisher still reads
+canonical objects through its scoped API adapter; it does not consume its own
+Pages bundle to generate the next bundle.
 
 After a successful sync, a per-cache random key seals one atomic CURRENT envelope.
 The seal binds the snapshot manifest digest (which binds index and records), every

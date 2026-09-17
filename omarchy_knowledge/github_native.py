@@ -28,6 +28,10 @@ MAX_RESPONSE = 1024 * 1024
 MAX_BYTES = 32 * 1024 * 1024
 MAX_CALLS = 512
 TOTAL_SECONDS = 180
+PAGES = {
+    "production": ("cylon58.github.io", "/omarchy-community-knowledge/canonical-objects.bundle"),
+    "pilot": ("cylon58.github.io", "/omarchy-community-knowledge-pilot/canonical-objects.bundle"),
+}
 # Admission requires merge_commit_sha to bind the exact GitHub test merge to B/H.
 # 2026-03-10 removes that field; use the supported contract, not an absent-field
 # fallback. 2022-11-28 is supported until at least 2028-03-12, 24 months after the
@@ -116,6 +120,41 @@ def _stdio_worker():
         pass
 
 
+def _bundle_exchange(factory, deployment):
+    from .object_bundle import MAX_COMPRESSED_BUNDLE
+    require(deployment in PAGES)
+    host, path = PAGES[deployment]
+    connection = factory(host, timeout=5)
+    try:
+        headers = {"Accept": "application/octet-stream",
+                   "User-Agent": "omarchy-knowledge-native/1"}
+        connection.request("GET", path, body=None, headers=headers)
+        response = connection.getresponse()
+        require(response.status == 200)
+        raw, deadline = bytearray(), time.monotonic() + 10
+        while True:
+            require(time.monotonic() < deadline)
+            chunk = response.read(min(65536, MAX_COMPRESSED_BUNDLE + 1 - len(raw)))
+            raw.extend(chunk)
+            require(len(raw) <= MAX_COMPRESSED_BUNDLE)
+            if not chunk:
+                break
+        return bytes(raw)
+    except (OSError, http.client.HTTPException, ValueError) as exc:
+        raise NativeUnavailable() from exc
+    finally:
+        connection.close()
+
+
+def _bundle_stdio_worker():
+    """Fixed anonymous Pages GET boundary; accepts only a deployment enum."""
+    try:
+        deployment = sys.stdin.buffer.read(32).decode("ascii")
+        sys.stdout.buffer.write(_bundle_exchange(http.client.HTTPSConnection, deployment))
+    except Exception:
+        pass
+
+
 class _HTTP:
     def __init__(self, *, deployment="production", connection_factory=http.client.HTTPSConnection):
         require(deployment in DEPLOYMENTS)
@@ -165,6 +204,8 @@ class GitHubRead:
     def __init__(self, *, deployment="production", read_token=None, connection_factory=http.client.HTTPSConnection):
         require(deployment in DEPLOYMENTS)
         self.repository_name = DEPLOYMENTS[deployment][0]
+        self.deployment = deployment
+        self.connection_factory = connection_factory
         self.http = _HTTP(deployment=deployment, connection_factory=connection_factory)
         self.objects = APIObjects(self)
         require(read_token is None or (isinstance(read_token, str) and 1 <= len(read_token) <= 4096
@@ -211,6 +252,30 @@ class GitHubRead:
     def commit_info(self, oid):
         return self.objects.info(oid)
 
+    def prefill_canonical(self, revision):
+        """Load inert Pages bytes only after the caller authenticates main via API."""
+        try:
+            if self.connection_factory is not http.client.HTTPSConnection:
+                raw = _bundle_exchange(self.connection_factory, self.deployment)
+            else:
+                root = str(Path(__file__).resolve().parent.parent)
+                code = ("import sys;sys.path.insert(0," + repr(root)
+                        + ");from omarchy_knowledge.github_native import _bundle_stdio_worker;_bundle_stdio_worker()")
+                env = {"PATH": "/usr/bin:/bin", "LC_ALL": "C"}
+                with subprocess.Popen([sys.executable, "-I", "-c", code], stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, cwd="/") as process:
+                    try:
+                        raw, _ = process.communicate(self.deployment.encode(), timeout=15)
+                        from .object_bundle import MAX_COMPRESSED_BUNDLE
+                        require(process.returncode == 0 and 0 < len(raw) <= MAX_COMPRESSED_BUNDLE)
+                    except BaseException:
+                        process.kill()
+                        process.wait()
+                        raise
+            self.objects.load_bundle(raw, _oid(revision))
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise NativeUnavailable() from exc
+
 
 class APIObjects:
     """Hash-verified raw Git objects reconstructed from bounded GitHub API values.
@@ -224,6 +289,7 @@ class APIObjects:
         self.cache = {}
         self.cache_bytes = 0
         self.total_deadline = time.monotonic() + TOTAL_SECONDS
+        self.bundle_only = False
         self.retrieval()
 
     def retrieval(self):
@@ -269,6 +335,7 @@ class APIObjects:
         requested = _oid(requested)
         if ("commit", requested) in self.cache:
             return self.cache[("commit", requested)]
+        require(not self.bundle_only)
         data = self.api.git_commit(requested)
         require(data["sha"] == requested)
         verification = data.get("verification") or {}
@@ -340,7 +407,10 @@ class APIObjects:
     def _tree(self, requested):
         self._visit()
         if ("tree", requested) in self.cache:
+            if ("entries", requested) not in self.cache:
+                self.cache[("entries", requested)] = self._tree_entries(self.cache[("tree", requested)])
             return self.cache[("entries", requested)]
+        require(not self.bundle_only)
         data = self.api.git_tree(_oid(requested))
         require(data["sha"] == requested and data.get("truncated") is False
                 and isinstance(data["tree"], list) and len(data["tree"]) <= 4096)
@@ -364,6 +434,33 @@ class APIObjects:
         self.cache[("entries", requested)] = entries
         return entries
 
+    def _tree_entries(self, raw):
+        entries, names, offset, previous = [], set(), 0, None
+        modes = {b"40000": ("040000", "tree"), b"100644": ("100644", "blob"),
+                 b"100755": ("100755", "blob"), b"120000": ("120000", "blob"),
+                 b"160000": ("160000", "commit")}
+        while offset < len(raw):
+            space = raw.find(b" ", offset)
+            nul = raw.find(b"\0", space + 1 if space >= 0 else offset)
+            require(space > offset and nul > space + 1 and nul + 21 <= len(raw))
+            mode = raw[offset:space]
+            require(mode in modes)
+            normalized, kind = modes[mode]
+            name = raw[space + 1:nul]
+            require(len(name) <= 512 and name not in names and name not in {b"", b".", b".."}
+                    and b"/" not in name and b"\0" not in name)
+            names.add(name)
+            sort_key = name + (b"/" if kind == "tree" else b"")
+            require(previous is None or previous < sort_key)
+            previous = sort_key
+            oid = raw[nul + 1:nul + 21].hex()
+            size = len(self.cache[("blob", oid)]) if kind == "blob" and ("blob", oid) in self.cache else -1
+            entries.append(TreeEntry(name, normalized, kind, oid, size))
+            require(len(entries) <= 4096)
+            offset = nul + 21
+        require(offset == len(raw))
+        return entries
+
     def entries(self, requested):
         result = []
         def walk(tree, prefix, depth):
@@ -385,6 +482,7 @@ class APIObjects:
             raw = self.cache[("blob", requested)]
             require(len(raw) <= max_bytes)
             return raw
+        require(not self.bundle_only)
         data = self.api.git_blob(requested)
         require(data["sha"] == requested and data["encoding"] == "base64"
                 and type(data["size"]) is int and 0 <= data["size"] <= max_bytes
@@ -392,6 +490,24 @@ class APIObjects:
         raw = base64.b64decode(data["content"].replace("\n", ""), validate=True)
         require(len(raw) == data["size"])
         return self._save("blob", requested, raw)
+
+    def export_bundle(self, revision):
+        from .object_bundle import BundleUnavailable, encode
+        try:
+            return encode(_oid(revision), self.cache)
+        except BundleUnavailable as exc:
+            raise NativeUnavailable() from exc
+
+    def load_bundle(self, raw, revision):
+        from .object_bundle import BundleUnavailable, decode
+        require(not self.cache and not self.bundle_only)
+        try:
+            objects = decode(raw, _oid(revision))
+            for (kind, oid), content in objects.items():
+                self._save(kind, oid, content)
+            self.bundle_only = True
+        except BundleUnavailable as exc:
+            raise NativeUnavailable() from exc
 
 
 class GitHubWriter(GitHubRead):
