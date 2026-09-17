@@ -41,6 +41,15 @@ output assertions. Only aggregate public status and run metadata are recorded he
 
 ## Consequences for launch testing
 
+A second bounded read-only run query at 21:50 UTC returned a newer successful
+[run 35262441490](https://github.com/cylon58/omarchy-community-knowledge/actions/runs/35262441490),
+created at 19:02:05 UTC on the same `3139acf1` data revision. Its creation was
+4 hours 2 minutes after the preceding scheduled run, and the latest creation was
+about 2 hours 48 minutes old when queried. This remains evidence of non-hourly
+observed cadence, not a diagnosis of the cause or a measurement of completion age.
+No new Pages fetch, dispatch or configuration change accompanied this second check.
+The query was the same endpoint above with `per_page=6`.
+
 - Check both publication age and absence of expected scheduled runs. Green
   historical workflow results alone cannot establish current service health.
 - A four-hour freshness warning must not be silently relaxed to hide these gaps.

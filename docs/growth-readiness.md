@@ -59,16 +59,26 @@ the separate local replay is not a native capacity pass. See the
 batching subsequently passed the exact cold comparison in238 emulated requests
 with full evidence/proof parity. A live compatibility check then exposed a fixture/
 parser directory-size mismatch, corrected and checked against the live API; the
-public 26-record corpus also passed cold authenticated recovery. Fair intake,
-incremental client transfer and health reporting remain unfinished. None of these
-branch changes is deployed yet.
+public 26-record corpus also passed cold authenticated recovery. Incremental client
+transfer is now implemented and reviewed; fair intake integration and health
+reporting remain unfinished. None of these branch changes is deployed yet.
 
 The [format comparison](testing/proof-formats.md) favored one direct-predecessor
 update pack over prefix buckets or individual object downloads. Three subsequent
 synthetic updates used 4.90–5.37% of their full proof bytes, retaining exact evidence
 parity. These are prototype results, not deployed-client savings. The production
-integration must still prove bounded fallback, safe caching and publication
-retention; full validation CPU and older-cache downloads remain unchanged.
+integration subsequently passed its actual-client matching-base test at 2.9808%
+of full proof bytes, with safe wrong-base fallback, unchanged-head reuse and exact
+evidence parity. See the [production-path measurement](testing/update-pack-production.md).
+Full validation CPU and older-cache downloads remain unchanged; the full pipeline
+and live rollout gates are still separate. Two low-severity harness hardening
+findings remain visible for final review.
+
+The [pure queue scanner](testing/fair-intake.md) also passed its mixed1,000-PR
+fixture, reaching all200 eligible heads in201 simulated runs within every per-run
+bound. That proves the tested traversal, not authenticated input handling, durable
+hosted publication, real scheduled throughput or unlimited fairness; integration
+and pilot evidence must establish their own claims.
 
 The 500-record local reference used4,414 of5,000 logical object visits; the batched
 candidate used2,507 because speculative warming no longer charged logical visits.

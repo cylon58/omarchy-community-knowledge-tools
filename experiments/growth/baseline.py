@@ -265,7 +265,7 @@ class _SyntheticAPI:
             "user": {"id": self.actor_id, "type": "User"},
             "base": {"sha": self.base, "ref": "main", "repo": self.repository()},
             "head": {"sha": self.head, "repo": {"id": 900000 + number}},
-            "merge_commit_sha": self.merge_commit}
+            "merge_commit_sha": self.merge_commit, "mergeable": True}
 
     def commit_info(self, oid):
         self.calls["commit_info"] += 1

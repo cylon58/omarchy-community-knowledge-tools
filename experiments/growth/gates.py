@@ -316,7 +316,7 @@ class _NativeFixture:
             "user": {"id": 100001 + ((number - 1) % 7), "type": "User"},
             "base": {"sha": base, "ref": "main", "repo": self._repository_value()},
             "head": {"sha": head, "repo": {"id": 900000 + number}},
-            "merge_commit_sha": merge,
+            "merge_commit_sha": merge, "mergeable": True,
         }
 
     def advance_main_for_test(self):

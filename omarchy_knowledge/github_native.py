@@ -41,6 +41,7 @@ PAGE_ARTIFACTS = frozenset({
     "canonical-objects.bundle",
     "canonical-update.json",
     "canonical-update.bundle",
+    "status.json",
 })
 PAGES_ATTEMPT_SECONDS = 15
 # Admission requires merge_commit_sha to bind the exact GitHub test merge to B/H.
@@ -139,6 +140,8 @@ def _pages_exchange(factory, deployment, artifact, maximum, deadline=None):
             and type(maximum) is int)
     if artifact == "canonical-update.json":
         require(maximum == MAX_MANIFEST)
+    elif artifact == "status.json":
+        require(maximum == MAX_RESPONSE)
     elif artifact == "canonical-objects.bundle":
         require(maximum == MAX_COMPRESSED_BUNDLE)
     else:
@@ -148,7 +151,8 @@ def _pages_exchange(factory, deployment, artifact, maximum, deadline=None):
     deadline = time.monotonic() + 10 if deadline is None else min(deadline, time.monotonic() + 10)
     connection = factory(host, timeout=min(5, max(.001, deadline - time.monotonic())))
     try:
-        headers = {"Accept": "application/octet-stream",
+        headers = {"Accept": ("application/json" if artifact == "status.json"
+                              else "application/octet-stream"),
                    "User-Agent": "omarchy-knowledge-native/1"}
         connection.request("GET", path, body=None, headers=headers)
         response = connection.getresponse()
@@ -221,6 +225,7 @@ class _HTTP:
         allowed_read = suffix is not None and (suffix in {"", "/git/ref/heads/main"}
             or re.fullmatch(r"/git/(?:commits|trees|blobs)/[0-9a-f]{40}", suffix)
             or re.fullmatch(r"/pulls/[1-9][0-9]{0,9}", suffix)
+            or re.fullmatch(r"/pulls\?state=all&sort=created&direction=asc&per_page=20&page=[1-9][0-9]{0,9}", suffix)
             or re.fullmatch(r"/pulls\?state=open&sort=created&direction=desc&per_page=20&page=(?:[1-9]|10)", suffix))
         require((method == "GET" and allowed_read and body is None)
                 or (method == "POST" and path == "/graphql" and body is not None))
@@ -302,6 +307,47 @@ class GitHubRead:
             numbers.append({"number": item["number"], "head": _oid(item["head"]["sha"])})
         require(len({item["number"] for item in numbers}) == len(numbers))
         return numbers
+
+    def intake_page(self, page):
+        """Return one authenticated lifetime page normalized for ``fair_intake``."""
+        require(type(page) is int and 1 <= page <= 2_147_483_647)
+        try:
+            data = self._get(
+                "/pulls?state=all&sort=created&direction=asc&per_page=20&page="
+                + str(page)
+            )
+            require(type(data) is list and len(data) <= 20)
+            rows = []
+            identities = set()
+            for item in data:
+                require(isinstance(item, dict))
+                number = item["number"]
+                _number(number)
+                state = item["state"]
+                require(state in {"open", "closed"} and number not in identities)
+                identities.add(number)
+                row = {"pull_request": number, "state": state}
+                if state == "open":
+                    row["head"] = _oid(item["head"]["sha"])
+                rows.append(row)
+            return rows
+        except (KeyError, TypeError, ValueError, RecursionError) as exc:
+            raise NativeUnavailable() from exc
+
+    def intake_status(self):
+        """Read and validate fixed-origin public cursor state or recognized legacy."""
+        from .intake_status import validate_intake_status
+        try:
+            value = strict_json(self._pages("status.json", MAX_RESPONSE))
+            repository, repository_id = DEPLOYMENTS[self.deployment]
+            return validate_intake_status(
+                value,
+                repository=repository,
+                repository_id=repository_id,
+                deployment=self.deployment,
+            )
+        except (KeyError, TypeError, ValueError, RecursionError) as exc:
+            raise NativeUnavailable() from exc
 
     def git_commit(self, oid):
         return self._get("/git/commits/" + _oid(oid))

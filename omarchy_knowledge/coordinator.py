@@ -29,6 +29,20 @@ class NativeRejected(NativeUnavailable):
     """Deterministic content rejection; messages never contain contributor text."""
 
 
+class NativeNotReady(NativeUnavailable):
+    """Authenticated candidate-local readiness result with one fixed reason."""
+    REASONS = frozenset({
+        "draft", "closed", "old-base", "explicit-pending-merge",
+        "source-repository-unavailable", "changed-merge-parents",
+    })
+
+    def __init__(self, reason):
+        if reason not in self.REASONS:
+            raise ValueError("invalid native readiness reason")
+        self.reason = reason
+        super().__init__(reason)
+
+
 def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
@@ -162,16 +176,51 @@ def _identity(api, policy):
 def _pull(api, policy, number, base):
     require(type(number) is int and 1 <= number <= 2_147_483_647)
     pr = api.pull(number)
-    require(type(pr.get("number")) is int and pr["number"] == number
-            and pr.get("state") == "open" and pr.get("merged") is False
-            and pr.get("draft") is False)
-    require(type(pr["base"]["repo"]["id"]) is int and pr["base"]["repo"]["id"] == policy.repository_id
-            and pr["base"]["repo"]["full_name"] == policy.repository
-            and pr["base"]["ref"] == "main" and pr["base"]["sha"] == base)
-    for value in (pr["head"]["repo"]["id"], pr["user"]["id"]):
-        require(type(value) is int and 0 < value <= 2**63 - 1)
-    require(pr["user"]["type"] in {"User", "Bot"})
-    object_id(pr["head"]["sha"])
+    require(isinstance(pr, dict)
+            and type(pr.get("number")) is int and pr["number"] == number
+            and pr.get("state") in {"open", "closed"}
+            and type(pr.get("merged")) is bool
+            and type(pr.get("draft")) is bool)
+    target = pr.get("base")
+    require(isinstance(target, dict) and isinstance(target.get("repo"), dict)
+            and type(target["repo"].get("id")) is int
+            and target["repo"]["id"] == policy.repository_id
+            and target["repo"].get("full_name") == policy.repository
+            and target.get("ref") == "main")
+    candidate_base = object_id(target.get("sha"))
+    head = pr.get("head")
+    require(isinstance(head, dict) and "repo" in head)
+    candidate_head = object_id(head.get("sha"))
+    head_repository = head["repo"]
+    require(head_repository is None or isinstance(head_repository, dict))
+    if head_repository is not None:
+        require(type(head_repository.get("id")) is int
+                and 0 < head_repository["id"] <= 2**63 - 1)
+    user = pr.get("user")
+    require(isinstance(user, dict))
+    require(type(user.get("id")) is int and 0 < user["id"] <= 2**63 - 1
+            and user.get("type") in {"User", "Bot"})
+    require("merge_commit_sha" in pr and "mergeable" in pr)
+    evaluated = pr["merge_commit_sha"]
+    mergeable = pr["mergeable"]
+    require(evaluated is None or object_id(evaluated) == evaluated)
+    require(mergeable is None or type(mergeable) is bool)
+
+    if pr["state"] == "closed":
+        raise NativeNotReady("closed")
+    require(pr["merged"] is False)
+    if evaluated is None:
+        require(mergeable is None or mergeable is False)
+    else:
+        require(mergeable is True)
+    if pr["draft"]:
+        raise NativeNotReady("draft")
+    if candidate_base != base:
+        raise NativeNotReady("old-base")
+    if head_repository is None:
+        raise NativeNotReady("source-repository-unavailable")
+    if evaluated is None:
+        raise NativeNotReady("explicit-pending-merge")
     return pr
 
 
@@ -194,7 +243,12 @@ def prepare(api, policy, pull_request):
         head = pr["head"]["sha"]
         evaluated = object_id(pr["merge_commit_sha"])
         merge = api.commit_info(evaluated)
-        require(merge["parents"] == [base, head])
+        require(isinstance(merge, dict) and object_id(merge.get("oid")) == evaluated
+                and type(merge.get("parents")) is list
+                and len(merge["parents"]) == 2)
+        parents = [object_id(parent) for parent in merge["parents"]]
+        if parents != [base, head]:
+            raise NativeNotReady("changed-merge-parents")
         tree = object_id(merge["tree"])
         if hasattr(api.objects, "warm"):
             api.objects.warm([base, head, evaluated])

@@ -1,0 +1,22 @@
+--- a/experiments/growth/baseline.py
++++ b/experiments/growth/baseline.py
+@@ -265,7 +265,7 @@ class _GrowthAPI:
+             "user": {"id": self.actor_id, "type": "User"},
+             "base": {"sha": self.base, "ref": "main", "repo": self.repository()},
+             "head": {"sha": self.head, "repo": {"id": 900000 + number}},
+-            "merge_commit_sha": self.merge_commit, "mergeable": True}
++            "merge_commit_sha": self.merge_commit}
+ 
+     def commit_info(self, oid):
+         self.calls["commit_info"] += 1
+--- a/experiments/growth/gates.py
++++ b/experiments/growth/gates.py
+@@ -316,7 +316,7 @@ class _NativeFixture:
+             "user": {"id": 100001 + ((number - 1) % 7), "type": "User"},
+             "base": {"sha": base, "ref": "main", "repo": self._repository_value()},
+             "head": {"sha": head, "repo": {"id": 900000 + number}},
+-            "merge_commit_sha": merge, "mergeable": True,
++            "merge_commit_sha": merge,
+         }
+ 
+     def advance_main_for_test(self):

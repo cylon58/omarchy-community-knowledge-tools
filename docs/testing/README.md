@@ -52,6 +52,7 @@ Future recorded runs should preserve stdout and place commentary alongside it.
 | Warm proof format comparison | Single update pack used5.48% of full proof bytes in the first ten-record update; all formats preserved exact data | [All candidates, reviewed reporting fixes and limitations](proof-formats.md); no production format adopted |
 | Update-pack variation | Three same-base updates used4.90–5.37% of full bytes with exact proof/data parity | [Raw scenarios, reviewed corrections and scope](update-pack-variation.md); still one synthetic history, not deployed-client measurements |
 | Production update-pack integration | Reviewed actual-client500→510 run: matching proof transfer2.98% of full; same-head0downloads; wrong-base fallback and exact parity | [Integration notebook, raw result and two deferred harness-hardening findings](update-pack-production.md); not deployed, matching-window only, final pipeline gate separate |
+| Fair intake traversal | Reviewed pure scanner reached all200 eligible heads in a mixed1,000-PR fixture within per-run bounds | [Fixture, test correction and limits](fair-intake.md); authenticated adapters and service persistence still in progress |
 
 The public repository contains the regression tests named above. Historical private
 exploration is explicitly labeled; it is not presented as a public reproducible

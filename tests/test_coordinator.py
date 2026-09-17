@@ -505,7 +505,7 @@ class FakeAPI:
                 "user": {"id": 71, "type": "User"},
                 "base": {"sha": self.base, "ref": "main", "repo": self.repository()},
                 "head": {"sha": self.head, "repo": {"id": 909}},
-                "merge_commit_sha": self.merge}
+                "merge_commit_sha": self.merge, "mergeable": True}
 
     def pending(self):
         return [1]
