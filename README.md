@@ -16,6 +16,13 @@ sources retain their licenses. Linking a source does not grant permission to cop
 its contents. An authenticated account is not proof of a distinct person or machine;
 imported journals and external reports never become firsthand tests.
 
+## What we have tested
+
+The [testing notebook](docs/testing/README.md) records reproducible checks,
+experiments we did not adopt, known failures and measurement limits. The
+[growth-readiness work](docs/growth-readiness.md) is in progress; fast local search
+does not by itself establish hosted capacity or readiness for a broad launch.
+
 ## Install and sync
 
 Linux prerequisites: Git, Python 3.11 or newer, and Python's venv module. Install

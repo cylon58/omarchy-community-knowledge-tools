@@ -1,0 +1,44 @@
+# Service health — candidate design
+
+Status: design; no monitor is installed by this document.
+
+## What to measure
+
+Separate availability, capacity and evidence freshness. A running service with no
+authenticated upstream resolution is not equivalent to a failed service, and a
+successful Actions job is not proof that the static catalog is current.
+
+Public build health should include record/receipt counts, proof object/byte totals,
+distribution bytes, source revision, build time, intake outcomes and queue traversal
+progress. Show warning thresholds relative to actual enforced bounds. Unknown
+backlog size stays unknown until the tail is observed; do not report a partial scan
+as the full queue.
+
+## Unattended checker
+
+A separately scheduled read-only toolkit workflow can check the fixed production
+and pilot Pages endpoints plus public workflow-run state. No credentials on Pages,
+no arbitrary URL argument, no publication/issue-write token and no remote code.
+It should fail visibly for a catalog older than four hours, prolonged failed/missing
+scheduled builds, main/publication drift beyond a grace period, persistent cursor
+reset or incomplete recovery. Use bounded response sizes and hard wall deadlines.
+
+GitHub run failures can notify repository watchers who enable those notifications.
+Document that setup rather than claiming an alert was delivered. Keep a standalone
+CLI suitable for an independently operated monitor: a checker on GitHub Actions
+alone cannot detect an Actions-wide scheduler outage. Do not introduce a paid
+monitoring service or external notification recipient without separate approval.
+
+## Tests
+
+Use captured synthetic responses: healthy fresh publication, stale timestamp,
+future timestamp, malformed response, redirect, oversized body, API outage, delayed
+publication, failed workflow, partial upstream facts and queue-reset stagnation.
+Assertions concern health output and exit status, never merely YAML/source strings.
+Actual live read-only verification must be recorded separately from fixture tests.
+
+## Deployment gate
+
+Only install after reviewed health code and immutable workflow pins exist. Test
+pilot and production reads without creating synthetic public contributions. Record
+the workflow/run URLs, notification limitations and how to disable the monitor.

@@ -1,0 +1,28 @@
+{
+  "artifacts_bytes": {},
+  "configuration": {"max_imports": 30, "reports_per_case": 1, "timeout_seconds": 120},
+  "counts": {"imports_accepted": 18, "imports_requested": 30, "receipts": null, "records": null, "synthetic_account_ids": null},
+  "environment": {"code_revision": "2250d3cbb517e8a9c40dd1e49ac1c61b8edc48a0", "harness_sha256": "26aab87ee9ef7aa376149b683186c3d4bcfdb260fb0d722fd9c044e4d2d36b58", "python_version": "3.14.7"},
+  "failure_kind": "DeadlineExpired",
+  "failure_stage": "synthetic-imports",
+  "final_query": null,
+  "limitations": [
+    "All records, accounts, Git history, and observations are synthetic fixtures.",
+    "Distinct account IDs are not evidence of distinct people or machines.",
+    "The GitHub identity/object boundary is modeled locally; actual network requests are zero.",
+    "HTTP request/rate/response caps outside APIObjects are not exercised by the local adapter.",
+    "Provider latency, throttling, concurrency, outages, and public queue behavior are not measured.",
+    "Timings are single local wall-clock observations, not model/provider performance claims."
+  ],
+  "network": {
+    "actual_requests": 0,
+    "local_git_commands": 39172,
+    "modeled_boundary_calls": {"branch": 181, "commit_info": 1078, "create_commit": 108, "pull": 55, "repository": 110},
+    "modeled_boundary_calls_by_stage": {"synthetic-imports": {"branch": 181, "commit_info": 1078, "create_commit": 108, "pull": 55, "repository": 110}},
+    "modeled_raw_object_requests": {"blob": 1877, "commit": 1083, "tree": 1595},
+    "modeled_raw_object_requests_by_stage": {"synthetic-imports": {"blob": 1877, "commit": 1083, "tree": 1595}}
+  },
+  "schema_version": 1,
+  "status": "failure",
+  "timings_seconds": {"synthetic-imports": 120.01371, "total": 120.013857}
+}

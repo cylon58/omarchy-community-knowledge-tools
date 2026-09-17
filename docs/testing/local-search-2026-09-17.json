@@ -1,0 +1,13 @@
+{
+  "command": "python -m experiments.local_search --cases 1000",
+  "cases": 1000,
+  "records": 3000,
+  "python": "3.14.7",
+  "platform": "Linux",
+  "source_revision": "2250d3cbb517e8a9c40dd1e49ac1c61b8edc48a0",
+  "harness_sha256": "a2bb671e0b66d0f8292418ea47a073368fb9c1046f8da0f577e14ccf823b160c",
+  "setup_seconds": 16.2156,
+  "search_samples_seconds": [4.1036, 0.2455, 0.2580],
+  "final_cache_load_seconds": 0.2056,
+  "limitations": "Single local run. Identical broad matches; ordinary local import, no canonical receipts, no network. Not relevance accuracy, hosted throughput or production capacity proof. First search builds the derived cache; subsequent samples reuse it. Harness was added after the recorded production source revision."
+}

@@ -1,0 +1,44 @@
+{
+  "artifacts_bytes": {"canonical_cache": 186361, "proof_bundle": 20330, "records_jsonl": 36750, "static_distribution": 129184},
+  "configuration": {"max_imports": 30, "reports_per_case": 1, "timeout_seconds": 120},
+  "counts": {"imports_accepted": 10, "imports_requested": 10, "receipts": 50, "records": 50, "synthetic_account_ids": 7},
+  "environment": {"code_revision": "2250d3cbb517e8a9c40dd1e49ac1c61b8edc48a0", "harness_sha256": "26aab87ee9ef7aa376149b683186c3d4bcfdb260fb0d722fd9c044e4d2d36b58", "python_version": "3.14.7"},
+  "failure_kind": null,
+  "failure_stage": null,
+  "final_query": {"case_ids": ["0000000a-0000-4000-8000-000000000001", "00000001-0000-4000-8000-000000000001", "00000002-0000-4000-8000-000000000001", "00000003-0000-4000-8000-000000000001", "00000004-0000-4000-8000-000000000001"], "community_event_review_required": true, "failure_or_partial_visible": true, "query": "synthetic growth case 00000010", "result_count": 5, "trust": "canonical-api-receipts"},
+  "limitations": [
+    "All records, accounts, Git history, and observations are synthetic fixtures.",
+    "Distinct account IDs are not evidence of distinct people or machines.",
+    "The GitHub identity/object boundary is modeled locally; actual network requests are zero.",
+    "HTTP request/rate/response caps outside APIObjects are not exercised by the local adapter.",
+    "Provider latency, throttling, concurrency, outages, and public queue behavior are not measured.",
+    "Timings are single local wall-clock observations, not model/provider performance claims."
+  ],
+  "network": {
+    "actual_requests": 0,
+    "local_git_commands": 12657,
+    "modeled_boundary_calls": {"branch": 163, "commit_info": 443, "create_commit": 60, "proof_bundle_fetch": 1, "pull": 30, "repository": 63},
+    "modeled_boundary_calls_by_stage": {
+      "canonical-read-and-proof": {"branch": 1, "commit_info": 11, "repository": 1},
+      "canonical-sync": {"branch": 1, "commit_info": 11, "proof_bundle_fetch": 1, "repository": 1},
+      "cold-ranked-query": {},
+      "reconcile": {"branch": 61, "commit_info": 61, "repository": 1},
+      "static-distribution": {},
+      "synthetic-imports": {"branch": 100, "commit_info": 360, "create_commit": 60, "pull": 30, "repository": 60},
+      "warm-ranked-query": {}
+    },
+    "modeled_raw_object_requests": {"blob": 740, "commit": 432, "tree": 722},
+    "modeled_raw_object_requests_by_stage": {
+      "canonical-read-and-proof": {"blob": 100, "commit": 11, "tree": 81},
+      "canonical-sync": {},
+      "cold-ranked-query": {},
+      "reconcile": {"blob": 100, "commit": 61, "tree": 91},
+      "static-distribution": {},
+      "synthetic-imports": {"blob": 540, "commit": 360, "tree": 550},
+      "warm-ranked-query": {}
+    }
+  },
+  "schema_version": 1,
+  "status": "success",
+  "timings_seconds": {"canonical-read-and-proof": 3.323567, "canonical-sync": 0.572763, "cold-ranked-query": 0.084358, "reconcile": 4.622016, "static-distribution": 0.075505, "synthetic-imports": 28.299135, "total": 37.003148, "warm-ranked-query": 0.018358}
+}
