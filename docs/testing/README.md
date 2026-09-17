@@ -20,6 +20,10 @@ will match ours.
 Local-only scaling probe: `python -m experiments.local_search --cases 1000`.
 [Recorded run](local-search-2026-09-17.json) includes the source revision, harness
 hash, cold/warm timings and limitations. It is not the hosted growth baseline.
+That historical JSON is a manually summarized run, not verbatim harness stdout:
+the source-hash mapping was reduced to the harness hash and explanatory limitations
+were expanded. The command reproduces the experiment, not the exact report shape.
+Future recorded runs should preserve stdout and place commentary alongside it.
 
 ## Experiment register
 
@@ -32,7 +36,7 @@ hash, cold/warm timings and limitations. It is not the hosted growth baseline.
 | Local embeddings/hybrid exploration | Not adopted; small exploratory fixture did not justify added model/download dependency | Private exploratory run, not independently reproducible from this register yet; no general vector-search performance conclusion |
 | Code-graph alternative | Kept explicit case/change/report/event links rather than introducing a code graph | Architectural comparison, not a measured experiment; graph navigation does not replace applicability and adverse-evidence checks |
 | Optional TypeSafe/Jev input experiments | Compared text/named fields, pair/batch questions and richer context; no mandatory cloud dependency added | Synthetic/public-only inputs with user approval. Provider performance outputs withheld pending publication permission; not evidence of production reliability |
-| Full-pipeline growth baseline | In progress | `../growth-readiness.md`; executable fixture and measured results will be linked here when complete |
+| Core data-path growth baseline | 3/10 imports completed; 30-import run hit its 120-second workload alarm after 18 completed publish returns | [Harness, methods and results](../../experiments/growth/README.md); interrupted acceptance count unknown; real Git/admission/receipts/build/sync/search with a local API boundary, not live Actions throughput |
 
 The public repository contains the regression tests named above. Historical private
 exploration is explicitly labeled; it is not presented as a public reproducible

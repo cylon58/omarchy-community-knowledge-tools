@@ -12,7 +12,8 @@ or bearer token on Pages requests. Missing proof remains unavailable.
 ## Proposed format and flow
 
 - Keep the existing complete proof bundle for cold clients and compatibility.
-- Partition verified raw objects into 64 stable buckets by Git object-ID prefix.
+- Experiment with partitioning verified raw objects into stable buckets by Git
+  object-ID prefix; compare 64 and 256 buckets before choosing a format.
   Each nonempty bucket becomes a deterministically encoded, compressed, bounded
   chunk addressed by SHA-256. The chunk's encoding is independent of main's head.
 - A strict small manifest names the current head and exact chunk hashes/sizes.
@@ -54,3 +55,19 @@ chunks; adding a few records downloads less than the full proof at a representat
 size; tampered/missing/swapped/stale pieces never replace CURRENT; origin/token/
 resource bounds preserved; old clients can still use complete bundles. Report
 first-load, warm transfer and full verification costs separately.
+
+## Pre-implementation design finding
+
+The initial 64-bucket proposal may miss the 25% warm-transfer target. Even ten
+new records plus their ten receipts introduce at least twenty new blobs. Under
+uniform hash prefixes, twenty objects touch an expected `1-(63/64)^20`, or 27%,
+of buckets, before commits and changed trees. This is an analytical warning, not
+a measured byte ratio: bucket sizes differ and separate gzip streams can lose
+compression compared with the complete bundle. Compare both bucket counts,
+manifest overhead, requests, and compressed bytes against actual proof objects.
+Do not silently redefine the denominator as the larger sum of chunk sizes.
+
+Hosted old-proof reuse should be evaluated first because it can reduce API calls
+without depending on the chunk format. It must retain API fallback for missing
+objects, separately authenticate current main, and never make stale proof bytes
+authoritative. Track the objects touched by current validation before export.

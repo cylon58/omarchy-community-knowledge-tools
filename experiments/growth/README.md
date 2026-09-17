@@ -22,14 +22,23 @@ python -m experiments.growth.baseline --imports 30
 
 `--imports` is required and bounded to 1–30. `--reports-per-case` defaults to 1
 and is bounded to 1–6 so a cohort remains within the production ten-addition
-limit. Every invocation has a 120-second wall-clock ceiling. Failure output keeps
-the active stage and exception class but omits exception messages.
+limit. A 120-second alarm bounds the measured workload; temporary-directory
+cleanup and JSON reporting can add small overhead, so this is not a hard process
+kill at exactly 120 seconds. Failure output keeps the active stage and exception
+class but omits exception messages.
 
 Captured results are in `results/`. They identify source revision `2250d3c` and
-harness SHA-256 `26aab87ee9ef7aa376149b683186c3d4bcfdb260fb0d722fd9c044e4d2d36b58`.
-On this machine, 3 and 10 imports completed; 30 imports timed out during synthetic
-prepare/publish after 18 accepted imports. This is a bounded local result, not a
-large-scale support claim. Local Git command counts include fixture construction,
+the historical measured-harness SHA-256
+`26aab87ee9ef7aa376149b683186c3d4bcfdb260fb0d722fd9c044e4d2d36b58`.
+The current failure-accounting harness is
+`fe20879bbf2084e0bd694ea176bc37879da54fa226eb31a5ef31547a76a4cc34`;
+the historical JSON is intentionally unchanged. Its `imports_accepted` field
+means completed successful `publish` returns observed by the harness, not an
+independent count of canonical import commits. On this machine, 3 and 10 imports
+completed; the 30-import workload alarm fired after 18 completed publish returns.
+An interrupted publish could already have written canonical state, so its exact
+accepted-import count is unknown. This is a bounded local result, not a large-scale
+support claim. Local Git command counts include fixture construction,
 while modeled boundary/raw-object counts describe calls through the synthetic
 GitHub-shaped adapter. HTTP rate, request, and response limits outside
 `APIObjects`, plus provider latency, concurrency, outages, and public queue

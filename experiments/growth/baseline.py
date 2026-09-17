@@ -31,7 +31,7 @@ class _DeadlineExpired(Exception):
 
 @contextmanager
 def _bounded_runtime():
-    """Apply the declared wall-clock bound on the supported Unix runner."""
+    """Alarm the measured workload; cleanup and JSON reporting may add overhead."""
     previous = signal.getsignal(signal.SIGALRM)
     previous_timer = signal.setitimer(signal.ITIMER_REAL, TIMEOUT_SECONDS)
 
@@ -44,6 +44,12 @@ def _bounded_runtime():
     finally:
         signal.setitimer(signal.ITIMER_REAL, *previous_timer)
         signal.signal(signal.SIGALRM, previous)
+
+
+@contextmanager
+def _workspace():
+    with tempfile.TemporaryDirectory(prefix="omarchy-growth-") as temporary:
+        yield temporary
 
 
 def _record_id(number: int, suffix: int) -> str:
@@ -348,11 +354,11 @@ def _metric_shell(imports: int, reports_per_case: int) -> dict:
     harness_sha256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     return {"schema_version": 1, "status": "failure", "failure_stage": "configuration",
         "failure_kind": None,
-        "configuration": {"max_imports": MAX_IMPORTS, "timeout_seconds": TIMEOUT_SECONDS,
+        "configuration": {"max_imports": MAX_IMPORTS, "workload_alarm_seconds": TIMEOUT_SECONDS,
                           "reports_per_case": reports_per_case},
         "environment": {"python_version": sys.version.split()[0], "code_revision": _revision(),
                         "harness_sha256": harness_sha256},
-        "counts": {"imports_requested": imports, "imports_accepted": 0, "records": None,
+        "counts": {"imports_requested": imports, "imports_completed": 0, "records": None,
                    "receipts": None, "synthetic_account_ids": None},
         "timings_seconds": {}, "artifacts_bytes": {},
         "network": {"actual_requests": 0, "modeled_boundary_calls": {},
@@ -380,7 +386,8 @@ def run_baseline(imports, reports_per_case=1):
     stage = "synthetic-imports"
     api = None
     repository = None
-    accepted = 0
+    completed = 0
+    pipeline_complete = False
     raw_start = Counter()
     boundary_start = Counter()
     recorded_stages = set()
@@ -404,7 +411,7 @@ def run_baseline(imports, reports_per_case=1):
         raw_start = Counter(api.raw_calls) if api is not None else Counter()
         boundary_start = Counter(api.calls) if api is not None else Counter()
     try:
-        with _bounded_runtime(), tempfile.TemporaryDirectory(prefix="omarchy-growth-") as temporary:
+        with _bounded_runtime(), _workspace() as temporary:
             root = Path(temporary)
             repository = _FixtureRepository(root)
             api = _SyntheticAPI(repository)
@@ -415,7 +422,7 @@ def run_baseline(imports, reports_per_case=1):
                 result = publish(api, policy, prepare(api, policy, number))
                 if result.status != "accepted":
                     raise RuntimeError("Synthetic import was not accepted")
-                accepted += 1
+                completed += 1
             begin_stage("reconcile")
             api.reset_objects()
             if reconcile(api, policy).status != "complete":
@@ -453,7 +460,7 @@ def run_baseline(imports, reports_per_case=1):
                 raise RuntimeError("Cold and warm ranked results differ")
 
             account_ids = {receipt["actor"]["account_id"] for receipt in data["receipts"]}
-            metrics["counts"] = {"imports_requested": imports, "imports_accepted": accepted,
+            metrics["counts"] = {"imports_requested": imports, "imports_completed": completed,
                 "records": len(data["records"]), "receipts": len(data["receipts"]),
                 "synthetic_account_ids": len(account_ids)}
             metrics["artifacts_bytes"] = {"proof_bundle": len(proof),
@@ -469,16 +476,21 @@ def run_baseline(imports, reports_per_case=1):
                     and found["results"][0]["safety"]["community_event_review_required"])}
             if synced["record_count"] != len(data["records"]) or synced["receipt_count"] != len(data["receipts"]):
                 raise RuntimeError("Canonical sync counts differ")
+            pipeline_complete = True
+            begin_stage("cleanup")
+        finish_stage()
+        if pipeline_complete:
             metrics["status"] = "success"
             metrics["failure_stage"] = None
     except (KeyboardInterrupt, SystemExit):
         raise
     except BaseException as error:
         finish_stage()
+        metrics["status"] = "failure"
         metrics["failure_stage"] = stage
         metrics["failure_kind"] = "DeadlineExpired" if isinstance(error, _DeadlineExpired) else type(error).__name__
     finally:
-        metrics["counts"]["imports_accepted"] = accepted
+        metrics["counts"]["imports_completed"] = completed
         if api is not None:
             metrics["network"]["modeled_boundary_calls"] = dict(sorted(api.calls.items()))
             metrics["network"]["modeled_raw_object_requests"] = dict(sorted(api.raw_calls.items()))
