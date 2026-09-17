@@ -127,6 +127,13 @@ pack, fallback and identity requests separately. Require full data/adverse-evide
 parity and the declared25% matching-base transfer target. Same-head needs no proof
 downloads; wrong-base must safely take full. Record misses as well as savings.
 
+Use one ten-record contribution/publication for that matching-base measurement,
+within the existing ten-addition bound. Two five-record publications would leave
+the final pack based on the intermediate505-record state, so a500-record cache
+must miss. The earlier prototype's two-import delta is not the real publisher's
+ordinary window. Test skipped-intermediate fallback separately and disclose the
+single-predecessor limitation, especially for infrequent clients on a busy ledger.
+
 Run focused tests/review before committing, then integrate this with the final
 growth gate and pilot rollout. No public synthetic load. A matching-base benchmark
 does not claim savings for cold or infrequently syncing clients. Further growth in

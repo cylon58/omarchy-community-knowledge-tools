@@ -48,6 +48,67 @@ def _validated_proof(api, policy, data):
     return proof
 
 
+def _publication_update(api, data, proof, previous_proof):
+    """Build one direct update from the untouched preceding full proof."""
+    from .object_bundle import BundleUnavailable, decode, decode_seed
+    from .update_pack import (MAX_MANIFEST, UpdatePackUnavailable,
+                              decode_manifest, generate,
+                              validate_retained_target)
+
+    try:
+        target_head = object_id(data['source']['data_revision'])
+        target_objects = decode(proof, target_head)
+        base_head, base_objects = decode_seed(previous_proof)
+        if base_head == target_head:
+            manifest_raw = api._pages('canonical-update.json', MAX_MANIFEST)
+            manifest = decode_manifest(
+                manifest_raw,
+                expected_deployment=api.deployment,
+                expected_target_head=target_head,
+            )
+            pack = api._pages('canonical-update.bundle', manifest.pack_size)
+            validate_retained_target(
+                manifest_raw, pack,
+                deployment=api.deployment,
+                expected_target_head=target_head,
+                target_objects=target_objects,
+            )
+            return manifest_raw, pack
+        return generate(
+            api.deployment, base_head, base_objects, target_head, target_objects)
+    except (BundleUnavailable, UpdatePackUnavailable, NativeUnavailable,
+            KeyError, TypeError, ValueError, RecursionError):
+        return None
+
+
+def _publisher_seed(api):
+    """Warm from one fixed prior full proof while retaining its exact bounded bytes."""
+    if not hasattr(api, '_pages'):
+        api.seed_canonical()
+        return None
+    from .object_bundle import MAX_COMPRESSED_BUNDLE
+    try:
+        raw = api._pages('canonical-objects.bundle', MAX_COMPRESSED_BUNDLE)
+    except (NativeUnavailable, OSError, TypeError, ValueError):
+        return None
+    try:
+        api.objects.load_seed(raw)
+    except (NativeUnavailable, OSError, TypeError, ValueError):
+        pass
+    return raw
+
+
+def _publisher_build(api, policy, *, now=None):
+    """Read, validate, then optionally accelerate one static publication."""
+    from .canonical import read_canonical
+
+    previous_proof = _publisher_seed(api)
+    data = read_canonical(api, policy, now=now)
+    proof = _validated_proof(api, policy, data)
+    update = _publication_update(api, data, proof, previous_proof)
+    return data, proof, update
+
+
 def guard_event(policy, environment, event):
     """Trusted event identity/ref gate, before token use or any API call."""
     require(environment.get('GITHUB_REPOSITORY') == policy.repository
@@ -173,16 +234,17 @@ def main(argv=None):
                                 strict_json(_read_regular(Path(args.input), MAX_PLAN)), run_id=run_id, run_attempt=attempt)
             status = value
         else:
-            from .canonical import read_canonical
             from .distribution import build_site
             from .resolution import refresh_canonical
             status = safe_status(strict_json(_read_regular(Path(args.input), 64 * 1024)))
             api = GitHubRead(deployment=args.deployment, read_token=token)
-            api.seed_canonical()
-            data = read_canonical(api, policy)
-            proof = _validated_proof(api, policy, data)
+            data, proof, update = _publisher_build(api, policy)
             data = refresh_canonical(data)
-            value = build_site(data, args.output, status=status, proof_bundle=proof)
+            manifest, pack = update if update is not None else (None, None)
+            value = build_site(
+                data, args.output, status=status, proof_bundle=proof,
+                update_manifest=manifest, update_bundle=pack,
+            )
         if args.command != 'build':
             from .snapshots import _open_directory, _write_regular_at
             raw = canonical(value) + b'\n'

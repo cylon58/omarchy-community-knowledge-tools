@@ -51,7 +51,7 @@ Future recorded runs should preserve stdout and place commentary alongside it.
 | Live native batch compatibility | Initial tree rejected on directory-size mismatch; reviewed correction passed two live object/hash checks | [Live failure, repeat and reproduction](live-native-batch.md); tiny compatibility sample, not capacity |
 | Warm proof format comparison | Single update pack used5.48% of full proof bytes in the first ten-record update; all formats preserved exact data | [All candidates, reviewed reporting fixes and limitations](proof-formats.md); no production format adopted |
 | Update-pack variation | Three same-base updates used4.90–5.37% of full bytes with exact proof/data parity | [Raw scenarios, reviewed corrections and scope](update-pack-variation.md); still one synthetic history, not deployed-client measurements |
-| Production update-pack decoder | Reviewed inert codec passed12 new tests and7 existing bundle tests | [Production integration notebook](update-pack-production.md); client/cache/publisher integration remains in progress |
+| Production update-pack integration | Reviewed actual-client500→510 run: matching proof transfer2.98% of full; same-head0downloads; wrong-base fallback and exact parity | [Integration notebook, raw result and two deferred harness-hardening findings](update-pack-production.md); not deployed, matching-window only, final pipeline gate separate |
 
 The public repository contains the regression tests named above. Historical private
 exploration is explicitly labeled; it is not presented as a public reproducible

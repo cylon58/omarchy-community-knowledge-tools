@@ -1,0 +1,476 @@
+{
+  "configuration": {
+    "base_records": 500,
+    "contributions_in_final_pr": 2,
+    "final_prs": 1,
+    "matching_base_max_fraction": 0.25,
+    "overall_seconds": 600,
+    "phase_seconds": 120,
+    "records_added": 10
+  },
+  "deadline_scope": null,
+  "elapsed_seconds": 68.001576,
+  "environment": {
+    "python_version": "3.14.7",
+    "source_revision": "39ac8f23f7c240d964de840e92f020c6a9e1f319",
+    "source_sha256": {
+      "experiments/growth/baseline.py": "ee633468093328f0a3a56abd4c84daaefdb7952174b73dc0f763f0f88f5891ef",
+      "experiments/growth/cold_postmortem.py": "82aae519efe5af45e6f520100a71ebfcadd8be3c2c078550f97a7acf8e7c2b11",
+      "experiments/growth/gates.py": "ea3d0054c5705e3b80178c45acac083e69129e220ec32fff1c1ded62556440a2",
+      "experiments/growth/proof_formats.py": "1fd9f0c76ae2d67561af22ef619bb188d45fa620bdc76f3c4903a783d2da74c7",
+      "experiments/growth/update_pack_production.py": "ceb95da8abf6db42e1dc40d4f3d9b27cd943086cc6217cd5eb24adfd2d321b27",
+      "omarchy_knowledge/canonical.py": "523745715cfef882f371c9419d2dd8608632c15f5d6f344d8912ad4777e0513e",
+      "omarchy_knowledge/coordinator.py": "1d007eea66426262137995b7d663860fb093ffd00360eee9f7b238b3f2c92df7",
+      "omarchy_knowledge/distribution.py": "13b45cb0bf74b14143275f5b6353b4dce281a8b466441f3bc266f81f3b3c3cb7",
+      "omarchy_knowledge/github_native.py": "b68c46dd01912bc8a381555b8903265b7110cd8739f776fe421dffbeeb3ddafc",
+      "omarchy_knowledge/github_object_batch.py": "7f3f8557d9f1826bbfd8d069ac88f9230dc9ed244b85f911145c5d54d2abc3c4",
+      "omarchy_knowledge/object_bundle.py": "ba6772bf0686815b536896433a43943e811a45b2dfe3b7e19c40b58e45e9759f",
+      "omarchy_knowledge/proof_cache.py": "fd6e625028820ea52a9c7f347138c4681f43c79335678af09a55cd4664ddc44d",
+      "omarchy_knowledge/resolution.py": "a2ac7094c41c448b6dbd548f6b672a20267517d8586f9b187a0eb7b1dd4d6460",
+      "omarchy_knowledge/service.py": "45aa4a0cb08c9c3cd67f03ce8a57a275fbbf93469fe14e5cd219f99704499643",
+      "omarchy_knowledge/snapshots.py": "416874fabae5f6975a83a68f791a14853d02df1eee7ca016d108271b8c8e1137",
+      "omarchy_knowledge/update_pack.py": "eebafdd32f5d122025d2110445e329dcc4983d884292706a36f260082dceef1e"
+    },
+    "working_tree": {
+      "dirty": true,
+      "paths": [
+        "docs/plans/fair-intake-design.md",
+        "docs/plans/fair-intake-implementation.md",
+        "docs/plans/service-health-design.md",
+        "docs/plans/update-pack-production.md",
+        "docs/testing/README.md",
+        "docs/testing/update-pack-production.md",
+        "experiments/growth/gates.py",
+        "omarchy_knowledge/distribution.py",
+        "omarchy_knowledge/service.py",
+        "docs/plans/service-health-implementation.md",
+        "experiments/growth/update_pack_production.py",
+        "experiments/growth/variants/update-pack-production-pre-fixture.patch",
+        "tests/test_update_pack_production.py",
+        "tests/test_update_publisher.py"
+      ]
+    }
+  },
+  "failure_kind": null,
+  "failure_stage": null,
+  "limitations": [
+    "The established 500-record synthetic graph is reconstructed from its hash-bound report; its 100-import admission timing pipeline is not repeated.",
+    "The ten-record target is one normal PR containing two existing five-record cohorts, producing a 101-import history rather than an inapplicable two-step patch chain.",
+    "Matching-base savings apply only to clients holding the exact direct predecessor; cold, skipped, and infrequent clients use the full proof.",
+    "Complete canonical verification CPU is unchanged by reduced transfer bytes.",
+    "All requests use the strict local HTTPS fixture; no credential, real network request, public record, write, or deployment is used."
+  ],
+  "measurement": {
+    "active_phase": null,
+    "base": {
+      "head": "ec7ec1444fc6826c82addcb8a4800a4e8e38850f",
+      "native_generation": {
+        "adapter_calls": 238,
+        "elapsed_scope": "native-canonical-read-plus-proof-export-and-offline-replay",
+        "elapsed_seconds": 7.898626,
+        "emulated_requests": 238,
+        "graphql_calls": 135,
+        "graphql_points": 135,
+        "response_bytes": 9294268
+      },
+      "proof_bytes": 1377903,
+      "proof_sha256": "a5f81730b40229fe646c52ecf6cc89d0eb469e76895bedb681e32ea2e461621c",
+      "receipts": 500,
+      "records": 500,
+      "typed_objects": 1902
+    },
+    "clients": {
+      "cold_base": {
+        "elapsed_seconds": 6.36301,
+        "parity": {
+          "adverse_evidence": true,
+          "receipts": true,
+          "records": true,
+          "source": true,
+          "upstream": true
+        },
+        "status": {
+          "data_revision": "ec7ec1444fc6826c82addcb8a4800a4e8e38850f",
+          "deployment": "production",
+          "policy_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_count": 500,
+          "record_count": 500,
+          "ref": "refs/heads/main",
+          "repository": "cylon58/omarchy-community-knowledge",
+          "repository_id": 1373429914,
+          "source_updated_at": "2026-09-16T16:06:41Z",
+          "toolkit_revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tree_revision": "331ad660868bb7159559da4c50d3584f8ffd7595",
+          "trust": "canonical-api-receipts",
+          "upstream_status": "unknown",
+          "verified_at": "2026-09-16T16:00:00Z"
+        },
+        "transport": {
+          "adapter": {
+            "accounted_response_bytes": 1378095,
+            "calls": 3,
+            "graphql_calls": 0,
+            "graphql_points": 0
+          },
+          "api_objects": {
+            "requests": 0,
+            "response_bytes": 0
+          },
+          "identity": {
+            "requests": 2,
+            "response_bytes": 192
+          },
+          "proof": {
+            "artifacts": [
+              "canonical-objects.bundle"
+            ],
+            "requests": 1,
+            "response_bytes": 1377903
+          }
+        }
+      },
+      "matching_base": {
+        "elapsed_seconds": 7.811468,
+        "parity": {
+          "adverse_evidence": true,
+          "receipts": true,
+          "records": true,
+          "source": true,
+          "upstream": true
+        },
+        "status": {
+          "data_revision": "933f4e3942ffcb71605168e925d0c558150bc58e",
+          "deployment": "production",
+          "policy_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_count": 510,
+          "record_count": 510,
+          "ref": "refs/heads/main",
+          "repository": "cylon58/omarchy-community-knowledge",
+          "repository_id": 1373429914,
+          "source_updated_at": "2026-09-16T16:06:45Z",
+          "toolkit_revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tree_revision": "a7e90885dc0f2ad3caa2b7b891dcb8837ec455a3",
+          "trust": "canonical-api-receipts",
+          "upstream_status": "unknown",
+          "verified_at": "2026-09-16T16:00:00Z"
+        },
+        "transport": {
+          "adapter": {
+            "accounted_response_bytes": 42901,
+            "calls": 4,
+            "graphql_calls": 0,
+            "graphql_points": 0
+          },
+          "api_objects": {
+            "requests": 0,
+            "response_bytes": 0
+          },
+          "identity": {
+            "requests": 2,
+            "response_bytes": 192
+          },
+          "proof": {
+            "artifacts": [
+              "canonical-update.json",
+              "canonical-update.bundle"
+            ],
+            "requests": 2,
+            "response_bytes": 42709
+          }
+        },
+        "warm_to_full_ratio": 0.029808
+      },
+      "same_head": {
+        "elapsed_seconds": 6.034976,
+        "parity": {
+          "adverse_evidence": true,
+          "receipts": true,
+          "records": true,
+          "source": true,
+          "upstream": true
+        },
+        "status": {
+          "data_revision": "933f4e3942ffcb71605168e925d0c558150bc58e",
+          "deployment": "production",
+          "policy_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_count": 510,
+          "record_count": 510,
+          "ref": "refs/heads/main",
+          "repository": "cylon58/omarchy-community-knowledge",
+          "repository_id": 1373429914,
+          "source_updated_at": "2026-09-16T16:06:45Z",
+          "toolkit_revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tree_revision": "a7e90885dc0f2ad3caa2b7b891dcb8837ec455a3",
+          "trust": "canonical-api-receipts",
+          "upstream_status": "unknown",
+          "verified_at": "2026-09-16T16:00:00Z"
+        },
+        "transport": {
+          "adapter": {
+            "accounted_response_bytes": 192,
+            "calls": 2,
+            "graphql_calls": 0,
+            "graphql_points": 0
+          },
+          "api_objects": {
+            "requests": 0,
+            "response_bytes": 0
+          },
+          "identity": {
+            "requests": 2,
+            "response_bytes": 192
+          },
+          "proof": {
+            "artifacts": [],
+            "requests": 0,
+            "response_bytes": 0
+          }
+        }
+      },
+      "wrong_base": {
+        "elapsed_seconds": 7.335254,
+        "full_fallback": true,
+        "parity": {
+          "adverse_evidence": true,
+          "receipts": true,
+          "records": true,
+          "source": true,
+          "upstream": true
+        },
+        "status": {
+          "data_revision": "933f4e3942ffcb71605168e925d0c558150bc58e",
+          "deployment": "production",
+          "policy_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_count": 510,
+          "record_count": 510,
+          "ref": "refs/heads/main",
+          "repository": "cylon58/omarchy-community-knowledge",
+          "repository_id": 1373429914,
+          "source_updated_at": "2026-09-16T16:06:45Z",
+          "toolkit_revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tree_revision": "a7e90885dc0f2ad3caa2b7b891dcb8837ec455a3",
+          "trust": "canonical-api-receipts",
+          "upstream_status": "unknown",
+          "verified_at": "2026-09-16T16:00:00Z"
+        },
+        "transport": {
+          "adapter": {
+            "accounted_response_bytes": 1433562,
+            "calls": 4,
+            "graphql_calls": 0,
+            "graphql_points": 0
+          },
+          "api_objects": {
+            "requests": 0,
+            "response_bytes": 0
+          },
+          "identity": {
+            "requests": 2,
+            "response_bytes": 192
+          },
+          "proof": {
+            "artifacts": [
+              "canonical-update.json",
+              "canonical-objects.bundle"
+            ],
+            "requests": 2,
+            "response_bytes": 1433370
+          }
+        }
+      }
+    },
+    "fixture": {
+      "contract_violations": 0,
+      "emulated_https_requests": 343,
+      "emulated_response_bytes": 16683301,
+      "git_commands": 4451,
+      "object_reader": {
+        "cached_object_bytes": 4504699,
+        "cached_objects": 1984
+      },
+      "observed_main": "933f4e3942ffcb71605168e925d0c558150bc58e",
+      "observed_mutations": [
+        {
+          "addition_count": 10,
+          "expected_head": "ec7ec1444fc6826c82addcb8a4800a4e8e38850f",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/000000c9-0000-4000-8000-000000000001.json",
+            "records/cases/000000ca-0000-4000-8000-000000000001.json",
+            "records/changes/000000c9-0000-4000-8000-000000000002.json",
+            "records/changes/000000ca-0000-4000-8000-000000000002.json",
+            "records/events/000000c9-0000-4000-8000-000000000003.json",
+            "records/events/000000c9-0000-4000-8000-000000000004.json",
+            "records/events/000000ca-0000-4000-8000-000000000003.json",
+            "records/events/000000ca-0000-4000-8000-000000000004.json",
+            "records/reports/000000c9-0000-4000-8000-000000000100.json",
+            "records/reports/000000ca-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "f9a76820d8dc1f14994dc2e15d6224b7ea45a30f"
+        },
+        {
+          "addition_count": 10,
+          "expected_head": "f9a76820d8dc1f14994dc2e15d6224b7ea45a30f",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/0c0747b1-f23d-4431-8305-5b984183c6b6.json",
+            "provenance/ingestion/155d1419-6483-4b41-8700-61c0c67efd64.json",
+            "provenance/ingestion/2981e1a8-13cb-4adf-8b04-cbfcb185c88d.json",
+            "provenance/ingestion/41462f46-e31d-4440-bfc4-baf07905373f.json",
+            "provenance/ingestion/54266777-51ba-474b-83c4-30187c24416a.json",
+            "provenance/ingestion/89049378-8826-4776-8c11-79b6c9f87552.json",
+            "provenance/ingestion/927d664a-acdd-478e-b4b5-74b4e0305520.json",
+            "provenance/ingestion/a8bfaab5-457c-48f4-9244-c01c1415b12e.json",
+            "provenance/ingestion/ae7682e8-10ac-45a5-8425-8d3cec5dfb9a.json",
+            "provenance/ingestion/ba24d0e6-0db7-4dbe-a2a0-ccebff72a2a6.json"
+          ],
+          "result_head": "933f4e3942ffcb71605168e925d0c558150bc58e"
+        }
+      ]
+    },
+    "history": {
+      "base_imports": 100,
+      "contributions_in_final_pr": 2,
+      "imports": 101
+    },
+    "publication": {
+      "cohorts": [
+        201,
+        202
+      ],
+      "distribution": {
+        "bytes": 2383085,
+        "distribution_sha256": "dc136f463f667536134f74ab5d803e6de4a235797f7030700270902e78d537e7"
+      },
+      "elapsed_seconds": 20.374298,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 10,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 8.478217,
+          "emulated_requests": 10,
+          "graphql_calls": 5,
+          "graphql_points": 5,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 5,
+            "POST": 5
+          },
+          "response_bytes": 1564005,
+          "seed_outcome": null
+        },
+        "planning": {
+          "calls": 10,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 2.63915,
+          "emulated_requests": 10,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 6,
+            "POST": 4
+          },
+          "response_bytes": 1471361,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 72,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 9.202805,
+          "emulated_requests": 72,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 66,
+            "POST": 6
+          },
+          "response_bytes": 1498917,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "manifest_bytes": 554,
+      "mutation_audit": [
+        {
+          "addition_count": 10,
+          "expected_head": "ec7ec1444fc6826c82addcb8a4800a4e8e38850f",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/000000c9-0000-4000-8000-000000000001.json",
+            "records/cases/000000ca-0000-4000-8000-000000000001.json",
+            "records/changes/000000c9-0000-4000-8000-000000000002.json",
+            "records/changes/000000ca-0000-4000-8000-000000000002.json",
+            "records/events/000000c9-0000-4000-8000-000000000003.json",
+            "records/events/000000c9-0000-4000-8000-000000000004.json",
+            "records/events/000000ca-0000-4000-8000-000000000003.json",
+            "records/events/000000ca-0000-4000-8000-000000000004.json",
+            "records/reports/000000c9-0000-4000-8000-000000000100.json",
+            "records/reports/000000ca-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "f9a76820d8dc1f14994dc2e15d6224b7ea45a30f"
+        },
+        {
+          "addition_count": 10,
+          "expected_head": "f9a76820d8dc1f14994dc2e15d6224b7ea45a30f",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/0c0747b1-f23d-4431-8305-5b984183c6b6.json",
+            "provenance/ingestion/155d1419-6483-4b41-8700-61c0c67efd64.json",
+            "provenance/ingestion/2981e1a8-13cb-4adf-8b04-cbfcb185c88d.json",
+            "provenance/ingestion/41462f46-e31d-4440-bfc4-baf07905373f.json",
+            "provenance/ingestion/54266777-51ba-474b-83c4-30187c24416a.json",
+            "provenance/ingestion/89049378-8826-4776-8c11-79b6c9f87552.json",
+            "provenance/ingestion/927d664a-acdd-478e-b4b5-74b4e0305520.json",
+            "provenance/ingestion/a8bfaab5-457c-48f4-9244-c01c1415b12e.json",
+            "provenance/ingestion/ae7682e8-10ac-45a5-8425-8d3cec5dfb9a.json",
+            "provenance/ingestion/ba24d0e6-0db7-4dbe-a2a0-ccebff72a2a6.json"
+          ],
+          "result_head": "933f4e3942ffcb71605168e925d0c558150bc58e"
+        }
+      ],
+      "pack_bytes": 42155,
+      "publish_completed_return": true,
+      "pull_request": 101,
+      "records": 10,
+      "update_artifacts": [
+        "canonical-update.json",
+        "canonical-update.bundle"
+      ]
+    },
+    "reconstruction": {
+      "all_recorded_mutation_identities_equal": true,
+      "data_head": "ec7ec1444fc6826c82addcb8a4800a4e8e38850f",
+      "imports": 100,
+      "mutation_heads_checked": 200,
+      "outcome": "success",
+      "predecessor_heads_checked": 200,
+      "receipts": 500,
+      "records": 500
+    },
+    "target": {
+      "head": "933f4e3942ffcb71605168e925d0c558150bc58e",
+      "proof_bytes": 1432816,
+      "proof_sha256": "3d9a85b12b135146f92a0e9ac7bea4b0b38957fcb9c61ddff5206f3b77505557",
+      "receipts": 510,
+      "records": 510,
+      "typed_objects": 1931
+    }
+  },
+  "network": {
+    "real_network_requests": 0
+  },
+  "profile": "native-production-update-pack-500-plus-10",
+  "schema_version": 1,
+  "source_report": {
+    "imports": 100,
+    "path": "experiments/growth/results/native-distributed-500-v1.json",
+    "sha256": "9a58c3bbfdc6e045e505b8e1759ba6f6d7b8943dac8a5e723079c1cff1b3f92a"
+  },
+  "status": "success"
+}

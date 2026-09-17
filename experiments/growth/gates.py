@@ -245,6 +245,8 @@ class _Response:
 class _PagesState:
     bundle: bytes | None
     published_imports: tuple[int, ...]
+    update_manifest: bytes | None = None
+    update_bundle: bytes | None = None
 
 
 class _Connection:
@@ -328,15 +330,24 @@ class _NativeFixture:
     def pages_publications(self):
         return len(self.pages_state.published_imports)
 
-    def publish_pages(self, proof: bytes, import_number: int):
+    def publish_pages(self, proof: bytes, import_number: int, *, update=None):
         previous = self.pages_state
         if (not isinstance(proof, bytes) or not proof
                 or type(import_number) is not int or import_number <= 0
                 or import_number in previous.published_imports):
             raise ValueError("Invalid proof publication")
-        # Bundle and publication identity/history become visible together.
+        if update is None:
+            manifest = pack = None
+        elif (type(update) is tuple and len(update) == 2
+              and isinstance(update[0], bytes) and update[0]
+              and isinstance(update[1], bytes) and update[1]):
+            manifest, pack = update
+        else:
+            raise ValueError("Invalid optional update publication")
+        # Full proof, optional pair, and publication identity/history become
+        # visible together.
         self.pages_state = _PagesState(
-            proof, previous.published_imports + (import_number,))
+            proof, previous.published_imports + (import_number,), manifest, pack)
 
     def _repository_value(self):
         return {"id": self.REPOSITORY_ID, "full_name": self.REPOSITORY,
@@ -543,16 +554,22 @@ class _NativeFixture:
     def exchange(self, host, method, path, body, headers):
         try:
             if host == self.PAGES_HOST:
-                if (method != "GET" or path != self.PAGES_PATH or body is not None
+                prefix = "/omarchy-community-knowledge/"
+                artifacts = {
+                    "canonical-objects.bundle": self.pages_state.bundle,
+                    "canonical-update.json": self.pages_state.update_manifest,
+                    "canonical-update.bundle": self.pages_state.update_bundle,
+                }
+                if (method != "GET" or not path.startswith(prefix)
+                        or path[len(prefix):] not in artifacts or body is not None
                         or headers != {"Accept": "application/octet-stream",
                                        "User-Agent": "omarchy-knowledge-native/1"}):
                     raise AssertionError("Unexpected Pages request")
-                pages = self.pages_state
+                raw = artifacts[path[len(prefix):]]
                 self.requests.append({"host": host, "method": method, "path": path,
                                       "request_bytes": 0,
-                                      "response_bytes": len(pages.bundle or b"")})
-                return _Response(200 if pages.bundle is not None else 404,
-                                 pages.bundle or b"")
+                                      "response_bytes": len(raw or b"")})
+                return _Response(200 if raw is not None else 404, raw or b"")
             expected_headers = {
                 "Accept": "application/vnd.github+json",
                 "User-Agent": "omarchy-knowledge-native/1",

@@ -10,7 +10,8 @@ from .snapshots import (_canonical, _open_directory, _write_regular_at,
                         _bounded_directory_names, MAX_SNAPSHOT_BYTES)
 
 
-def build_site(data, output, *, status, proof_bundle=None):
+def build_site(data, output, *, status, proof_bundle=None,
+               update_manifest=None, update_bundle=None):
     from .service import safe_status
     status = safe_status(status)
     with tempfile.TemporaryDirectory(prefix='omarchy-export-') as temporary:
@@ -29,6 +30,15 @@ def build_site(data, output, *, status, proof_bundle=None):
         if not isinstance(proof_bundle, bytes) or not 0 < len(proof_bundle) <= MAX_COMPRESSED_BUNDLE:
             raise ValueError('Invalid canonical object bundle')
         files['canonical-objects.bundle'] = proof_bundle
+    from .object_bundle import MAX_COMPRESSED_BUNDLE
+    from .update_pack import MAX_MANIFEST
+    optional = (isinstance(update_manifest, bytes)
+                and 0 < len(update_manifest) <= MAX_MANIFEST
+                and isinstance(update_bundle, bytes)
+                and 0 < len(update_bundle) <= MAX_COMPRESSED_BUNDLE)
+    if optional:
+        files['canonical-update.json'] = update_manifest
+        files['canonical-update.bundle'] = update_bundle
     text = html.escape(_canonical({'source': data['source'], 'intake': status,
                                   'receipt_coverage': coverage, 'upstream': data['upstream']}).decode())
     rows = ''.join('<li><code>' + html.escape(r['id']) + '</code> ' + html.escape(r['payload']['title']) + '</li>'
@@ -46,10 +56,21 @@ Static hashes provide integrity only; use CLI sync for canonical API verificatio
 <a href="manifest.json">Snapshot manifest</a> · <a href="canonical.json">Receipt envelope</a> ·
 <a href="status.json">Status</a> · <a href="distribution.json">Distribution hashes</a></p>
 <h2>Cases</h2><ul>''' + rows + '</ul><h2>Revision, freshness and intake</h2><pre>' + text + '</pre></html>\n').encode()
-    files['distribution.json'] = _canonical({'version': 1, 'source': data['source'], 'files': {
-        name: {'sha256': hashlib.sha256(raw).hexdigest(), 'size': len(raw)}
-        for name, raw in sorted(files.items())}})
-    total = sum(map(len, files.values()))
+    def finalize():
+        files['distribution.json'] = _canonical({
+            'version': 1, 'source': data['source'], 'files': {
+                name: {'sha256': hashlib.sha256(raw).hexdigest(), 'size': len(raw)}
+                for name, raw in sorted(files.items())
+                if name != 'distribution.json'
+            },
+        })
+        return sum(map(len, files.values()))
+
+    total = finalize()
+    if total > MAX_SNAPSHOT_BYTES and optional:
+        del files['canonical-update.json']
+        del files['canonical-update.bundle']
+        total = finalize()
     if total > MAX_SNAPSHOT_BYTES:
         raise ValueError('Static distribution exceeds bound')
     directory = _open_directory(output, 'Static site', create=True)
