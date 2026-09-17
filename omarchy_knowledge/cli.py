@@ -82,12 +82,18 @@ def _parser() -> argparse.ArgumentParser:
     search.add_argument("--intent", choices=("corrective", "optional", "undetermined", "all"), default="corrective")
     search.add_argument("--include-optional", action="store_true", help="legacy file-search compatibility")
     search.add_argument("--json", action="store_true", help="emit stable JSON (the default for script safety)")
+    search.add_argument('--full', action='store_true', help='full diagnostic projections instead of a shortlist')
+    search.add_argument('--limit', type=int, default=5, help='maximum shortlist cases (1–50; default 5)')
+    search.add_argument('--method', choices=('ranked', 'substring'), default='ranked', help='local ranking or original literal search')
+    search.add_argument('--broad', action='store_true', help='allow low-coverage lexical candidates; never implies applicability')
 
     show = commands.add_parser("show", help="show one canonical record from a cache")
     show.add_argument("identifier"); show.add_argument("--cache", required=True); show.add_argument("--json", action="store_true")
+    show.add_argument('--full', action='store_true', help='include full upstream diagnostic catalog')
     explain = commands.add_parser("explain", help="explain applicability and canonical evidence; ordinary imports remain claims")
     explain.add_argument("identifier"); explain.add_argument("--cache", required=True)
     explain.add_argument("--environment", required=True); explain.add_argument("--json", action="store_true")
+    explain.add_argument('--full', action='store_true', help='include full upstream diagnostic catalog')
 
     draft = commands.add_parser("draft", help="validate and save a local draft of any record type")
     draft.add_argument("candidate"); draft.add_argument("--corpus", nargs="*", default=[])
@@ -144,7 +150,7 @@ def _dispatch(args) -> Any:
     from .contributions import (audit_application_receipts, build_preview,
                                 make_application_receipt, record_consent, save_draft,
                                 write_local_json)
-    from .discovery import explain_record, search_snapshot, show_record
+    from .discovery import compact_cache_status, explain_record, search_snapshot, show_record
     from .snapshots import build_snapshot, cache_status, import_snapshot, load_snapshot
 
     if args.command == 'sync':
@@ -195,14 +201,21 @@ def _dispatch(args) -> Any:
                 raise ValueError("Cache search does not accept loose record files")
             environment = _json_file(args.environment) if args.environment else None
             intent = "all" if args.include_optional else args.intent
-            return search_snapshot(args.cache, args.query, environment=environment, intent=intent)
+            return search_snapshot(args.cache, args.query, environment=environment, intent=intent,
+                                   compact=not args.full, limit=args.limit, method=args.method, broad=args.broad)
         if not args.files:
             raise ValueError("Search requires either --cache or record files")
         return knowledge.search(knowledge.build_index(_records(args.files)), args.query, args.include_optional)
     if args.command == "show":
-        return show_record(args.cache, args.identifier)
+        result = show_record(args.cache, args.identifier)
+        if not args.full:
+            result['cache_status'] = compact_cache_status(result['cache_status'])
+        return result
     if args.command == "explain":
-        return explain_record(args.cache, args.identifier, environment=_json_file(args.environment))
+        result = explain_record(args.cache, args.identifier, environment=_json_file(args.environment))
+        if not args.full:
+            result['cache_status'] = compact_cache_status(result['cache_status'])
+        return result
     if args.command == "draft":
         candidate = _json_file(args.candidate)
         corpus = _records(args.corpus)

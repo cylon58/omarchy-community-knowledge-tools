@@ -36,10 +36,17 @@ Inspect this configuration and use it with the matching toolkit installation:
 
 ```sh
 .venv/bin/omarchy-knowledge sync --config deployment.json --cache cache
-.venv/bin/omarchy-knowledge status --cache cache
 .venv/bin/omarchy-knowledge search --cache cache --query 'dock keyboard' --intent corrective
 .venv/bin/omarchy-knowledge explain CHANGE_UUID --cache cache --environment environment.json
 ```
+
+Search is local and returns a small ranked shortlist. Read selected records with
+`show` and check `explain` before acting. Python's SQLite FTS5 provides ranking;
+`--method substring` retains the literal fallback. `--broad` explores partial
+matches, `--limit` expands results, and `--full` restores diagnostic detail.
+Use `status --cache cache` when full upstream diagnostics are needed. See
+[efficient discovery](docs/efficient-discovery.md) for safety limits and optional
+model experiments. No cloud model or API key is required.
 
 Alternatively supply `--deployment production --toolkit-revision FULL_COMMIT
 --policy-revision FULL_COMMIT` instead of `--config`. These must be actual reviewed

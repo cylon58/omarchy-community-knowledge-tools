@@ -26,9 +26,12 @@ through a read-only catalog view and inspect local activation separately with
 `omarchy plugin list --json`. A referenced plugin, a catalog listing, marketplace
 review, and an enabled local plugin establish different facts.
 
-Use `omarchy-knowledge --help` and subcommand help for current flags. Initially sync
-with a trusted operator's `deployment.json`, which pins reviewed toolkit/policy
-revisions. Its configured deployment must match the intended ledger:
+Start with the local cache. If it is missing, sync with a trusted operator's
+`deployment.json`, which pins reviewed toolkit/policy revisions. Refresh an existing
+cache when search reports stale data/upstream facts, or when current release state
+matters before advice. A recent successful sync need not be repeated per query.
+Use subcommand `--help` when a needed flag is unknown. The configuration must match
+the intended ledger:
 
 ```sh
 omarchy-knowledge sync --cache CACHE --config deployment.json
@@ -41,11 +44,21 @@ canonical GitHub objects anonymously and refreshes upstream sources; it uploads 
 local environment. Then query the cache locally:
 
 ```sh
-omarchy-knowledge status --cache CACHE --json
 omarchy-knowledge search --cache CACHE --query QUERY --intent INTENT --environment ENVIRONMENT.json --json
 omarchy-knowledge show --cache CACHE RECORD_ID --json
 omarchy-knowledge explain --cache CACHE --environment ENVIRONMENT.json RECORD_ID --json
 ```
+
+Search returns at most five ranked cases with compact safety/evidence summaries.
+Fetch `show` and `explain` only for relevant candidates before recommending a change.
+Lexical coverage measures query overlap, not technical correctness. If no useful
+match appears, try shorter symptom terms or `--broad`; no match does not prove that
+no solution exists. `--limit` expands the shortlist; `--full` restores complete
+diagnostic search output. When `changes_truncated` is true or adverse/review flags
+are set, inspect the full selected case explanation and relevant reports/events
+before choosing a change. Use `status --cache CACHE` for full upstream scan details
+only when those diagnostics are needed. Normal local search needs no model service,
+API key, or uploaded machine facts; optional Jev experiments are not a prerequisite.
 
 Select `optional` or `undetermined` intent when that matches the user's goal. Read
 the result's data revision, trust, applicability reasons, missing facts, adverse
@@ -58,8 +71,9 @@ hashes alone provide integrity; use sync to establish canonical provenance.
 Resolve these independently before recommending an update: whether an upstream
 change is relevant, whether a package containing it is available for the user's
 channel, and whether it is active locally. A merged or tagged change alone proves
-none of the later states. Read `cache_status.upstream` for scan limits, freshness,
-source identities and assertion basis. The live provider supports only official
+none of the later states. Search's `cache_status` summarizes freshness and upstream
+availability; `status` exposes scan limits, source identities and assertion basis.
+The live provider supports only official
 `omarchy`/`omarchy-settings`, stable/rc, x86_64; other paths stay unknown. Its real
 maintainer authority list starts empty, so observed releases/catalogs alone yield
 investigation. Authenticated supplier assertions are distinct from independent
