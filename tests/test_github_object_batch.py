@@ -47,10 +47,10 @@ class GitHubObjectBatchCodecTests(unittest.TestCase):
         gitlink = "5" * 40
         rows = [
             (b"z", 33188, "blob", blob, 7),
-            (b"a", 16384, "tree", subtree, None),
+            (b"a", 16384, "tree", subtree, 0),
             (b"a-raw-\xff", 33261, "blob", executable, 9),
             (b"link", 40960, "blob", symlink, 4),
-            (b"module", 57344, "commit", gitlink, None),
+            (b"module", 57344, "commit", gitlink, 0),
         ]
         ordered = sorted(rows, key=lambda row: row[0] + (b"/" if row[2] == "tree" else b""))
         raw = b"".join(
@@ -86,6 +86,32 @@ class GitHubObjectBatchCodecTests(unittest.TestCase):
               item["size"] if item["type"] == "blob" else -1)
              for item in response_rows],
         )
+
+    def test_tree_nonblob_size_requires_live_nonnull_zero_shape(self):
+        """Break caught: the decoder rejects GitHub's integer-zero subtree size."""
+        from omarchy_knowledge.github_object_batch import decode_response
+
+        child = "2" * 40
+        raw = b"40000 nested\0" + bytes.fromhex(child)
+        oid = git_hash("tree", raw)
+        response = {"data": {
+            "repository": {"databaseId": 1373429914, "o0": {
+                "__typename": "Tree", "oid": oid, "entries": [{
+                    "nameRaw": base64.b64encode(b"nested").decode(),
+                    "mode": 16384, "type": "tree", "oid": child, "size": 0,
+                }]}},
+            "rateLimit": {"cost": 1, "remaining": 200},
+        }}
+
+        decoded, _cost, _remaining = decode_response(
+            "production", "tree", [oid], response)
+
+        self.assertEqual(decoded[oid].entries[0].size, -1)
+        for invalid in (None, False, -1, 1):
+            changed = copy.deepcopy(response)
+            changed["data"]["repository"]["o0"]["entries"][0]["size"] = invalid
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                decode_response("production", "tree", [oid], changed)
 
     def test_blob_reconstruction_requires_exact_utf8_bytes_size_and_hash(self):
         """Break caught: a GraphQL hash label authorizes altered or truncated text."""
@@ -494,6 +520,27 @@ class GitHubObjectBatchAdapterTests(unittest.TestCase):
                 self.assertEqual(reader.objects.blob(selected.oid), b"{}")
                 self.assertGreater(reader.objects.visits, 0)
                 self.assertIn(("blob", record_oid), reader.objects.touched)
+
+    def test_native_fixture_emits_real_nonblob_zero_size_shape(self):
+        """Break caught: the independent fixture models non-blob size as null."""
+        from experiments.growth.gates import _NativeFixture
+        from omarchy_knowledge.github_object_batch import build_request
+
+        with tempfile.TemporaryDirectory(prefix="batch-shape-test-") as temporary:
+            with _NativeFixture(Path(temporary)) as fixture:
+                fixture.main = fixture.repository.commit(
+                    {"records/cases/shape.json": b"{}"},
+                    (fixture.main,), "Synthetic nested tree shape")
+                root = fixture._commit(fixture.main)["tree"]["sha"]
+                response, metadata = fixture._read_query(
+                    build_request("production", "tree", [root]))
+                rows = response["data"]["repository"]["o0"]["entries"]
+                nonblobs = [row for row in rows if row["type"] != "blob"]
+
+                self.assertEqual(metadata, {"object_kind": "tree", "object_count": 1})
+                self.assertTrue(nonblobs)
+                self.assertTrue(all(type(row["size"]) is int and row["size"] == 0
+                                    for row in nonblobs))
 
     def test_one_import_reports_batched_read_counts_and_points(self):
         """Break caught: native jobs silently use REST-only reads or omit quota evidence."""

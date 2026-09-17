@@ -47,7 +47,8 @@ Future recorded runs should preserve stdout and place commentary alongside it.
 | Exact cold-failure reconstruction | Reproduced refusal of request 513 after 512 sent requests; separate local replay preserved all evidence | [Postmortem and reproducer](cold-recovery-postmortem.md); original native gate remains failed |
 | GitHub GraphQL field probe | Two public GitHub reads; one tree and one text blob reconstructed to exact Git hashes | [Probe and limitations](graphql-field-probe.md); compatibility sample, not a scale benchmark |
 | Live reconciliation cadence | Hourly configuration did not correspond to hourly recent production runs | [Timestamped read-only observation](scheduled-service-observation.md); cause undiagnosed, unattended cadence still a launch check |
-| Authenticated object batching | First candidate fetched the graph within request limits, then failed a traversal check | [Raw failure and candidate notes](batched-object-reads.md); correction/review pending, no deployment |
+| Authenticated object batching | First candidate failed traversal; corrected exact500 comparison passed with 238 requests and exact proof parity | [Raw failure/success and limitations](batched-object-reads.md); narrower than full pipeline, no deployment |
+| Live native batch compatibility | First tree rejected because fixture/parser assumed null rather than GitHub's zero directory size | [Live failure and reproduction](live-native-batch.md); fixture gap exposed, correction pending |
 
 The public repository contains the regression tests named above. Historical private
 exploration is explicitly labeled; it is not presented as a public reproducible

@@ -1,6 +1,6 @@
 # Batched immutable-object reads
 
-Status: candidate reviewed, not deployed; corrected scale run pending. This experiment addresses the
+Status: candidate reviewed, corrected comparison passed, not deployed. This experiment addresses the
 [cold-recovery request limit](cold-recovery-postmortem.md), not search ranking.
 
 ## First candidate run: failed, preserved
@@ -34,6 +34,36 @@ paths. It is preserved unchanged while a focused regression and review address
 the defect. A later corrected result must use a different output file.
 
 ## Reproduction and acceptance
+
+### Corrected comparison
+
+[V2 raw result](../../experiments/growth/results/native-batched-reads-v2.json),
+measured on clean commit `784f7e363ad7c97a83436866e2b911d97ac3fc5c`, passed:
+
+| Measurement | Result |
+|---|---:|
+| Canonical records / receipts | 500 / 500 |
+| Adverse reports retained | 100 |
+| Emulated requests | 238 of 512 |
+| GraphQL requests / reported points | 135 / 135 |
+| Response bytes | 9,296,371 of 33,554,432 |
+| Verified objects / raw bytes | 1,902 / 4,402,758 |
+| Native logical object visits | 2,507 of 5,000 |
+| Full compressed proof | 1,377,903 bytes |
+| Cold comparison including replay/reference | 11.78 seconds |
+| Entire experiment including reconstruction | 23.89 seconds |
+
+All 400 graph-identity checks matched. Canonical data and offline replay matched
+the local reference; the proof SHA-256 remained
+`a5f81730b40229fe646c52ecf6cc89d0eb469e76895bedb681e32ea2e461621c`.
+There were no fixture contract violations. Native visit accounting is lower than
+the reference's 4,414 visits because prefetch does not charge speculative lookups
+as logical traversals; raw object and proof contents remain identical.
+
+This clears the exact failing cold-recovery case, not the entire launch gate.
+The fixture does not measure network latency, actual hourly Actions-token quota,
+queue fairness, outages, or unbounded history growth. The original full-pipeline
+failure and first candidate failure remain published unchanged.
 
 ```sh
 python -m experiments.growth.batched_reads --output /new/path/comparison.json

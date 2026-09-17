@@ -1,0 +1,23 @@
+{
+  "calls": 1,
+  "elapsed_seconds": 0.785417,
+  "failure_kind": "AssertionError",
+  "graphql_calls": 1,
+  "graphql_points": 0,
+  "graphql_remaining": null,
+  "limitations": [
+    "Two fixed public objects, not a capacity or latency benchmark.",
+    "Existing account credential, not an Actions token quota test.",
+    "No raw content, credential, or private machine facts retained."
+  ],
+  "observed_at": "2026-09-17T19:29:14.967463+00:00",
+  "profile": "live-native-batch-compatibility",
+  "response_bytes": 867,
+  "schema_version": 1,
+  "source_revision": "784f7e363ad7c97a83436866e2b911d97ac3fc5c",
+  "source_sha256": {
+    "omarchy_knowledge/github_native.py": "0c9d620ed011990840f800e09ad5cb505729e58ab75b167e6b1d5e88915c386e",
+    "omarchy_knowledge/github_object_batch.py": "1c80743d5aaecd3ec090f3662706251885f2b29c06f1b5e0de612a0f9388ae33"
+  },
+  "status": "failure"
+}

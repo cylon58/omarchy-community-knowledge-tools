@@ -1,0 +1,108 @@
+{
+  "cold_comparison": {
+    "actual_emulated_requests": 238,
+    "actual_emulated_response_bytes": 9296371,
+    "adapter_deadline_seconds": 180,
+    "adverse_failure_records": 100,
+    "calls": 238,
+    "canonical_equal": true,
+    "data_head": "ec7ec1444fc6826c82addcb8a4800a4e8e38850f",
+    "elapsed_seconds": 11.784678,
+    "failure_kind": null,
+    "graphql_call_cap": 192,
+    "graphql_calls": 135,
+    "graphql_point_cap": 192,
+    "graphql_points": 135,
+    "graphql_remaining": 5000,
+    "object_byte_cap": 20971520,
+    "object_visit_cap": 5000,
+    "object_visit_count": 2507,
+    "offline_proof_replay_equal": true,
+    "outcome": "success",
+    "proof_bytes": 1377903,
+    "proof_sha256": "a5f81730b40229fe646c52ecf6cc89d0eb469e76895bedb681e32ea2e461621c",
+    "receipts": 500,
+    "records": 500,
+    "reference_object_visit_count": 4414,
+    "reference_verified_object_count": 1902,
+    "request_cap": 512,
+    "requests_by_kind": {
+      "blob": 0,
+      "branch": 1,
+      "commit": 101,
+      "graphql": 135,
+      "other": 0,
+      "repository": 1,
+      "tree": 0
+    },
+    "response_byte_cap": 33554432,
+    "response_bytes": 9296371,
+    "verified_object_bytes": 4402758,
+    "verified_object_count": 1902
+  },
+  "configuration": {
+    "cold_seconds": 120,
+    "overall_seconds": 600,
+    "receipts": 500,
+    "records": 500
+  },
+  "elapsed_seconds": 23.893934,
+  "environment": {
+    "source_revision": "784f7e363ad7c97a83436866e2b911d97ac3fc5c",
+    "source_sha256": {
+      "experiments/growth/baseline.py": "fe20879bbf2084e0bd694ea176bc37879da54fa226eb31a5ef31547a76a4cc34",
+      "experiments/growth/batched_reads.py": "cf266dff45ec6dca89972daf4615fe81c839e5c0234262085d784a11f2ba0d44",
+      "experiments/growth/cold_postmortem.py": "82aae519efe5af45e6f520100a71ebfcadd8be3c2c078550f97a7acf8e7c2b11",
+      "experiments/growth/gates.py": "7f2f933760322a58d027ac3459f688e069798baffc0f65d29c64f20055bd2abb",
+      "omarchy_knowledge/canonical.py": "ada1e99436b698492cdfc686cecf5e2cd59df5a48428aa5f73bf34a2c9631e3c",
+      "omarchy_knowledge/coordinator.py": "1d007eea66426262137995b7d663860fb093ffd00360eee9f7b238b3f2c92df7",
+      "omarchy_knowledge/github_native.py": "0c9d620ed011990840f800e09ad5cb505729e58ab75b167e6b1d5e88915c386e",
+      "omarchy_knowledge/github_object_batch.py": "1c80743d5aaecd3ec090f3662706251885f2b29c06f1b5e0de612a0f9388ae33",
+      "omarchy_knowledge/object_bundle.py": "ba6772bf0686815b536896433a43943e811a45b2dfe3b7e19c40b58e45e9759f",
+      "omarchy_knowledge/service.py": "c1335314e769dac3d008dffa4e1e1df3453281c6650053d91b2b5b87a312c9ed"
+    },
+    "working_tree": {
+      "dirty": false,
+      "paths": []
+    }
+  },
+  "failure_kind": null,
+  "failure_stage": null,
+  "fixture": {
+    "contract_violations": 0,
+    "git_commands": 4399,
+    "object_reader": {
+      "byte_cap": 20971520,
+      "cache_hits": 103002,
+      "cached_object_bytes": 4402758,
+      "cached_objects": 1902,
+      "object_cap": 5000
+    }
+  },
+  "limitations": [
+    "This reconstructs the saved synthetic graph and does not repeat admission.",
+    "The strict HTTPS fixture opens no network connection and uses no real credential.",
+    "This comparison is not the full admission growth gate or deployment approval.",
+    "Provider latency, hourly quota sufficiency, queues, fairness, and outages are unmeasured."
+  ],
+  "profile": "native-distributed-500-batched-reads",
+  "reconstruction": {
+    "all_recorded_mutation_identities_equal": true,
+    "data_head": "ec7ec1444fc6826c82addcb8a4800a4e8e38850f",
+    "elapsed_seconds": 11.94057,
+    "imports": 100,
+    "mutation_heads_checked": 200,
+    "outcome": "success",
+    "predecessor_heads_checked": 200,
+    "receipts": 500,
+    "recorded_oid_checks": 400,
+    "records": 500
+  },
+  "schema_version": 1,
+  "source_report": {
+    "imports": 100,
+    "required_sha256": "9a58c3bbfdc6e045e505b8e1759ba6f6d7b8943dac8a5e723079c1cff1b3f92a",
+    "sha256": "9a58c3bbfdc6e045e505b8e1759ba6f6d7b8943dac8a5e723079c1cff1b3f92a"
+  },
+  "status": "success"
+}

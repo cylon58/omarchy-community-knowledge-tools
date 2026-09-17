@@ -468,7 +468,7 @@ class _NativeFixture:
                     "nameRaw": base64.b64encode(name).decode(),
                     "mode": int(mode_raw, 8), "type": child_kind, "oid": child,
                     "size": len(self.reader.raw("blob", child))
-                            if child_kind == "blob" else None,
+                            if child_kind == "blob" else 0,
                 })
                 offset = nul + 21
             repository[f"o{index}"] = {

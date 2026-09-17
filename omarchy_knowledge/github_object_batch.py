@@ -96,7 +96,7 @@ def _decode_tree(value, requested):
             _require(type(size) is int and 0 <= size <= 65536)
             entry_size = size
         else:
-            _require(size is None)
+            _require(type(size) is int and size == 0)
             entry_size = -1
         entries.append(TreeEntry(name, normalized, expected_kind, child, entry_size))
         encoded.append((

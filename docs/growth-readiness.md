@@ -56,11 +56,16 @@ The ten-import calibration and concentrated 100-report profile passed. The large
 recovery. Exact graph reconstruction reproduced exhaustion of the 512-request cap;
 the separate local replay is not a native capacity pass. See the
 [cold postmortem](testing/cold-recovery-postmortem.md). Bounded authenticated object
-batching is the next candidate; fair intake, incremental client transfer and health
-reporting remain unfinished. None of these branch changes is deployed yet.
+batching subsequently passed the exact cold comparison in238 emulated requests
+with full evidence/proof parity. A live compatibility check then exposed a fixture/
+parser directory-size mismatch, which is being corrected separately. Fair intake,
+incremental client transfer and health reporting remain unfinished. None of these
+branch changes is deployed yet.
 
-The 500-record local postmortem also used 4,414 of 5,000 logical object visits. Batched
-network reads cannot remove that validation cost. Treat the target as a bounded
+The 500-record local reference used4,414 of5,000 logical object visits; the batched
+candidate used2,507 because speculative warming no longer charged logical visits.
+Both validated the same1,902-object graph. Batching does not eliminate growing
+historical proof contents or full replay work. Treat the target as a bounded
 beta envelope, not an assertion that thousands of historical imports will fit.
 Capacity monitoring must expose proximity to this bound; further growth will need
 a separately measured verification/layout improvement, not just a faster query
