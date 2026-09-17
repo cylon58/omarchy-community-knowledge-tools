@@ -76,11 +76,49 @@ values must not be rewritten as successes inferred from the import counters.
 
 The raw report contains 11,291 total emulated requests and 10,779 requests across
 completed per-import jobs, leaving exactly 512 in the failing final phase.
-The native adapter refuses the next request beyond its 512-call limit. This is
-strong evidence of the cold object-read bottleneck; a focused postmortem is the
-next step before selecting a fix. No limit was increased. There were zero real
+The native adapter refuses the next request beyond its 512-call limit. A subsequent
+[exact-graph postmortem](cold-recovery-postmortem.md) reproduced that refusal.
+No limit was increased. There were zero real
 network requests and zero fixture contract violations.
 
 This result separates useful progress from readiness: the seeded import/build
 path completed the intended history, but cold recovery did not. It does not pass
 the declared 500-record growth gate. The unmodified failure report is preserved.
+
+## Concentrated evidence: passed local profile
+
+```sh
+python -m experiments.growth.gates concentrated-100-reports \
+  --output experiments/growth/results/native-concentrated-100-v1.json
+```
+
+[Raw result](../../experiments/growth/results/native-concentrated-100-v1.json):
+eleven imports, 104 records and 104 receipts completed in 55.258 seconds. The
+fixture contains one case, one change, 100 reports, a resolution and a dispute.
+All 25 failure reports were retained; cold/warm canonical results and 37,902-byte
+proofs matched. The worst warm query was 0.034 seconds. Worst admission was
+4.078 seconds; final recovery/distribution was 9.308 seconds. Cold validation
+used 281 emulated requests; seeded validation used three.
+
+Measured code hashes match the previous runs. The report honestly marks its
+worktree dirty because the preceding result and a research note were uncommitted
+when it started; production/harness code was unchanged. A new private diagnostic
+proof artifact was requested and exported successfully; its path is not in the
+public report. This profile passing does not cancel the distributed-history
+cold-recovery failure, nor do synthetic reports establish independent users.
+
+## Later regression: wall-clock comparison
+
+A fresh25-test focused run after these measurements produced one failure in the
+service-wrapper regression, despite exact proof parity. A direct one-import repeat
+passed. A controlled status clock advancing one second per search reproduced the
+failure: the six compact responses had ages93601..93606seconds. The comparison was
+including live `age_seconds`, so otherwise identical cold/warm results could differ
+at a second boundary. This is a harness defect, not evidence of a search regression.
+
+The correction is to evaluate real status logic at one declared fixture time for
+both searches, while leaving performance/deadline clocks real and retaining all
+freshness and evidence checks. Failed query details must be saved before enforcing
+the gate. Historical raw results above are unchanged; their full-data successes
+were actual observations, but their comparison was susceptible to this false
+negative. See the [regression brief](../plans/growth-search-clock.md).

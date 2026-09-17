@@ -1,0 +1,181 @@
+{
+  "artifact": {
+    "exported": true,
+    "files": [
+      "canonical-objects.bundle",
+      "manifest.json"
+    ],
+    "manifest_sha256": "102d6e3078109750b16883d3d4904fc08ad62c5d655f010a41bd005d1e9330cb",
+    "requested": true
+  },
+  "conclusion": {
+    "exact_500_record_500_receipt_local_proof": true,
+    "local_replay_is_native_capacity_evidence": false,
+    "native_cold_capacity_passed": false,
+    "native_failure_cause": "per-invocation-request-cap",
+    "original_growth_gate_passed": false,
+    "precise_failure": "The unmodified native cold read attempted request 513 after 512 requests were sent; the adapter refused that call before fixture exchange.",
+    "recorded_request_delta_matches_reproduction": true
+  },
+  "configuration": {
+    "max_imports": 100,
+    "max_records": 500,
+    "overall_seconds": 600
+  },
+  "elapsed_seconds": 18.719691,
+  "environment": {
+    "source_sha256": {
+      "experiments/growth/cold_postmortem.py": "30ac901ef3736442780f2c221c6752bfbc552d451f06502c9f7f155550cda0f4",
+      "experiments/growth/gates.py": "6696549668b7d88de4cb9438bbdc2565c53806daa0f0e0c61c3b7d6d38ae4af4",
+      "omarchy_knowledge/canonical.py": "ada1e99436b698492cdfc686cecf5e2cd59df5a48428aa5f73bf34a2c9631e3c",
+      "omarchy_knowledge/coordinator.py": "1d007eea66426262137995b7d663860fb093ffd00360eee9f7b238b3f2c92df7",
+      "omarchy_knowledge/discovery.py": "f39b65797884a4516bdf9e5f82c8b6c714e66d6c5595d16978e1f3ecf1e12f95",
+      "omarchy_knowledge/distribution.py": "aba35f39bbc448b64c51d8dae91e3a5964246a14dc076cc1856bf9041f9753d1",
+      "omarchy_knowledge/github_native.py": "c8e4d8d111888e663125c5fa6daf5bc06a32832c0316f581c86989aa691e3263",
+      "omarchy_knowledge/object_bundle.py": "ba6772bf0686815b536896433a43943e811a45b2dfe3b7e19c40b58e45e9759f",
+      "omarchy_knowledge/service.py": "c1335314e769dac3d008dffa4e1e1df3453281c6650053d91b2b5b87a312c9ed"
+    }
+  },
+  "failure_kind": null,
+  "failure_stage": null,
+  "fixture": {
+    "git_commands": 4399,
+    "object_reader": {
+      "byte_cap": 20971520,
+      "cache_hits": 52110,
+      "cached_object_bytes": 4402758,
+      "cached_objects": 1902,
+      "object_cap": 5000
+    }
+  },
+  "limitations": [
+    "This reconstructs the recorded synthetic graph; it does not repeat admission.",
+    "The local Git-object replay is not a native HTTP capacity test.",
+    "The original growth gate remains failed and no production limit is changed or waived.",
+    "No network request, credential, public contribution, or production write is used."
+  ],
+  "local_replay": {
+    "adapter_calls": {
+      "blob": 1000,
+      "branch": 1,
+      "commit": 101,
+      "repository": 1,
+      "tree": 801
+    },
+    "adapter_deadline_seconds": 180,
+    "adverse_failure_records": 100,
+    "data_head": "ec7ec1444fc6826c82addcb8a4800a4e8e38850f",
+    "elapsed_seconds": 7.138001,
+    "object_byte_cap": 20971520,
+    "object_calls": {
+      "blob": 1000,
+      "commit": 101,
+      "tree": 801
+    },
+    "object_response_bytes": 8626894,
+    "object_visit_cap": 5000,
+    "object_visit_count": 4414,
+    "offline_proof_replay_equal": true,
+    "outcome": "success",
+    "proof_bytes": 1377903,
+    "proof_sha256": "a5f81730b40229fe646c52ecf6cc89d0eb469e76895bedb681e32ea2e461621c",
+    "receipts": 500,
+    "records": 500,
+    "transport_scope": "local-git-object-adapter-not-native-http",
+    "verified_object_bytes": 4402758,
+    "verified_object_count": 1902
+  },
+  "native_cold": {
+    "actual_emulated_requests_sent": 512,
+    "actual_emulated_response_bytes": 708691,
+    "adapter_calls_attempted": 513,
+    "adapter_deadline_seconds": 180,
+    "elapsed_seconds": 0.162609,
+    "failure_kind": "NativeUnavailable",
+    "outcome": "failure",
+    "refused_before_send": 1,
+    "request_cap": 512,
+    "requests_by_kind": {
+      "blob": 501,
+      "branch": 1,
+      "commit": 1,
+      "other": 0,
+      "repository": 1,
+      "tree": 8
+    },
+    "response_byte_cap": 33554432,
+    "response_bytes": 708691,
+    "traceback": [
+      {
+        "function": "_native_cold",
+        "line": 327,
+        "module": "experiments.growth.cold_postmortem"
+      },
+      {
+        "function": "read_canonical",
+        "line": 22,
+        "module": "omarchy_knowledge.canonical"
+      },
+      {
+        "function": "_read_canonical",
+        "line": 34,
+        "module": "omarchy_knowledge.canonical"
+      },
+      {
+        "function": "warm",
+        "line": 364,
+        "module": "omarchy_knowledge.github_native"
+      },
+      {
+        "function": "blob",
+        "line": 544,
+        "module": "omarchy_knowledge.github_native"
+      },
+      {
+        "function": "git_blob",
+        "line": 262,
+        "module": "omarchy_knowledge.github_native"
+      },
+      {
+        "function": "_get",
+        "line": 229,
+        "module": "omarchy_knowledge.github_native"
+      },
+      {
+        "function": "request",
+        "line": 189,
+        "module": "omarchy_knowledge.github_native"
+      },
+      {
+        "function": "require",
+        "line": 50,
+        "module": "omarchy_knowledge.github_native"
+      }
+    ],
+    "verified_object_bytes": 456364,
+    "verified_object_count": 510
+  },
+  "profile": "native-distributed-500-cold-postmortem",
+  "reconstruction": {
+    "all_recorded_mutation_identities_equal": true,
+    "data_head": "ec7ec1444fc6826c82addcb8a4800a4e8e38850f",
+    "elapsed_seconds": 11.362956,
+    "imports": 100,
+    "mutation_heads_checked": 200,
+    "outcome": "success",
+    "predecessor_heads_checked": 200,
+    "receipts": 500,
+    "records": 500
+  },
+  "schema_version": 1,
+  "source_report": {
+    "completed_job_requests": 10779,
+    "recorded_failure_kind": "NativeUnavailable",
+    "recorded_failure_stage": "recovery-distribution",
+    "recorded_final_stage_requests": 512,
+    "recorded_status": "failure",
+    "recorded_total_emulated_requests": 11291,
+    "sha256": "9a58c3bbfdc6e045e505b8e1759ba6f6d7b8943dac8a5e723079c1cff1b3f92a"
+  },
+  "status": "success"
+}

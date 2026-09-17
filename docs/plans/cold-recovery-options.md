@@ -1,7 +1,10 @@
 # Cold recovery: contingency research
 
-Research date: 2026-09-17. Not implemented or selected. The larger native growth
-run is still pending when this note is written; this is not a diagnosis of it.
+Research date: 2026-09-17. Not implemented. Initially written while the larger
+native growth run was pending. That run subsequently failed cold recovery; exact
+graph reconstruction reproduced 512 sent requests and refusal of attempted request
+513. See the [postmortem](../testing/cold-recovery-postmortem.md). Batching is now
+the next candidate to measure, not an established fix.
 
 ## Candidate: bounded batched object reads
 
@@ -15,6 +18,10 @@ UTF-8 text. These fields suggest a hash-checked reconstruction accelerator, not 
 general raw-object replacement. The integer mode representation needs a small
 read-only compatibility probe; nullable entries/text and encoding are potential
 availability failures. [Git schema](https://docs.github.com/en/graphql/reference/git)
+
+A later [two-object read-only probe](../testing/graphql-field-probe.md) matched the
+exact tree/blob hashes and observed modes 16384/33188. It resolves those two sample
+mode representations, not every encoding/mode or the throughput question.
 
 Our proposed constraints, if this option is tested:
 
@@ -50,7 +57,7 @@ would add configuration, decompression, disk and delta-parsing risks; it is not 
 smallest next experiment. An authority checkpoint is a different trust design and
 must not be introduced under the name of a cache.
 
-Wait for the actual baseline. If object request volume is the limiting factor,
+Because object request volume was the limiting factor in the reproduced failure,
 compare the same immutable graph using batched reads. Require identical bytes and
 decisions, unchanged bounds, actual request/response accounting, and negative
 encoding/partial-response tests before adoption. Record failed variants too.

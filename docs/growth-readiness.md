@@ -43,13 +43,21 @@ The initial baseline exposed both fixture subprocess overhead and repeated
 recovery work. Its thirty-import timeout remains recorded. A later small proof
 reuse comparison reduced modeled requests while preserving adverse evidence.
 
-The next native-boundary benchmark must measure the real service wrappers,
+The native-boundary benchmark measures the real service wrappers,
 including reconciliation, and enforce the production per-job bounds. Its review
 caught an initial omission of reconciliation, ambiguous timeout/interruption
 accounting, narrow search coverage, and overwriteable report output before larger
 results were accepted. Fixing the measuring instrument is part of the experiment,
 not evidence that production capacity improved. See the
 [native-gate brief](plans/native-growth-gates.md) for the declared contract.
+
+The ten-import calibration and concentrated100-report profile passed. The larger
+500-record/100-import run completed all imports/builds but failed final cold
+recovery. Exact graph reconstruction reproduced exhaustion of the512-request cap;
+the separate local replay is not a native capacity pass. See the
+[cold postmortem](testing/cold-recovery-postmortem.md). Bounded authenticated object
+batching is the next candidate; fair intake, incremental client transfer and health
+reporting remain unfinished. None of these branch changes is deployed yet.
 
 ## Predeclared gates
 

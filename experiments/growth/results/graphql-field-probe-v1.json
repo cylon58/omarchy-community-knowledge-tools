@@ -1,0 +1,27 @@
+{
+  "batch_requests": 1,
+  "blob_is_binary": false,
+  "blob_is_truncated": false,
+  "blob_oid": "22a6812881dcdf71872d7b7ef05bb53a8cfa4a90",
+  "blob_oid_matches": true,
+  "blob_size_matches": true,
+  "limitations": [
+    "Two public objects only; not a throughput or capacity result.",
+    "Authenticated gh read used existing account; not an Actions-token quota measurement.",
+    "No raw blob content, credentials or private data retained."
+  ],
+  "observed_modes": [
+    16384,
+    33188
+  ],
+  "purpose": "read-only-public-field-compatibility-probe",
+  "rate_limit": {
+    "cost": 1,
+    "remaining": 4998
+  },
+  "repository_id": 1373429914,
+  "schema_version": 1,
+  "tree_entries": 6,
+  "tree_oid": "4e2b946d27f177bd6a8150d09bfe224beeead49e",
+  "tree_oid_matches": true
+}

@@ -132,3 +132,25 @@ JSON report, and no record JSON is exported separately.
 `--output` likewise requires a new file beneath an existing real directory. It
 uses exclusive no-follow creation and rejects existing files and symlinks before
 running the workload; reports are never silently overwritten.
+
+### Cold-recovery postmortem
+
+`cold_postmortem.py` diagnoses the saved failed `distributed-500x100` cold read
+without repeating its admission pipeline. It deterministically reconstructs the
+synthetic Git graph and aborts unless every recorded predecessor and mutation
+head matches. It then runs the unmodified native cold reader and, separately, a
+bounded local Git-object replay of the same graph.
+
+```sh
+python -m experiments.growth.cold_postmortem \
+  --output experiments/growth/results/native-cold-postmortem-v1.json \
+  --artifact-output /private/new-cold-postmortem-directory
+```
+
+The saved diagnostic records 513 native adapter attempts: 512 requests reached
+the HTTPS fixture and the 513th was refused by the unchanged per-invocation call
+cap. The local-object replay validates 500 records and 500 receipts and retains
+an offline-replayable proof, but it is not a native HTTP capacity result. The
+original growth gate remains failed; this experiment changes no production
+limit and grants no production-use waiver. Output files and optional private
+artifacts require new no-follow targets and are never overwritten.
