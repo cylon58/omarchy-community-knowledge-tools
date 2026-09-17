@@ -24,7 +24,12 @@ fair-intake transaction and never refreshes solely because a direct build ran.
 Add a focused health module and CLI command using fixed deployment enums only.
 Per deployment check: at most8 attempted requests,8MiB charged response bytes,
 60 seconds overall and1MiB per body (with overflow/failure accounting). Normal
-operation uses five fixed reads, no retries or pagination beyond the20-run page.
+operation uses six fixed reads, no retries or pagination beyond the20-run page
+and one20-job page for the selected successful run/attempt. If no eligible run
+exists, omit the job read and report missing evidence. Validate the complete job
+page and exact successful `pages` job; use its `completed_at` as explicitly named
+`pages_job_completed_at`, never invented run completion. See the design's
+completion-time preflight correction. Keep run creation/attempt separate.
 Bound parser work to that page; absence from it is unknown/missing evidence, not
 proof no historical successful run exists. Use the reviewed anonymous Pages
 helper for fixed status/distribution artifacts, and fixed GitHub repository/main/

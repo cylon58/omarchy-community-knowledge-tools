@@ -578,20 +578,27 @@ def reconcile(api, policy):
         return Result("retry")
 
 
+def authenticated_imported_heads(api, policy):
+    """Return exact authenticated (PR, head) suppression facts only."""
+    from .github_native import strict_json
+    _identity(api, policy)
+    imported = _receipted_snapshots(api, policy)
+    for info in _history(api):
+        if info["message"].startswith(IMPORT_PREFIX):
+            manifest = strict_json(
+                info["message"][len(IMPORT_PREFIX):].encode())
+            imported.add((manifest["pull_request"], manifest["head"]))
+    return frozenset(imported)
+
+
 def pending(api, policy, *, limit=20):
     """Select up to limit (default 20, maximum 200) unimported heads in the 200-PR window.
 
     The separate PR event is the wakeup for snapshots beyond this bounded window.
     Exposes scan truncation so the scheduler cannot silently claim completeness.
     """
-    _identity(api, policy)
     require(type(limit) is int and 1 <= limit <= 200)
-    from .github_native import strict_json
-    imported = _receipted_snapshots(api, policy)
-    for info in _history(api):
-        if info["message"].startswith(IMPORT_PREFIX):
-            manifest = strict_json(info["message"][len(IMPORT_PREFIX):].encode())
-            imported.add((manifest["pull_request"], manifest["head"]))
+    imported = authenticated_imported_heads(api, policy)
     numbers, scanned = [], 0
     for page in range(1, 11):
         items = api.pending(page)

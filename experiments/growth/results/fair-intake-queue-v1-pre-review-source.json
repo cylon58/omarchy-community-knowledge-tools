@@ -1,0 +1,32 @@
+{
+  "archive": {
+    "apply_from_clean_revision": "git apply experiments/growth/variants/fair-intake-queue-v1-pre-review-source.patch",
+    "path": "experiments/growth/variants/fair-intake-queue-v1-pre-review-source.patch",
+    "sha256": "3ce7d65700140b4a932e1b1e8f98fb0d2e469d5e89fa2a33388e5dc107955963"
+  },
+  "base_revision": "e9f17c3cecc40c8e59dca96f62bcd453e6a70fc8",
+  "capture": {
+    "command": "python -c 'import json; from experiments.growth.fair_intake_service import run_queue; print(json.dumps(run_queue(), sort_keys=True, separators=(\",\", \":\")))'",
+    "exit_code": 0,
+    "interpreter_path_note": "The capture used the repository's sibling virtual-environment Python; its machine-specific absolute path is normalized here for privacy and reproduction.",
+    "wall_seconds": 0.8
+  },
+  "direct_dependency_sha256": {
+    "experiments/growth/baseline.py": "47a8cb01e2b711c015f55b4d3d6fa96630b64be032b743f9f42865edf2a8a4f0",
+    "experiments/growth/fair_intake_service.py": "a985423886bd9fc8460d4dc4df5ac8516a06b5f58e70cdef6df6aaf3d7734141",
+    "experiments/growth/gates.py": "f34dd121cbc61a8c43f7e40b122e77940f121444f796b8b8db78040f0b32e2d8",
+    "omarchy_knowledge/coordinator.py": "20e9c7fae392114046973b629bdabb124db01061c94e64ba759ed24701c9ce72",
+    "omarchy_knowledge/distribution.py": "593bb4cbd219d457c6e2ea1f6c4ca48bbe39ca9296e89c3d0181705566daab46",
+    "omarchy_knowledge/fair_intake.py": "e20d76447b1599aa2dc094c29553b009ef27bc13841b28578738b86ac6f0d0ae",
+    "omarchy_knowledge/github_native.py": "a771fd31e36d03c9b9ea0449c62587f5574cd3fa298065cace6d9fe76c671230",
+    "omarchy_knowledge/intake_status.py": "2793f25a14133856d241ec7d5f598dce0c4bfb02ea064000df46a61d6358ebdb",
+    "omarchy_knowledge/service.py": "a61f2518aed4a3a36e605aed07c8cc4e58b63e6f7c9356fa4a9e950ce32bf487"
+  },
+  "process_note": "The capture completed before explicit post-freeze run authorization. It is preserved unchanged as narrow pre-review evidence and is not final validation.",
+  "result": {
+    "final_status_sha256": "0a9d6ec0c01d0dd1a7230b0d7c31496aa7866e3bd95652e6a0ae5363df8c1324",
+    "path": "experiments/growth/results/fair-intake-queue-v1-pre-review.json",
+    "sha256": "b3f9657032f327077b6d3f2a08d8fcb19fa2aa8ca4a5aad9fdd15d29ced2169c"
+  },
+  "status": "superseded-pre-review"
+}

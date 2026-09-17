@@ -31,7 +31,9 @@ it must not be smuggled in as a performance cache.
    receipt authentication, static build, sync and search; emulate only the network.
 2. Use the measured bottlenecks to implement immutable-object reuse/partitioned
    distribution and safer queue traversal, with negative security tests.
-3. Add freshness/capacity/backlog health signals and independent outage detection.
+3. Add measured freshness/capacity/intake health signals and a separately runnable
+   read-only checker. An Actions-hosted checker cannot detect an Actions-wide outage;
+   no external monitoring provider is part of this milestone.
 4. Review, run bounded pilot checks, document supported envelope, publish results.
 
 ## Evidence so far
@@ -44,7 +46,7 @@ recovery work. Its thirty-import timeout remains recorded. A later small proof
 reuse comparison reduced modeled requests while preserving adverse evidence.
 
 The native-boundary benchmark measures the real service wrappers,
-including reconciliation, and enforce the production per-job bounds. Its review
+including reconciliation, and enforces the production per-job bounds. Its review
 caught an initial omission of reconciliation, ambiguous timeout/interruption
 accounting, narrow search coverage, and overwriteable report output before larger
 results were accepted. Fixing the measuring instrument is part of the experiment,
@@ -60,8 +62,8 @@ batching subsequently passed the exact cold comparison in238 emulated requests
 with full evidence/proof parity. A live compatibility check then exposed a fixture/
 parser directory-size mismatch, corrected and checked against the live API; the
 public 26-record corpus also passed cold authenticated recovery. Incremental client
-transfer is now implemented and reviewed; fair intake integration and health
-reporting remain unfinished. None of these branch changes is deployed yet.
+transfer and fair intake integration are now implemented and reviewed; health
+reporting remains unfinished. None of these branch changes is deployed yet.
 
 The [format comparison](testing/proof-formats.md) favored one direct-predecessor
 update pack over prefix buckets or individual object downloads. Three subsequent
@@ -78,7 +80,9 @@ The [pure queue scanner](testing/fair-intake.md) also passed its mixed1,000-PR
 fixture, reaching all200 eligible heads in201 simulated runs within every per-run
 bound. That proves the tested traversal, not authenticated input handling, durable
 hosted publication, real scheduled throughput or unlimited fairness; integration
-and pilot evidence must establish their own claims.
+and pilot evidence must establish their own claims. The guarded local queue fixture
+subsequently passed progress beyond205 closed entries followed by one eligible
+import, with failed-publication retention/resume tests. It is not a hosted load test.
 
 The 500-record local reference used4,414 of5,000 logical object visits; the batched
 candidate used2,507 because speculative warming no longer charged logical visits.

@@ -156,7 +156,8 @@ def _run_fixture_variants(source, budget, alarm, measurement=None):
 
     measurement = {} if measurement is None else measurement
     with tempfile.TemporaryDirectory(prefix="omarchy-update-pack-variants-") as temporary:
-        with gates._NativeFixture(Path(temporary)) as fixture:
+        root = Path(temporary)
+        with gates._NativeFixture(root / "fixture") as fixture:
             policy = Policy("a" * 40, "b" * 40)
             reconstruction_started = time.monotonic()
             reconstructed = cold_postmortem._reconstruct(fixture, source)
@@ -186,6 +187,8 @@ def _run_fixture_variants(source, budget, alarm, measurement=None):
                 "native_generation": native,
             }
             fixture.publish_pages(base_proof, len(source["imports"]))
+            measurement["intake_bootstrap"] = gates._bootstrap_fixture_intake(
+                fixture, policy, root)
             baseline = {"main": fixture.main, "pages_state": fixture.pages_state}
             context = {
                 "policy": policy,

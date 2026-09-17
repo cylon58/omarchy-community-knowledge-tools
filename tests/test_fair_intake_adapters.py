@@ -103,6 +103,26 @@ def current_status():
         "last_progress_at": "2026-09-17T08:00:00Z",
         "consecutive_drift_runs": 1,
     }
+    value["intake_scan"] = {
+        "version": 1,
+        "trusted_lane": "scheduled",
+        "prior_state": "current",
+        "selected_action": "after",
+        "scan_outcome": "no-eligible",
+        "stop_reason": "fetch-limit",
+        "counters": {
+            "page_fetches": 10,
+            "rows_returned": 200,
+            "rows_consumed": 200,
+            "evaluations": 4,
+            "closed": 100,
+            "imported": 96,
+            "rejected": 2,
+            "not_ready": 2,
+            "plans": 0,
+            "cursor_drifts": 0,
+        },
+    }
     return value
 
 
@@ -172,6 +192,8 @@ class FairIntakeStatusAdapterTests(unittest.TestCase):
         self.assertEqual(current.cursor_health.last_progress_at,
                          "2026-09-17T08:00:00Z")
         self.assertEqual(current.cursor_health.consecutive_drift_runs, 1)
+        self.assertEqual(current.intake_scan.to_mapping(),
+                         current_status()["intake_scan"])
 
     def test_older_valid_source_revision_does_not_need_current_main(self):
         """Break caught: resumption incorrectly compares public source to live main."""
@@ -207,8 +229,58 @@ class FairIntakeStatusAdapterTests(unittest.TestCase):
         value = legacy_status(); value["unknown"] = 1; variants.append(value)
         value = legacy_status(); value["intake_cursor"] = current_status()["intake_cursor"]; variants.append(value)
         value = legacy_status(); value["cursor_health"] = current_status()["cursor_health"]; variants.append(value)
+        value = legacy_status(); value["intake_scan"] = current_status()["intake_scan"]; variants.append(value)
+        value = current_status(); del value["intake_scan"]; variants.append(value)
         value = current_status(); value["intake_cursor"] = {**value["intake_cursor"], "version": 2}; variants.append(value)
         value = current_status(); value["cursor_health"] = {**value["cursor_health"], "unknown": 0}; variants.append(value)
+        value = current_status(); value["intake_scan"] = {**value["intake_scan"], "unknown": 0}; variants.append(value)
+        value = current_status(); value["intake_scan"]["counters"] = {
+            **value["intake_scan"]["counters"], "evaluations": 21,
+        }; variants.append(value)
+        value = current_status(); value["intake_scan"] = {
+            **value["intake_scan"], "stop_reason": "cycle-complete",
+            "counters": {field: 0 for field in
+                         value["intake_scan"]["counters"]},
+        }; variants.append(value)
+        value = current_status(); value["intake_scan"]["counters"] = {
+            **value["intake_scan"]["counters"], "page_fetches": 1,
+        }; variants.append(value)
+        value = current_status(); value["intake_scan"] = {
+            **value["intake_scan"], "stop_reason": "cycle-complete",
+            "counters": {
+                "page_fetches": 2, "rows_returned": 0,
+                "rows_consumed": 0, "evaluations": 0, "closed": 0,
+                "imported": 0, "rejected": 0, "not_ready": 0,
+                "plans": 0, "cursor_drifts": 2,
+            },
+        }; variants.append(value)
+        value = current_status(); value["intake_scan"] = {
+            **value["intake_scan"], "stop_reason": "fetch-limit",
+            "counters": {
+                "page_fetches": 9, "rows_returned": 180,
+                "rows_consumed": 180, "evaluations": 0, "closed": 180,
+                "imported": 0, "rejected": 0, "not_ready": 0,
+                "plans": 0, "cursor_drifts": 0,
+            },
+        }; variants.append(value)
+        value = current_status(); value["intake_scan"] = {
+            **value["intake_scan"], "stop_reason": "preparation-limit",
+            "counters": {
+                "page_fetches": 1, "rows_returned": 19,
+                "rows_consumed": 19, "evaluations": 19, "closed": 0,
+                "imported": 0, "rejected": 0, "not_ready": 19,
+                "plans": 0, "cursor_drifts": 0,
+            },
+        }; variants.append(value)
+        value = current_status(); value["intake_scan"] = {
+            **value["intake_scan"], "stop_reason": "cycle-complete",
+            "counters": {
+                "page_fetches": 1, "rows_returned": 20,
+                "rows_consumed": 20, "evaluations": 0, "closed": 20,
+                "imported": 0, "rejected": 0, "not_ready": 0,
+                "plans": 0, "cursor_drifts": 0,
+            },
+        }; variants.append(value)
         value = current_status(); value["cursor_health"] = {**value["cursor_health"], "version": True}; variants.append(value)
         value = current_status(); value["cursor_health"] = {**value["cursor_health"], "consecutive_drift_runs": True}; variants.append(value)
         value = current_status(); value["source"] = {**value["source"], "repository_id": 1}; variants.append(value)

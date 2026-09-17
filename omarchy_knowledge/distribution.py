@@ -10,10 +10,24 @@ from .snapshots import (_canonical, _open_directory, _write_regular_at,
                         _bounded_directory_names, MAX_SNAPSHOT_BYTES)
 
 
-def build_site(data, output, *, status, proof_bundle=None,
+def build_site(data, output, *, status, intake_cursor=None,
+               cursor_health=None, intake_scan=None, proof_bundle=None,
                update_manifest=None, update_bundle=None):
-    from .service import safe_status
-    status = safe_status(status)
+    from .intake_status import (CursorHealth, IntakeScan,
+                                validate_safe_status)
+    from .fair_intake import IntakeCursor
+    status = validate_safe_status(status)
+    projection = {}
+    if any(value is not None for value in
+           (intake_cursor, cursor_health, intake_scan)):
+        if any(value is None for value in
+               (intake_cursor, cursor_health, intake_scan)):
+            raise ValueError('Incomplete intake projection')
+        projection = {
+            'intake_cursor': IntakeCursor.from_mapping(intake_cursor).to_mapping(),
+            'cursor_health': CursorHealth.from_mapping(cursor_health).to_mapping(),
+            'intake_scan': IntakeScan.from_mapping(intake_scan).to_mapping(),
+        }
     with tempfile.TemporaryDirectory(prefix='omarchy-export-') as temporary:
         snapshot = Path(temporary) / 'snapshot'
         snapshot_data(data, snapshot)
@@ -23,7 +37,7 @@ def build_site(data, output, *, status, proof_bundle=None,
     files['canonical.json'] = _canonical(envelope)
     coverage = {'records': len(data['records']),
                 'receipted_records': len({r['record_id'] for r in data['receipts']})}
-    files['status.json'] = _canonical({**status, 'source': data['source'], 'receipt_coverage': coverage,
+    files['status.json'] = _canonical({**status, **projection, 'source': data['source'], 'receipt_coverage': coverage,
                                       'upstream': data['upstream'], 'pr_behavior': 'snapshots-imported-prs-remain-open'})
     if proof_bundle is not None:
         from .object_bundle import MAX_COMPRESSED_BUNDLE

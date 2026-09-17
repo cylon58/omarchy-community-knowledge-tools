@@ -1,5 +1,12 @@
 # Native deployment contract
 
+Deployment state: production and pilot still use toolkit/policy revision
+`9720575ed4d73b19549ef118f442cf611e009526` at the latest recorded inspection.
+The growth-readiness branch is a candidate, not an installed service upgrade.
+The baseline queue description below therefore remains relevant until rollout.
+See [candidate changes](#growth-candidate-not-yet-deployed) before rendering this
+branch; local rendering alone does not change either hosted service.
+
 The renderer is local and requires the full immutable public toolkit and reviewed
 policy commit IDs. Publish the sanitized toolkit first; the public SHA cannot be
 the development commit's guessed self-reference. Use the resulting actual IDs:
@@ -126,3 +133,27 @@ and accepted/receipt-pending/retry/rejected/unavailable state. They never print 
 rejected values. PRs intentionally remain open. A failing build/deploy leaves the
 prior site's generation timestamp unchanged; consult Actions for current failures.
 Disabling both workflows and Pages pauses the service; see [recovery](recovery.md).
+
+## Growth candidate (not yet deployed)
+
+The candidate replaces scheduled newest-200 selection with a persisted oldest-first
+all-state traversal. Each scan is bounded by ten page fetches, 200 returned rows and
+20 candidate evaluations, and stops at its first plan. Closed entries still consume
+the traversal budget. A saved cursor is a scheduling hint, never admission evidence.
+Direct events remain the fast path. Unknown prior public state withholds publication;
+only recognized legacy state permits scheduled bootstrap. Writer outcomes and a
+successful publication govern whether proposed progress becomes public. See the
+[fair-intake design](plans/fair-intake-design.md) and its
+[test record](testing/fair-intake.md) for the matrix and unresolved review findings.
+
+Reviewed candidate transport also supports an optional single-predecessor update
+pack. Clients still authenticate repository identity and current main, reconstruct
+the exact Git objects and replay canonical validation. A matching cached base can
+save proof-transfer bytes; a missed intermediate publication falls back to the
+full proof. This does not eliminate validation CPU work or raise resource caps.
+The publisher emits the optional manifest/pack together or omits both. See the
+[actual-client measurements](testing/update-pack-production.md), including the
+slower local matching-update timing despite its smaller transfer.
+
+Health reporting and the final complete pipeline gate remain pending. None of these
+candidate results demonstrates current hosted throughput or reliable hourly cadence.

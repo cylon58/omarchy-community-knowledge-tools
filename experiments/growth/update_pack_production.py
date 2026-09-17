@@ -36,9 +36,11 @@ SOURCES = (
     "omarchy_knowledge/canonical.py",
     "omarchy_knowledge/coordinator.py",
     "omarchy_knowledge/distribution.py",
+    "omarchy_knowledge/fair_intake.py",
     "omarchy_knowledge/github_native.py",
     "omarchy_knowledge/github_object_batch.py",
     "omarchy_knowledge/object_bundle.py",
+    "omarchy_knowledge/intake_status.py",
     "omarchy_knowledge/proof_cache.py",
     "omarchy_knowledge/resolution.py",
     "omarchy_knowledge/service.py",
@@ -163,7 +165,8 @@ def _publish_records(fixture, policy, number, records, cohorts, budget, alarm,
     from omarchy_knowledge.coordinator import canonical
     from omarchy_knowledge.distribution import build_site
     from omarchy_knowledge.github_native import GitHubRead, GitHubWriter, strict_json
-    from omarchy_knowledge.service import _publisher_build, plan_run, publish_run
+    from omarchy_knowledge.service import (_publisher_build, plan_run,
+                                           public_intake_scan, publish_run)
 
     mutation_start = len(fixture.successful_mutations)
     publication.update({
@@ -224,6 +227,7 @@ def _publish_records(fixture, policy, number, records, cohorts, budget, alarm,
                 fixture, writer,
                 lambda api: publish_run(
                     api, policy, batch, run_id=number, run_attempt=1,
+                    trusted_lane="direct",
                 ),
             )
         except BaseException as error:
@@ -231,7 +235,8 @@ def _publish_records(fixture, policy, number, records, cohorts, budget, alarm,
             capture_mutations()
             raise
         publication["jobs"]["publish"] = publish_metrics
-        if status["status"] != "accepted":
+        if (status["status"]["status"] != "accepted"
+                or not status["pages_publishable"]):
             raise RuntimeError("Contribution was not accepted")
         publication["publish_completed_return"] = True
         capture_mutations()
@@ -256,7 +261,10 @@ def _publish_records(fixture, policy, number, records, cohorts, budget, alarm,
             raise RuntimeError("Publisher omitted matching direct update")
         public_data = gates._refresh_offline(deepcopy(data))
         distribution = build_site(
-            public_data, site, status=status, proof_bundle=proof,
+            public_data, site, status=status["status"],
+            intake_cursor=status["cursor"],
+            cursor_health=status["cursor_health"],
+            intake_scan=public_intake_scan(status), proof_bundle=proof,
             update_manifest=update[0], update_bundle=update[1],
         )
         build_metrics = gates._adapter_metrics(
@@ -265,7 +273,9 @@ def _publish_records(fixture, policy, number, records, cohorts, budget, alarm,
             request_start=build_request_start, fixture=fixture,
         )
         publication["jobs"]["build"] = build_metrics
-        fixture.publish_pages(proof, number, update=update)
+        fixture.publish_pages(
+            proof, number, update=update,
+            status=(site / "status.json").read_bytes())
         publication["full_build_completion"] = True
     mutations = capture_mutations()
     if ([row["addition_count"] for row in mutations]
@@ -305,6 +315,7 @@ def _run_skipped_intermediate_fixture(source, budget, alarm):
                     fixture, policy,
                 )
                 fixture.publish_pages(base_proof, len(source["imports"]))
+                gates._bootstrap_fixture_intake(fixture, policy, root)
                 expected_base = gates._refresh_offline(deepcopy(base_data))
             cache = root / "base-cache"
             with gates._phase_deadline(budget, alarm, PHASE_SECONDS):
@@ -407,6 +418,8 @@ def _run_fixture_measurement(source, budget, alarm, measurement, *,
                         "contributions_in_final_pr": 2,
                     }
                     fixture.publish_pages(base_proof, base_imports)
+                    measurement["intake_bootstrap"] = gates._bootstrap_fixture_intake(
+                        fixture, policy, root)
                     expected_base = gates._refresh_offline(deepcopy(base_data))
                 checkpoint("base-recorded", measurement)
 

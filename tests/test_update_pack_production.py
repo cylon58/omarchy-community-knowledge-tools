@@ -203,9 +203,20 @@ class UpdatePackProductionTests(unittest.TestCase):
         source = gates.run_gate("one-import")
         measurement = {}
         budget = gates._DeadlineBudget(300)
+        from omarchy_knowledge import service
+        original_build = service._publisher_build
+        build_calls = 0
+
+        def fail_after_bootstrap(*args, **kwargs):
+            nonlocal build_calls
+            build_calls += 1
+            if build_calls == 2:
+                raise RuntimeError("synthetic build stop")
+            return original_build(*args, **kwargs)
+
         with gates._alarm_handler(budget) as alarm, \
                 patch("omarchy_knowledge.service._publisher_build",
-                      side_effect=RuntimeError("synthetic build stop")), \
+                      side_effect=fail_after_bootstrap), \
                 self.assertRaises(RuntimeError):
             update_pack_production._run_fixture_measurement(
                 source, budget, alarm, measurement,

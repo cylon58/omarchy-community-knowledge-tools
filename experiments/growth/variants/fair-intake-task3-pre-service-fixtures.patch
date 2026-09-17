@@ -1,0 +1,614 @@
+diff --git b/experiments/growth/gates.py a/experiments/growth/gates.py
+index b5ec2a2..848a5c8 100644
+--- b/experiments/growth/gates.py
++++ a/experiments/growth/gates.py
+@@ -46,11 +46,9 @@ MEASURED_SOURCES = (
+     "omarchy_knowledge/coordinator.py",
+     "omarchy_knowledge/discovery.py",
+     "omarchy_knowledge/distribution.py",
+-    "omarchy_knowledge/fair_intake.py",
+     "omarchy_knowledge/github_native.py",
+     "omarchy_knowledge/github_object_batch.py",
+     "omarchy_knowledge/object_bundle.py",
+-    "omarchy_knowledge/intake_status.py",
+     "omarchy_knowledge/service.py",
+ )
+ 
+@@ -249,7 +247,6 @@ class _PagesState:
+     published_imports: tuple[int, ...]
+     update_manifest: bytes | None = None
+     update_bundle: bytes | None = None
+-    status: bytes | None = None
+ 
+ 
+ class _Connection:
+@@ -283,43 +280,12 @@ class _NativeFixture:
+     def __init__(self, root: Path):
+         self.repository = _FixtureRepository(root)
+         self.main = self.repository.base
++        self.pages_state = _PagesState(None, ())
+         self.pulls: dict[int, dict] = {}
+         self.requests: list[dict] = []
+         self.successful_mutations: list[dict] = []
+         self.contract_violations = 0
+         self.reader = _BatchObjectReader(self.repository.git_dir)
+-        self.pages_state = _PagesState(None, (), status=self._initial_legacy_status())
+-
+-    def _initial_legacy_status(self):
+-        """Model the known initial canonical Pages deployment, not an outage."""
+-        from omarchy_knowledge.coordinator import canonical
+-        from omarchy_knowledge.intake_status import validate_intake_status
+-
+-        info = self._commit(self.main)
+-        value = {
+-            "status": "idle", "outcomes": [], "scanned": 0,
+-            "scan_truncated": False,
+-            "source": {
+-                "repository": self.REPOSITORY,
+-                "repository_id": self.REPOSITORY_ID,
+-                "deployment": "production", "ref": "refs/heads/main",
+-                "data_revision": self.main,
+-                "tree_revision": info["tree"]["sha"],
+-                "toolkit_revision": "b" * 40,
+-                "policy_revision": "a" * 40,
+-                "verified_at": "2026-09-17T16:00:00Z",
+-                "source_updated_at": info["committer"]["date"],
+-            },
+-            "receipt_coverage": {"records": 0, "receipted_records": 0},
+-            "upstream": {"version": 1, "status": "not-refreshed",
+-                         "observations": []},
+-            "pr_behavior": "snapshots-imported-prs-remain-open",
+-        }
+-        validate_intake_status(
+-            value, repository=self.REPOSITORY,
+-            repository_id=self.REPOSITORY_ID, deployment="production",
+-        )
+-        return canonical(value) + b"\n"
+ 
+     def __enter__(self):
+         return self
+@@ -353,12 +319,6 @@ class _NativeFixture:
+             "merge_commit_sha": merge, "mergeable": True,
+         }
+ 
+-    def add_closed_pull(self, number: int):
+-        if (type(number) is not int or not 0 < number <= 2_147_483_647
+-                or number in self.pulls):
+-            raise ValueError("Invalid closed pull fixture")
+-        self.pulls[number] = {"number": number, "state": "closed"}
+-
+     def advance_main_for_test(self):
+         self.main = self.repository.commit({}, (self.main,), "Synthetic competing update")
+ 
+@@ -370,44 +330,7 @@ class _NativeFixture:
+     def pages_publications(self):
+         return len(self.pages_state.published_imports)
+ 
+-    def bootstrap_pages(self, proof: bytes, status: bytes):
+-        previous = self.pages_state
+-        from omarchy_knowledge.github_native import strict_json
+-        from omarchy_knowledge.intake_status import (
+-            PublicStatusKind, validate_intake_status,
+-        )
+-        prior = validate_intake_status(
+-            strict_json(previous.status), repository=self.REPOSITORY,
+-            repository_id=self.REPOSITORY_ID, deployment="production",
+-        )
+-        if prior.kind is not PublicStatusKind.LEGACY:
+-            raise ValueError("Invalid bootstrap publication")
+-        self._validate_public_status(status)
+-        self.pages_state = _PagesState(
+-            proof, previous.published_imports, previous.update_manifest,
+-            previous.update_bundle, status)
+-
+-    def publish_reconciliation(self, proof: bytes, status: bytes):
+-        previous = self.pages_state
+-        self._validate_public_status(status)
+-        if not isinstance(proof, bytes) or not proof:
+-            raise ValueError("Invalid reconciliation publication")
+-        self.pages_state = _PagesState(
+-            proof, previous.published_imports, previous.update_manifest,
+-            previous.update_bundle, status)
+-
+-    def _validate_public_status(self, raw):
+-        from omarchy_knowledge.github_native import strict_json
+-        from omarchy_knowledge.intake_status import validate_intake_status
+-        if not isinstance(raw, bytes) or not raw:
+-            raise ValueError("Invalid public status")
+-        validate_intake_status(
+-            strict_json(raw), repository=self.REPOSITORY,
+-            repository_id=self.REPOSITORY_ID, deployment="production",
+-        )
+-
+-    def publish_pages(self, proof: bytes, import_number: int, *, update=None,
+-                      status=None):
++    def publish_pages(self, proof: bytes, import_number: int, *, update=None):
+         previous = self.pages_state
+         if (not isinstance(proof, bytes) or not proof
+                 or type(import_number) is not int or import_number <= 0
+@@ -421,13 +344,10 @@ class _NativeFixture:
+             manifest, pack = update
+         else:
+             raise ValueError("Invalid optional update publication")
+-        next_status = previous.status if status is None else status
+-        self._validate_public_status(next_status)
+         # Full proof, optional pair, and publication identity/history become
+         # visible together.
+         self.pages_state = _PagesState(
+-            proof, previous.published_imports + (import_number,), manifest, pack,
+-            next_status)
++            proof, previous.published_imports + (import_number,), manifest, pack)
+ 
+     def _repository_value(self):
+         return {"id": self.REPOSITORY_ID, "full_name": self.REPOSITORY,
+@@ -639,15 +559,11 @@ class _NativeFixture:
+                     "canonical-objects.bundle": self.pages_state.bundle,
+                     "canonical-update.json": self.pages_state.update_manifest,
+                     "canonical-update.bundle": self.pages_state.update_bundle,
+-                    "status.json": self.pages_state.status,
+                 }
+                 if (method != "GET" or not path.startswith(prefix)
+                         or path[len(prefix):] not in artifacts or body is not None
+-                        or headers != {
+-                            "Accept": ("application/json" if path.endswith("status.json")
+-                                       else "application/octet-stream"),
+-                            "User-Agent": "omarchy-knowledge-native/1",
+-                        }):
++                        or headers != {"Accept": "application/octet-stream",
++                                       "User-Agent": "omarchy-knowledge-native/1"}):
+                     raise AssertionError("Unexpected Pages request")
+                 raw = artifacts[path[len(prefix):]]
+                 self.requests.append({"host": host, "method": method, "path": path,
+@@ -682,13 +598,6 @@ class _NativeFixture:
+                     re.escape(prefix) + r"/pulls/[1-9][0-9]{0,9}", path):
+                 number = int(path.rsplit("/", 1)[1])
+                 value = self.pulls[number]
+-            elif method == "GET" and body is None and re.fullmatch(
+-                    re.escape(prefix)
+-                    + r"/pulls\?state=all&sort=created&direction=asc&per_page=20&page=[1-9][0-9]{0,9}",
+-                    path):
+-                page = int(path.rsplit("=", 1)[1])
+-                ordered = [self.pulls[number] for number in sorted(self.pulls)]
+-                value = ordered[(page - 1) * 20:page * 20]
+             elif method == "GET" and body is None and re.fullmatch(
+                     re.escape(prefix) + r"/git/commits/[0-9a-f]{40}", path):
+                 value = self._commit(path.rsplit("/", 1)[1])
+@@ -854,11 +763,9 @@ def _shell(profile: str, batches: list[list[dict]]):
+                     "per_invocation_call_cap": 512,
+                     "per_invocation_response_byte_cap": 32 * 1024 * 1024},
+         "fixture": {"initial_setup_seconds": None,
+-                    "candidate_preparation_seconds": 0,
+-                    "intake_bootstrap": None},
++                    "candidate_preparation_seconds": 0},
+         "proof": {"published_after_complete_build": False, "pages_publications": 0,
+                   "published_imports": [],
+-                  "public_status_sha256": None,
+                   "cold_warm_canonical_equal": None, "cold_warm_proof_equal": None,
+                   "source_equal": None, "adverse_failure_records": None},
+         "recovery": {},
+@@ -920,165 +827,6 @@ def _query_specs(profile: str, batches: list[list[dict]]):
+     ]
+ 
+ 
+-def _scheduled_service_entrypoints(fixture, policy, root, *, run_id, now,
+-                                   expected_build_exit=0):
+-    """Run the guarded production plan/publish/build commands on fixture HTTPS."""
+-    import contextlib
+-    import io
+-    from unittest.mock import patch
+-    from omarchy_knowledge.coordinator import MAX_PLAN
+-    from omarchy_knowledge.github_native import (
+-        GitHubRead as NativeRead, GitHubWriter as NativeWriter, strict_json,
+-    )
+-    from omarchy_knowledge import service
+-
+-    root = Path(root)
+-    root.mkdir(parents=True)
+-    event = root / "event.json"
+-    event.write_text(json.dumps({"repository": fixture._repository_value()}))
+-    plan_path = root / "plan" / "plan.json"
+-    publish_path = root / "publish" / "publish.json"
+-    site = root / "site"
+-    environment = {
+-        "GITHUB_REPOSITORY": policy.repository,
+-        "GITHUB_REPOSITORY_ID": str(policy.repository_id),
+-        "GITHUB_REF": "refs/heads/main",
+-        "GITHUB_EVENT_NAME": "schedule",
+-        "GITHUB_EVENT_PATH": str(event),
+-        "GITHUB_RUN_ID": str(run_id),
+-        "GITHUB_RUN_ATTEMPT": "1",
+-        "GITHUB_RUN_NUMBER": str(run_id),
+-        "GITHUB_TOKEN": SYNTHETIC_TOKEN,
+-    }
+-    common = [
+-        "--deployment", policy.deployment,
+-        "--policy-revision", policy.policy_revision,
+-        "--toolkit-revision", policy.toolkit_revision,
+-    ]
+-
+-    def invoke(command, arguments):
+-        request_start = len(fixture.requests)
+-        adapters = []
+-
+-        def reader(*_args, **kwargs):
+-            adapter = NativeRead(
+-                deployment=kwargs.get("deployment", policy.deployment),
+-                read_token=kwargs.get("read_token"),
+-                connection_factory=fixture.connection_factory,
+-            )
+-            adapters.append(adapter)
+-            return adapter
+-
+-        def writer(token, *_args, **kwargs):
+-            adapter = NativeWriter(
+-                token, deployment=kwargs.get("deployment", policy.deployment),
+-                connection_factory=fixture.connection_factory,
+-            )
+-            adapters.append(adapter)
+-            return adapter
+-
+-        with patch.dict(os.environ, environment), \
+-                patch.object(service, "GitHubRead", side_effect=reader), \
+-                patch.object(service, "GitHubWriter", side_effect=writer), \
+-                patch.object(service, "_utc_now", return_value=now), \
+-                patch("omarchy_knowledge.resolution.refresh_canonical",
+-                      side_effect=_refresh_offline), \
+-                contextlib.redirect_stdout(io.StringIO()):
+-            exit_code = service.main([command, *common, *arguments])
+-        if len(adapters) != 1:
+-            raise RuntimeError("Service command did not create one bounded adapter")
+-        adapter = adapters[0]
+-        requests = fixture.requests[request_start:]
+-        return exit_code, {
+-            "adapter_calls": adapter.http.calls,
+-            "adapter_response_bytes": adapter.http.bytes,
+-            "graphql_calls": adapter.http.graphql_calls,
+-            "graphql_points": adapter.http.graphql_points,
+-            "emulated_https_requests": len(requests),
+-            "request_methods": {
+-                method: sum(row["method"] == method for row in requests)
+-                for method in ("GET", "POST")
+-            },
+-        }
+-
+-    plan_exit, planning_metrics = invoke(
+-        "plan", ["--output", str(plan_path)])
+-    if plan_exit != 0:
+-        raise RuntimeError("Scheduled planning entrypoint failed")
+-    plan_raw = plan_path.read_bytes()
+-    if not 0 < len(plan_raw) <= MAX_PLAN:
+-        raise RuntimeError("Plan artifact exceeded bound")
+-    planned = strict_json(plan_raw)
+-
+-    publish_exit, publish_metrics = invoke(
+-        "publish", ["--input", str(plan_path), "--output", str(publish_path)])
+-    if publish_exit != 0:
+-        raise RuntimeError("Scheduled publish entrypoint failed")
+-    publish_raw = publish_path.read_bytes()
+-    if not 0 < len(publish_raw) <= 64 * 1024:
+-        raise RuntimeError("Publish artifact exceeded bound")
+-    published = strict_json(publish_raw)
+-
+-    build_exit, build_metrics = invoke(
+-        "build", ["--input", str(publish_path), "--output", str(site)])
+-    if build_exit != expected_build_exit:
+-        raise RuntimeError("Scheduled build entrypoint had unexpected result")
+-    proof = public_status = None
+-    if build_exit == 0:
+-        proof = (site / "canonical-objects.bundle").read_bytes()
+-        public_status = (site / "status.json").read_bytes()
+-    return {
+-        "planned": planned, "published": published,
+-        "proof": proof, "public_status": public_status, "site": site,
+-        "plan_artifact_bytes": len(plan_raw),
+-        "publish_artifact_bytes": len(publish_raw),
+-        "entrypoint_exit_codes": {
+-            "plan": plan_exit, "publish": publish_exit, "build": build_exit,
+-        },
+-        "jobs": {"planning": planning_metrics,
+-                 "publish": publish_metrics, "build": build_metrics},
+-    }
+-
+-
+-def _bootstrap_fixture_intake(fixture, policy, root):
+-    """Run the explicit scheduled legacy bootstrap before measured imports."""
+-    run_id = 2_147_483_647
+-    all_request_start = len(fixture.requests)
+-    mutation_start = len(fixture.successful_mutations)
+-    transaction = _scheduled_service_entrypoints(
+-        fixture, policy, Path(root) / "bootstrap-transaction",
+-        run_id=run_id, now="2026-09-17T16:00:00Z",
+-    )
+-    planned, published = transaction["planned"], transaction["published"]
+-    if (published["prior_state"] != "legacy"
+-            or published["selected_action"] != "after"
+-            or not published["pages_publishable"]
+-            or published["status"]["status"] != "idle"):
+-        raise RuntimeError("Synthetic legacy bootstrap was not publishable")
+-    proof, status = transaction["proof"], transaction["public_status"]
+-    fixture.bootstrap_pages(proof, status)
+-    requests = fixture.requests[all_request_start:]
+-    mutations = fixture.successful_mutations[mutation_start:]
+-    return {
+-        "modeled_prior": "validated-legacy-from-known-initial-canonical",
+-        "trusted_lane": "scheduled", "selected_action": "after",
+-        "scan_outcome": planned["scan_outcome"],
+-        "stop_reason": planned["stop_reason"],
+-        "counters": planned["counters"],
+-        "canonical_mutations": len(mutations), "imported_records": 0,
+-        "pages_publications": 1,
+-        "pages_bundle_bytes": len(proof), "status_bytes": len(status),
+-        "status_sha256": hashlib.sha256(status).hexdigest(),
+-        "emulated_https_requests": len(requests),
+-        "methods": {method: sum(row["method"] == method for row in requests)
+-                    for method in ("GET", "POST")},
+-        "plan_artifact_bytes": transaction["plan_artifact_bytes"],
+-        "publish_artifact_bytes": transaction["publish_artifact_bytes"],
+-        "entrypoint_exit_codes": transaction["entrypoint_exit_codes"],
+-        "jobs": transaction["jobs"],
+-    }
+-
+-
+ def run_gate(profile: str, *, artifact_output: Path | None = None):
+     """Run one declared native-boundary profile and return a JSON-safe report."""
+     if profile not in PROFILES:
+@@ -1106,12 +854,9 @@ def run_gate(profile: str, *, artifact_output: Path | None = None):
+                 from omarchy_knowledge.distribution import build_site
+                 from omarchy_knowledge.github_native import GitHubRead, GitHubWriter, strict_json
+                 from omarchy_knowledge.service import (_validated_proof, plan_run,
+-                                                       public_intake_scan,
+                                                        publish_run)
+ 
+                 policy = Policy("a" * 40, "b" * 40)
+-                report["fixture"]["intake_bootstrap"] = _bootstrap_fixture_intake(
+-                    fixture, policy, root)
+                 for number, records in enumerate(batches, 1):
+                     item = {"number": number, "record_count": len(records),
+                             "candidate_preparation_seconds": None,
+@@ -1158,12 +903,9 @@ def run_gate(profile: str, *, artifact_output: Path | None = None):
+                                 fixture, writer,
+                                 lambda api: publish_run(
+                                     api, policy, batch, run_id=run_id,
+-                                    run_attempt=run_attempt,
+-                                    trusted_lane="direct"))
+-                            if publish_status["status"]["status"] != "accepted":
++                                    run_attempt=run_attempt))
++                            if publish_status["status"] != "accepted":
+                                 raise RuntimeError("Synthetic native import was not accepted")
+-                            if not publish_status["pages_publishable"]:
+-                                raise RuntimeError("Synthetic native import withheld Pages")
+                             item["publish_completed_return"] = True
+ 
+                         stage = "build"
+@@ -1178,22 +920,17 @@ def run_gate(profile: str, *, artifact_output: Path | None = None):
+                                 data = _refresh_offline(current)
+                                 site = root / "sites" / str(number)
+                                 distribution = build_site(
+-                                    data, site, status=publish_status["status"],
+-                                    intake_cursor=publish_status["cursor"],
+-                                    cursor_health=publish_status["cursor_health"],
+-                                    intake_scan=public_intake_scan(publish_status),
++                                    data, site, status=publish_status,
+                                     proof_bundle=proof)
+-                                return current, proof, distribution, site
++                                return current, proof, distribution
+ 
+                             built, item["jobs"]["build"] = _run_job(
+                                 fixture, builder, build)
+-                            current, proof, distribution, site = built
++                            current, proof, distribution = built
+                             # Pages changes only after the canonical read, offline
+                             # replay, refresh, and full static build return.
+                             item["distribution_bytes"] = distribution["bytes"]
+-                            fixture.publish_pages(
+-                                proof, number,
+-                                status=(site / "status.json").read_bytes())
++                            fixture.publish_pages(proof, number)
+                     finally:
+                         item["mutations"] = fixture.successful_mutations[mutation_start:]
+                         item["known_mutation_acceptance"] = any(
+@@ -1397,9 +1134,6 @@ def run_gate(profile: str, *, artifact_output: Path | None = None):
+                 "pages_publications": len(published),
+                 "published_imports": published,
+                 "published_after_complete_build": bool(published),
+-                "public_status_sha256": (
+-                    hashlib.sha256(fixture.pages_state.status).hexdigest()
+-                    if fixture.pages_state.status is not None else None),
+             })
+     return report
+ 
+diff --git b/experiments/growth/proof_formats.py a/experiments/growth/proof_formats.py
+index e1762f2..4926338 100644
+--- b/experiments/growth/proof_formats.py
++++ a/experiments/growth/proof_formats.py
+@@ -3,7 +3,6 @@
+ from __future__ import annotations
+ 
+ import argparse
+-from copy import deepcopy
+ import gzip
+ import hashlib
+ import io
+@@ -48,12 +47,9 @@ SOURCES = (
+     "experiments/growth/gates.py",
+     "omarchy_knowledge/canonical.py",
+     "omarchy_knowledge/coordinator.py",
+-    "omarchy_knowledge/distribution.py",
+-    "omarchy_knowledge/fair_intake.py",
+     "omarchy_knowledge/github_native.py",
+     "omarchy_knowledge/github_object_batch.py",
+     "omarchy_knowledge/object_bundle.py",
+-    "omarchy_knowledge/intake_status.py",
+     "omarchy_knowledge/service.py",
+ )
+ 
+@@ -461,10 +457,8 @@ def _append_successors(fixture, policy, numbers, budget, alarm):
+     """Append cohorts through the real plan/publish/build wrappers and native fixture."""
+     from omarchy_knowledge.canonical import read_canonical
+     from omarchy_knowledge.coordinator import canonical
+-    from omarchy_knowledge.distribution import build_site
+     from omarchy_knowledge.github_native import GitHubRead, GitHubWriter, strict_json
+-    from omarchy_knowledge.service import (_validated_proof, plan_run,
+-                                           public_intake_scan, publish_run)
++    from omarchy_knowledge.service import _validated_proof, plan_run, publish_run
+ 
+     results = []
+     final_data = final_proof = None
+@@ -496,12 +490,10 @@ def _append_successors(fixture, policy, numbers, budget, alarm):
+                 fixture,
+                 writer,
+                 lambda api: publish_run(
+-                    api, policy, batch, run_id=number, run_attempt=1,
+-                    trusted_lane="direct",
++                    api, policy, batch, run_id=number, run_attempt=1
+                 ),
+             )
+-            if (status["status"]["status"] != "accepted"
+-                    or not status["pages_publishable"]):
++            if status["status"] != "accepted":
+                 raise RuntimeError("Successor publishing failed")
+             builder = GitHubRead(
+                 read_token=gates.SYNTHETIC_TOKEN,
+@@ -510,23 +502,11 @@ def _append_successors(fixture, policy, numbers, budget, alarm):
+ 
+             def build(api):
+                 data = read_canonical(api, policy, now=FIXED_NOW)
+-                proof = _validated_proof(api, policy, data)
+-                with tempfile.TemporaryDirectory(
+-                        prefix="omarchy-proof-successor-site-") as temporary:
+-                    site = Path(temporary) / "site"
+-                    build_site(
+-                        gates._refresh_offline(deepcopy(data)), site,
+-                        status=status["status"], intake_cursor=status["cursor"],
+-                        cursor_health=status["cursor_health"],
+-                        intake_scan=public_intake_scan(status),
+-                        proof_bundle=proof,
+-                    )
+-                    public_status = (site / "status.json").read_bytes()
+-                return data, proof, public_status
++                return data, _validated_proof(api, policy, data)
+ 
+             built, build_metrics = gates._run_job(fixture, builder, build)
+-            final_data, final_proof, public_status = built
+-            fixture.publish_pages(final_proof, number, status=public_status)
++            final_data, final_proof = built
++            fixture.publish_pages(final_proof, number)
+             mutations = fixture.successful_mutations[mutation_start:]
+             if not (
+                 len(mutations) == 2
+@@ -729,8 +709,6 @@ def _run_fixture_comparison(source, budget, alarm, measurement=None):
+                 "native_generation": base_native,
+             }
+             fixture.publish_pages(base_proof, len(source["imports"]))
+-            measurement["intake_bootstrap"] = gates._bootstrap_fixture_intake(
+-                fixture, policy, Path(temporary))
+             successor_data, successor_proof, successors = _append_successors(
+                 fixture,
+                 policy,
+diff --git b/experiments/growth/update_pack_production.py a/experiments/growth/update_pack_production.py
+index 0111197..744dba9 100644
+--- b/experiments/growth/update_pack_production.py
++++ a/experiments/growth/update_pack_production.py
+@@ -36,11 +36,9 @@ SOURCES = (
+     "omarchy_knowledge/canonical.py",
+     "omarchy_knowledge/coordinator.py",
+     "omarchy_knowledge/distribution.py",
+-    "omarchy_knowledge/fair_intake.py",
+     "omarchy_knowledge/github_native.py",
+     "omarchy_knowledge/github_object_batch.py",
+     "omarchy_knowledge/object_bundle.py",
+-    "omarchy_knowledge/intake_status.py",
+     "omarchy_knowledge/proof_cache.py",
+     "omarchy_knowledge/resolution.py",
+     "omarchy_knowledge/service.py",
+@@ -165,8 +163,7 @@ def _publish_records(fixture, policy, number, records, cohorts, budget, alarm,
+     from omarchy_knowledge.coordinator import canonical
+     from omarchy_knowledge.distribution import build_site
+     from omarchy_knowledge.github_native import GitHubRead, GitHubWriter, strict_json
+-    from omarchy_knowledge.service import (_publisher_build, plan_run,
+-                                           public_intake_scan, publish_run)
++    from omarchy_knowledge.service import _publisher_build, plan_run, publish_run
+ 
+     mutation_start = len(fixture.successful_mutations)
+     publication.update({
+@@ -227,7 +224,6 @@ def _publish_records(fixture, policy, number, records, cohorts, budget, alarm,
+                 fixture, writer,
+                 lambda api: publish_run(
+                     api, policy, batch, run_id=number, run_attempt=1,
+-                    trusted_lane="direct",
+                 ),
+             )
+         except BaseException as error:
+@@ -235,8 +231,7 @@ def _publish_records(fixture, policy, number, records, cohorts, budget, alarm,
+             capture_mutations()
+             raise
+         publication["jobs"]["publish"] = publish_metrics
+-        if (status["status"]["status"] != "accepted"
+-                or not status["pages_publishable"]):
++        if status["status"] != "accepted":
+             raise RuntimeError("Contribution was not accepted")
+         publication["publish_completed_return"] = True
+         capture_mutations()
+@@ -261,10 +256,7 @@ def _publish_records(fixture, policy, number, records, cohorts, budget, alarm,
+             raise RuntimeError("Publisher omitted matching direct update")
+         public_data = gates._refresh_offline(deepcopy(data))
+         distribution = build_site(
+-            public_data, site, status=status["status"],
+-            intake_cursor=status["cursor"],
+-            cursor_health=status["cursor_health"],
+-            intake_scan=public_intake_scan(status), proof_bundle=proof,
++            public_data, site, status=status, proof_bundle=proof,
+             update_manifest=update[0], update_bundle=update[1],
+         )
+         build_metrics = gates._adapter_metrics(
+@@ -273,9 +265,7 @@ def _publish_records(fixture, policy, number, records, cohorts, budget, alarm,
+             request_start=build_request_start, fixture=fixture,
+         )
+         publication["jobs"]["build"] = build_metrics
+-        fixture.publish_pages(
+-            proof, number, update=update,
+-            status=(site / "status.json").read_bytes())
++        fixture.publish_pages(proof, number, update=update)
+         publication["full_build_completion"] = True
+     mutations = capture_mutations()
+     if ([row["addition_count"] for row in mutations]
+@@ -315,7 +305,6 @@ def _run_skipped_intermediate_fixture(source, budget, alarm):
+                     fixture, policy,
+                 )
+                 fixture.publish_pages(base_proof, len(source["imports"]))
+-                gates._bootstrap_fixture_intake(fixture, policy, root)
+                 expected_base = gates._refresh_offline(deepcopy(base_data))
+             cache = root / "base-cache"
+             with gates._phase_deadline(budget, alarm, PHASE_SECONDS):
+@@ -418,8 +407,6 @@ def _run_fixture_measurement(source, budget, alarm, measurement, *,
+                         "contributions_in_final_pr": 2,
+                     }
+                     fixture.publish_pages(base_proof, base_imports)
+-                    measurement["intake_bootstrap"] = gates._bootstrap_fixture_intake(
+-                        fixture, policy, root)
+                     expected_base = gates._refresh_offline(deepcopy(base_data))
+                 checkpoint("base-recorded", measurement)
+ 
+diff --git b/experiments/growth/update_pack_variants.py a/experiments/growth/update_pack_variants.py
+index 2d06e4b..934eaef 100644
+--- b/experiments/growth/update_pack_variants.py
++++ a/experiments/growth/update_pack_variants.py
+@@ -156,8 +156,7 @@ def _run_fixture_variants(source, budget, alarm, measurement=None):
+ 
+     measurement = {} if measurement is None else measurement
+     with tempfile.TemporaryDirectory(prefix="omarchy-update-pack-variants-") as temporary:
+-        root = Path(temporary)
+-        with gates._NativeFixture(root / "fixture") as fixture:
++        with gates._NativeFixture(Path(temporary)) as fixture:
+             policy = Policy("a" * 40, "b" * 40)
+             reconstruction_started = time.monotonic()
+             reconstructed = cold_postmortem._reconstruct(fixture, source)
+@@ -187,8 +186,6 @@ def _run_fixture_variants(source, budget, alarm, measurement=None):
+                 "native_generation": native,
+             }
+             fixture.publish_pages(base_proof, len(source["imports"]))
+-            measurement["intake_bootstrap"] = gates._bootstrap_fixture_intake(
+-                fixture, policy, root)
+             baseline = {"main": fixture.main, "pages_state": fixture.pages_state}
+             context = {
+                 "policy": policy,

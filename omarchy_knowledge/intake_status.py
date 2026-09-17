@@ -26,6 +26,11 @@ _TAG = re.compile(r"v[0-9]{1,5}\.[0-9]{1,5}\.[0-9]{1,5}(?:rc[0-9]{1,5})?\Z")
 _VERSION = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+~:-]{0,199}\Z")
 _SAFE_FIELDS = {"status", "outcomes", "scanned", "scan_truncated"}
 _PUBLIC_FIELDS = {"source", "receipt_coverage", "upstream", "pr_behavior"}
+_SCAN_COUNTER_FIELDS = {
+    "page_fetches", "rows_returned", "rows_consumed", "evaluations",
+    "closed", "imported", "rejected", "not_ready", "plans",
+    "cursor_drifts",
+}
 _SOURCE_FIELDS = {
     "repository", "repository_id", "deployment", "ref", "data_revision",
     "tree_revision", "toolkit_revision", "policy_revision", "verified_at",
@@ -446,19 +451,106 @@ class CursorHealth:
 
 
 @dataclass(frozen=True)
+class IntakeScan:
+    version: int
+    trusted_lane: str
+    prior_state: str
+    selected_action: str
+    scan_outcome: str
+    stop_reason: str
+    counters: dict[str, int]
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "IntakeScan":
+        value = _exact(value, {
+            "version", "trusted_lane", "prior_state", "selected_action",
+            "scan_outcome", "stop_reason", "counters",
+        })
+        _require(type(value["version"]) is int and value["version"] == 1
+                 and value["trusted_lane"] in {"direct", "scheduled"}
+                 and value["prior_state"] in {"current", "legacy", "unavailable"}
+                 and value["selected_action"] in {"after", "before", "withhold"}
+                 and value["scan_outcome"] in {"direct", "planned", "no-eligible"}
+                 and value["stop_reason"] in {
+                     "direct", "plan", "preparation-limit", "fetch-limit",
+                     "cycle-complete",
+                 })
+        counters = _exact(value["counters"], _SCAN_COUNTER_FIELDS)
+        limits = {
+            "page_fetches": 10, "rows_returned": 200, "rows_consumed": 200,
+            "evaluations": 20, "closed": 200, "imported": 200,
+            "rejected": 20, "not_ready": 20, "plans": 1,
+            "cursor_drifts": 10,
+        }
+        _require(all(type(counters[field]) is int
+                     and 0 <= counters[field] <= limit
+                     for field, limit in limits.items()))
+        _require(counters["rows_consumed"]
+                 == counters["closed"] + counters["imported"]
+                 + counters["evaluations"]
+                 and counters["evaluations"]
+                 == counters["rejected"] + counters["not_ready"]
+                 + counters["plans"]
+                 and counters["rows_consumed"] <= counters["rows_returned"])
+        if value["trusted_lane"] == "direct":
+            _require(value["scan_outcome"] == "direct"
+                     and value["stop_reason"] == "direct"
+                     and all(count == 0 for count in counters.values()))
+        else:
+            _require(value["scan_outcome"] != "direct"
+                     and value["stop_reason"] != "direct"
+                     and counters["page_fetches"] >= 1
+                     and counters["rows_returned"]
+                         <= counters["page_fetches"] * 20
+                     and counters["cursor_drifts"] <= 1
+                     and (counters["cursor_drifts"] == 0
+                          or counters["page_fetches"] >= 2)
+                     and (value["scan_outcome"] == "planned")
+                     == (value["stop_reason"] == "plan")
+                     and (value["scan_outcome"] == "planned")
+                     == (counters["plans"] == 1))
+            if value["stop_reason"] == "fetch-limit":
+                _require(counters["page_fetches"] == 10)
+            elif value["stop_reason"] == "preparation-limit":
+                _require(counters["evaluations"] == 20)
+            elif value["stop_reason"] == "cycle-complete":
+                _require(counters["rows_returned"]
+                         < counters["page_fetches"] * 20)
+        return cls(
+            1, value["trusted_lane"], value["prior_state"],
+            value["selected_action"], value["scan_outcome"],
+            value["stop_reason"], dict(counters),
+        )
+
+    def to_mapping(self) -> dict[str, Any]:
+        return {
+            "version": self.version,
+            "trusted_lane": self.trusted_lane,
+            "prior_state": self.prior_state,
+            "selected_action": self.selected_action,
+            "scan_outcome": self.scan_outcome,
+            "stop_reason": self.stop_reason,
+            "counters": dict(self.counters),
+        }
+
+
+@dataclass(frozen=True)
 class PublicIntakeStatus:
     kind: PublicStatusKind
     source_revision: str
     cursor: IntakeCursor | None
     cursor_health: CursorHealth | None
+    intake_scan: IntakeScan | None
 
 
-def _validate_safe_status(value: Mapping[str, Any]) -> None:
+def validate_safe_status(value: Mapping[str, Any]) -> dict[str, Any]:
+    """Return one exact, bounded public run summary with no contributor prose."""
     _require("status" in value and isinstance(value["status"], str)
              and value["status"] in {
         "idle", "planned", "accepted", "receipt-pending", "retry",
-        "unavailable", "rejected",
+        "unavailable", "rejected", "not-ready",
     })
+    _require(set(value) <= _SAFE_FIELDS)
     outcomes = value.get("outcomes", [])
     _require(type(outcomes) is list and len(outcomes) <= 21)
     for item in outcomes:
@@ -468,7 +560,7 @@ def _validate_safe_status(value: Mapping[str, Any]) -> None:
         })
         _require(isinstance(item.get("status"), str) and item["status"] in {
             "planned", "accepted", "receipt-pending", "retry", "unavailable",
-            "rejected",
+            "rejected", "not-ready",
         })
         number = item.get("pull_request")
         _require(type(number) is int and 1 <= number <= MAX_INT)
@@ -480,6 +572,12 @@ def _validate_safe_status(value: Mapping[str, Any]) -> None:
     scanned = value.get("scanned", 0)
     _require(type(scanned) is int and 0 <= scanned <= 200)
     _require(type(value.get("scan_truncated", False)) is bool)
+    return dict(value)
+
+
+def _validate_safe_status(value: Mapping[str, Any]) -> None:
+    validate_safe_status({field: value[field] for field in _SAFE_FIELDS
+                          if field in value})
 
 
 def _validate_source(value: Any, *, repository: str,
@@ -568,7 +666,8 @@ def validate_intake_status(
     legacy_fields = fields - _SAFE_FIELDS
     if legacy_fields == _PUBLIC_FIELDS:
         kind = PublicStatusKind.LEGACY
-    elif legacy_fields == _PUBLIC_FIELDS | {"intake_cursor", "cursor_health"}:
+    elif legacy_fields == _PUBLIC_FIELDS | {
+            "intake_cursor", "cursor_health", "intake_scan"}:
         kind = PublicStatusKind.CURRENT
     else:
         raise ValueError("invalid public intake status")
@@ -586,7 +685,8 @@ def validate_intake_status(
     _require(value["pr_behavior"] == "snapshots-imported-prs-remain-open")
     _validate_upstream(value["upstream"])
     if kind is PublicStatusKind.LEGACY:
-        return PublicIntakeStatus(kind, source_revision, None, None)
+        return PublicIntakeStatus(kind, source_revision, None, None, None)
     cursor = IntakeCursor.from_mapping(value["intake_cursor"])
     health = CursorHealth.from_mapping(value["cursor_health"])
-    return PublicIntakeStatus(kind, source_revision, cursor, health)
+    intake_scan = IntakeScan.from_mapping(value["intake_scan"])
+    return PublicIntakeStatus(kind, source_revision, cursor, health, intake_scan)

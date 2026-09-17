@@ -108,11 +108,15 @@ without a cursor from an unavailable/malformed response. A scheduled run may
 initialize legacy state explicitly and report it; a direct event must not treat a
 network failure as permission to erase established progress. Test initial rollout
 as well as steady-state preservation.
-The strict current public format requires both `intake_cursor` and `cursor_health`,
-each with its own version1; the exact recognized legacy format has neither. A
-partial pair or unknown field/version is unavailable, not legacy. There is no
+The strict current public format requires `intake_cursor`, `cursor_health` and
+`intake_scan`, each with its own version1; the exact recognized legacy format has
+none. The scan projection includes lane, prior-state kind, selected action,
+scan outcome, stop reason and the exact bounded scanner counters. A
+partial set or unknown field/version is unavailable, not legacy. There is no
 additional top-level status version for this step. Future health fields require
 a coordinated strict producer/reader update and their own versioned payload.
+The earlier adapter-only two-field format was never deployed; integration extends
+its producer/reader together so current drift and scan costs are publicly visible.
 
 The same withholding rule applies to scheduled prior-status failures. An earlier
 design allowed a degraded page-1 reset; that could erase arbitrary established

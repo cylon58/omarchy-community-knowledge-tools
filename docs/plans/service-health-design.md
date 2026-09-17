@@ -43,6 +43,11 @@ monitoring service or external notification recipient without separate approval.
 
 ## Tests
 
+Compare timestamps against wall time at the end of the observation, while enforcing
+the hard request deadline from its monotonic start. A legitimate publication during
+the fetch interval must not be rejected as future-dated merely because it happened
+after the check began. Test this boundary with a controlled clock.
+
 Use captured synthetic responses: healthy fresh publication, stale timestamp,
 future timestamp, malformed response, redirect, oversized body, API outage, delayed
 publication, failed workflow, partial upstream facts and queue-reset stagnation.
@@ -66,6 +71,26 @@ matching a name in a Pages document is not a replacement for that check.
 Cross-check the fetched status bytes against
 the distribution manifest and require matching source identities. These checks
 establish an operational observation, not canonical evidence authority.
+
+Completion-time preflight correction: workflow-run listings do not supply a
+documented run-completion timestamp. Do not reinterpret `created_at` or `updated_at`.
+For the selected completed/successful scheduled run, make one additional fixed
+request to its numeric run/attempt jobs endpoint (`per_page=20`). Require a complete
+bounded job list with matching run/head, and exactly one successful completed
+`pages` job with valid start/completion timestamps. Report its timestamp explicitly
+as `pages_job_completed_at`, not workflow completion. Apply the two-hour successful
+publication-age check to this evidence. Missing, skipped or ambiguous Pages jobs
+leave that check unavailable; do not chase earlier runs or arbitrary returned URLs.
+Normal successful checks now use six reads (five if no eligible run exists), still
+within the original eight-attempt/8-MiB/60-second bounds. A rerun's fresh publication
+does not prove a fresh scheduler start; report run creation and attempt separately.
+This narrows the claim without relaxing the age threshold.
+
+The endpoint and field were checked against
+[GitHub's job-attempt API](https://docs.github.com/en/rest/actions/workflow-jobs#list-jobs-for-a-workflow-run-attempt)
+and one bounded public production response on 2026-09-17. Its `pages` job completed
+at `2026-09-17T19:05:07Z` for run `35262441490`, attempt1. That sample establishes
+field compatibility, not current service health or continued scheduled cadence.
 
 Record count, receipt count/coverage, compressed proof bytes and distribution bytes
 are directly available. The builder can expose object count/raw bytes from its

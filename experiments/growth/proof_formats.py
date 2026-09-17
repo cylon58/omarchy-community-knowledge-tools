@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import gzip
 import hashlib
 import io
@@ -47,9 +48,12 @@ SOURCES = (
     "experiments/growth/gates.py",
     "omarchy_knowledge/canonical.py",
     "omarchy_knowledge/coordinator.py",
+    "omarchy_knowledge/distribution.py",
+    "omarchy_knowledge/fair_intake.py",
     "omarchy_knowledge/github_native.py",
     "omarchy_knowledge/github_object_batch.py",
     "omarchy_knowledge/object_bundle.py",
+    "omarchy_knowledge/intake_status.py",
     "omarchy_knowledge/service.py",
 )
 
@@ -457,8 +461,10 @@ def _append_successors(fixture, policy, numbers, budget, alarm):
     """Append cohorts through the real plan/publish/build wrappers and native fixture."""
     from omarchy_knowledge.canonical import read_canonical
     from omarchy_knowledge.coordinator import canonical
+    from omarchy_knowledge.distribution import build_site
     from omarchy_knowledge.github_native import GitHubRead, GitHubWriter, strict_json
-    from omarchy_knowledge.service import _validated_proof, plan_run, publish_run
+    from omarchy_knowledge.service import (_validated_proof, plan_run,
+                                           public_intake_scan, publish_run)
 
     results = []
     final_data = final_proof = None
@@ -490,10 +496,12 @@ def _append_successors(fixture, policy, numbers, budget, alarm):
                 fixture,
                 writer,
                 lambda api: publish_run(
-                    api, policy, batch, run_id=number, run_attempt=1
+                    api, policy, batch, run_id=number, run_attempt=1,
+                    trusted_lane="direct",
                 ),
             )
-            if status["status"] != "accepted":
+            if (status["status"]["status"] != "accepted"
+                    or not status["pages_publishable"]):
                 raise RuntimeError("Successor publishing failed")
             builder = GitHubRead(
                 read_token=gates.SYNTHETIC_TOKEN,
@@ -502,11 +510,23 @@ def _append_successors(fixture, policy, numbers, budget, alarm):
 
             def build(api):
                 data = read_canonical(api, policy, now=FIXED_NOW)
-                return data, _validated_proof(api, policy, data)
+                proof = _validated_proof(api, policy, data)
+                with tempfile.TemporaryDirectory(
+                        prefix="omarchy-proof-successor-site-") as temporary:
+                    site = Path(temporary) / "site"
+                    build_site(
+                        gates._refresh_offline(deepcopy(data)), site,
+                        status=status["status"], intake_cursor=status["cursor"],
+                        cursor_health=status["cursor_health"],
+                        intake_scan=public_intake_scan(status),
+                        proof_bundle=proof,
+                    )
+                    public_status = (site / "status.json").read_bytes()
+                return data, proof, public_status
 
             built, build_metrics = gates._run_job(fixture, builder, build)
-            final_data, final_proof = built
-            fixture.publish_pages(final_proof, number)
+            final_data, final_proof, public_status = built
+            fixture.publish_pages(final_proof, number, status=public_status)
             mutations = fixture.successful_mutations[mutation_start:]
             if not (
                 len(mutations) == 2
@@ -709,6 +729,8 @@ def _run_fixture_comparison(source, budget, alarm, measurement=None):
                 "native_generation": base_native,
             }
             fixture.publish_pages(base_proof, len(source["imports"]))
+            measurement["intake_bootstrap"] = gates._bootstrap_fixture_intake(
+                fixture, policy, Path(temporary))
             successor_data, successor_proof, successors = _append_successors(
                 fixture,
                 policy,

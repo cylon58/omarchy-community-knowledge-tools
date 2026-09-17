@@ -1,0 +1,9 @@
+{
+  "attempted_command": "python -c 'import json; from experiments.growth.fair_intake_service import run_queue; print(json.dumps(run_queue(), sort_keys=True, separators=(\",\", \":\")))'",
+  "diagnostic": "PYTHON_DEPENDENCY_UNAVAILABLE",
+  "exception": "ModuleNotFoundError: No module named 'jsonschema'",
+  "exit_code": 1,
+  "fixture_started": false,
+  "resolution": "The portable documentation spelling selected a system interpreter instead of the existing sibling virtual environment. After explicit clarification, one environment-corrected capture was authorized; no package was installed and no source changed.",
+  "status": "interpreter-launch-failure"
+}

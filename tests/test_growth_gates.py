@@ -109,11 +109,16 @@ class GrowthGateTests(unittest.TestCase):
             result = gates.run_gate("one-import")
 
         self.assertEqual(result["status"], "success", result)
-        self.assertEqual(len(planned), 1)
-        self.assertEqual(len(published), 1)
-        self.assertEqual(planned[0][0]["run_id"], published[0][0]["run_id"])
-        self.assertEqual(planned[0][0]["run_attempt"], published[0][0]["run_attempt"])
-        self.assertEqual(published[0][1]["status"]["status"], "planned")
+        self.assertEqual(len(planned), 2)
+        self.assertEqual(len(published), 2)
+        for planned_call, published_call in zip(planned, published):
+            self.assertEqual(planned_call[0]["run_id"],
+                             published_call[0]["run_id"])
+            self.assertEqual(planned_call[0]["run_attempt"],
+                             published_call[0]["run_attempt"])
+        self.assertEqual(planned[0][1]["trusted_lane"], "scheduled")
+        self.assertEqual(planned[0][1]["prior_state"], "legacy")
+        self.assertEqual(published[1][1]["status"]["status"], "planned")
         self.assertGreater(result["imports"][0]["plan_artifact_bytes"], 0)
 
     def test_one_import_uses_real_native_jobs_and_reports_proof_parity(self):
@@ -135,7 +140,12 @@ class GrowthGateTests(unittest.TestCase):
         jobs = result["imports"][0]["jobs"]
         self.assertEqual(set(jobs), {"planning", "publish", "build"})
         self.assertEqual([jobs[name]["seed_outcome"] for name in jobs],
-                         [False, False, False])
+                         [True, True, True])
+        self.assertEqual(
+            result["fixture"]["intake_bootstrap"]["modeled_prior"],
+            "validated-legacy-from-known-initial-canonical",
+        )
+        self.assertEqual(result["fixture"]["intake_bootstrap"]["imported_records"], 0)
         for job in jobs.values():
             self.assertLessEqual(job["calls"], 512)
             self.assertLessEqual(job["response_bytes"], 32 * 1024 * 1024)
@@ -229,7 +239,7 @@ class GrowthGateTests(unittest.TestCase):
 
         def interrupt_after_mutation(*args, **kwargs):
             value = original(*args, **kwargs)
-            if value["status"] == "accepted":
+            if value["status"]["status"] == "accepted":
                 raise gates._DeadlineExpired("phase")
             return value
 
@@ -258,7 +268,7 @@ class GrowthGateTests(unittest.TestCase):
         def fail_second(*args, **kwargs):
             nonlocal calls
             calls += 1
-            if calls == 2:
+            if calls == 3:
                 raise ValueError("second build failed")
             return original(*args, **kwargs)
 
@@ -295,8 +305,8 @@ class GrowthGateTests(unittest.TestCase):
 
         original = gates._NativeFixture.publish_pages
 
-        def interrupt_after_state_change(fixture, proof, *identity):
-            original(fixture, proof, *identity)
+        def interrupt_after_state_change(fixture, proof, *identity, **kwargs):
+            original(fixture, proof, *identity, **kwargs)
             raise gates._DeadlineExpired("phase")
 
         with patch.object(gates._NativeFixture, "publish_pages",
@@ -408,14 +418,29 @@ class GrowthGateTests(unittest.TestCase):
         """Break caught: a newly exported proof is published before the site succeeds."""
         from experiments.growth.gates import run_gate
 
+        from omarchy_knowledge import distribution
+        original = distribution.build_site
+        calls = 0
+
+        def fail_import_build(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise ValueError("synthetic build failure")
+            return original(*args, **kwargs)
+
         with patch("omarchy_knowledge.distribution.build_site",
-                   side_effect=ValueError("synthetic build failure")):
+                   side_effect=fail_import_build):
             result = run_gate("one-import")
 
         self.assertEqual(result["status"], "failure", result)
         self.assertEqual(result["failure_stage"], "build")
         self.assertFalse(result["proof"]["published_after_complete_build"])
         self.assertEqual(result["proof"]["pages_publications"], 0)
+        self.assertEqual(
+            result["proof"]["public_status_sha256"],
+            result["fixture"]["intake_bootstrap"]["status_sha256"],
+        )
 
     def test_optional_artifact_exports_only_the_bounded_final_proof(self):
         """Break caught: retaining a proof leaks corpus JSON or changes gate counts."""

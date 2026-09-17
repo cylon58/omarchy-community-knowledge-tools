@@ -360,7 +360,36 @@ class UpdatePublisherTests(unittest.TestCase):
                 "default_branch": "main",
             }}))
             status = root / "status.json"
-            status.write_text('{"status":"idle","outcomes":[]}')
+            status.write_text(json.dumps({
+                "version": 2, "stage": "publish", "run_id": 1,
+                "run_attempt": 1, "deployment": "production",
+                "trusted_lane": "scheduled", "prior_state": "legacy",
+                "before_cursor": {"version": 1, "page": 1, "offset": 0,
+                                  "after_pull_request": None, "cycle": 0,
+                                  "last_full_cycle_at": None},
+                "proposed_cursor": {"version": 1, "page": 1, "offset": 0,
+                                    "after_pull_request": None, "cycle": 1,
+                                    "last_full_cycle_at": "2026-09-17T00:00:00Z"},
+                "prior_cursor_health": {"version": 1,
+                                        "last_progress_at": None,
+                                        "consecutive_drift_runs": 0},
+                "selected_action": "after", "scan_outcome": "no-eligible",
+                "stop_reason": "cycle-complete",
+                "scan_time": "2026-09-17T00:00:00Z",
+                "counters": {"page_fetches": 1, "rows_returned": 0,
+                             "rows_consumed": 0, "evaluations": 0,
+                             "closed": 0, "imported": 0, "rejected": 0,
+                             "not_ready": 0, "plans": 0,
+                             "cursor_drifts": 0},
+                "status": {"status": "idle", "outcomes": []},
+                "pages_publishable": True,
+                "cursor": {"version": 1, "page": 1, "offset": 0,
+                           "after_pull_request": None, "cycle": 1,
+                           "last_full_cycle_at": "2026-09-17T00:00:00Z"},
+                "cursor_health": {"version": 1,
+                                  "last_progress_at": "2026-09-17T00:00:00Z",
+                                  "consecutive_drift_runs": 0},
+            }))
             output = root / "site"
             environment = {
                 "GITHUB_REPOSITORY": "cylon58/omarchy-community-knowledge",
@@ -398,6 +427,7 @@ class UpdatePublisherTests(unittest.TestCase):
         self.assertEqual(captured["proof_bundle"], b"full")
         self.assertEqual(captured["update_manifest"], b"manifest")
         self.assertEqual(captured["update_bundle"], b"pack")
+        self.assertEqual(captured["intake_scan"]["selected_action"], "after")
 
     def test_native_pages_fixture_serves_exact_artifacts_atomically(self):
         """Break caught: native evidence bypasses fixed update routes or partial state."""
