@@ -53,3 +53,34 @@ facts. Unknown final canonical counts are not inferred from those counters.
 
 Larger profiles are recorded separately; no result here establishes unlimited
 capacity or independent community reproduction.
+
+## Distributed 500-record / 100-import run: failed gate
+
+```sh
+python -m experiments.growth.gates distributed-500x100 \
+  --output experiments/growth/results/native-distributed-500-v1.json
+```
+
+[Raw result](../../experiments/growth/results/native-distributed-500-v1.json) uses
+clean source revision `e679511` and the same measured implementation hashes as
+the calibration. The actual run additionally requested a new private artifact
+directory; its export was never reached, and no final proof artifact was retained.
+
+All 100 publish returns and build/publication completions were observed, but the
+overall gate **failed** with `NativeUnavailable` in `recovery-distribution`.
+Total time was 1,294.067 seconds; worst planning/admission was 22.496 seconds
+(p95 20.483), and worst build was 16.352 seconds. No phase timeout was reported.
+The largest ordinary job used 79 requests. The final cold/warm comparison,
+search checks and final record/receipt counts were not completed: their null
+values must not be rewritten as successes inferred from the import counters.
+
+The raw report contains 11,291 total emulated requests and 10,779 requests across
+completed per-import jobs, leaving exactly 512 in the failing final phase.
+The native adapter refuses the next request beyond its 512-call limit. This is
+strong evidence of the cold object-read bottleneck; a focused postmortem is the
+next step before selecting a fix. No limit was increased. There were zero real
+network requests and zero fixture contract violations.
+
+This result separates useful progress from readiness: the seeded import/build
+path completed the intended history, but cold recovery did not. It does not pass
+the declared 500-record growth gate. The unmodified failure report is preserved.
