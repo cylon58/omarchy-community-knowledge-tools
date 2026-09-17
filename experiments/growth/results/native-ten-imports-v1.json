@@ -1,0 +1,979 @@
+{
+  "artifact": {
+    "export_seconds": null,
+    "exported": false,
+    "requested": false
+  },
+  "configuration": {
+    "imports": 10,
+    "overall_seconds": 1200,
+    "phase_seconds": 120,
+    "records": 50,
+    "warm_search_seconds": 1
+  },
+  "counts": {
+    "full_build_completions": 10,
+    "imports_completed": 10,
+    "imports_requested": 10,
+    "known_mutation_acceptances": 10,
+    "receipts": 50,
+    "records": 50,
+    "successful_publish_returns": 10
+  },
+  "deadline_scope": null,
+  "environment": {
+    "python_version": "3.14.7",
+    "source_revision": "6c4a2b2cab38b6566560f4b390cb7f7896cb10ef",
+    "source_sha256": {
+      "experiments/growth/gates.py": "6696549668b7d88de4cb9438bbdc2565c53806daa0f0e0c61c3b7d6d38ae4af4",
+      "omarchy_knowledge/canonical.py": "ada1e99436b698492cdfc686cecf5e2cd59df5a48428aa5f73bf34a2c9631e3c",
+      "omarchy_knowledge/coordinator.py": "1d007eea66426262137995b7d663860fb093ffd00360eee9f7b238b3f2c92df7",
+      "omarchy_knowledge/discovery.py": "f39b65797884a4516bdf9e5f82c8b6c714e66d6c5595d16978e1f3ecf1e12f95",
+      "omarchy_knowledge/distribution.py": "aba35f39bbc448b64c51d8dae91e3a5964246a14dc076cc1856bf9041f9753d1",
+      "omarchy_knowledge/github_native.py": "c8e4d8d111888e663125c5fa6daf5bc06a32832c0316f581c86989aa691e3263",
+      "omarchy_knowledge/object_bundle.py": "ba6772bf0686815b536896433a43943e811a45b2dfe3b7e19c40b58e45e9759f",
+      "omarchy_knowledge/service.py": "c1335314e769dac3d008dffa4e1e1df3453281c6650053d91b2b5b87a312c9ed"
+    },
+    "working_tree": {
+      "dirty": false,
+      "paths": []
+    }
+  },
+  "failure_kind": null,
+  "failure_stage": null,
+  "fixture": {
+    "candidate_preparation_seconds": 0.453275,
+    "git_commands": 419,
+    "initial_setup_seconds": 0.008162,
+    "object_reader": {
+      "cache_hits": 2149,
+      "cached_object_bytes": 139010,
+      "cached_objects": 232,
+      "local_subprocesses": 1
+    }
+  },
+  "imports": [
+    {
+      "admission_seconds": 0.171951,
+      "candidate_preparation_seconds": 0.037977,
+      "distribution_bytes": 22058,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 24,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.127441,
+          "emulated_requests": 24,
+          "methods": {
+            "GET": 24,
+            "POST": 0
+          },
+          "response_bytes": 16793488,
+          "seed_outcome": false
+        },
+        "planning": {
+          "calls": 19,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.027097,
+          "emulated_requests": 19,
+          "methods": {
+            "GET": 19,
+            "POST": 0
+          },
+          "response_bytes": 16786322,
+          "seed_outcome": false
+        },
+        "publish": {
+          "calls": 32,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.144854,
+          "emulated_requests": 32,
+          "methods": {
+            "GET": 30,
+            "POST": 2
+          },
+          "response_bytes": 16789870,
+          "seed_outcome": false
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "edc7d3fdfef24fbcb7898d5f5197d82d74d127b1",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000001-0000-4000-8000-000000000001.json",
+            "records/changes/00000001-0000-4000-8000-000000000002.json",
+            "records/events/00000001-0000-4000-8000-000000000003.json",
+            "records/events/00000001-0000-4000-8000-000000000004.json",
+            "records/reports/00000001-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "147cda9479e6d83aabb159859a19934d3988627a"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "147cda9479e6d83aabb159859a19934d3988627a",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/116c433f-e314-4258-a66c-bafd27815bbf.json",
+            "provenance/ingestion/97d9af59-26dc-4837-8b14-e2247f130e44.json",
+            "provenance/ingestion/9fef6a97-e634-4c13-a0ac-003de7e7b25c.json",
+            "provenance/ingestion/aca81a44-4408-4326-8729-4da86eac0324.json",
+            "provenance/ingestion/da135d93-d16a-43b6-838d-5b3ed9901f96.json"
+          ],
+          "result_head": "cab17f46812ea87e5a33f0a8915e4eea861b2113"
+        }
+      ],
+      "number": 1,
+      "plan_artifact_bytes": 6314,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.288002,
+      "candidate_preparation_seconds": 0.060844,
+      "distribution_bytes": 34105,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 24,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.2727,
+          "emulated_requests": 24,
+          "methods": {
+            "GET": 24,
+            "POST": 0
+          },
+          "response_bytes": 21141,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 17,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.049754,
+          "emulated_requests": 17,
+          "methods": {
+            "GET": 17,
+            "POST": 0
+          },
+          "response_bytes": 12769,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 31,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.238248,
+          "emulated_requests": 31,
+          "methods": {
+            "GET": 29,
+            "POST": 2
+          },
+          "response_bytes": 16730,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "cab17f46812ea87e5a33f0a8915e4eea861b2113",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000002-0000-4000-8000-000000000001.json",
+            "records/changes/00000002-0000-4000-8000-000000000002.json",
+            "records/events/00000002-0000-4000-8000-000000000003.json",
+            "records/events/00000002-0000-4000-8000-000000000004.json",
+            "records/reports/00000002-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "dc62dc2a4bc74746a436329dba6757f4a9d48148"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "dc62dc2a4bc74746a436329dba6757f4a9d48148",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/0937e462-4437-4bb0-bbb3-1e6b2e862c25.json",
+            "provenance/ingestion/160ae585-5604-4281-a7fd-1a8a45706e7f.json",
+            "provenance/ingestion/4ab9ec16-1c29-459b-83c1-9cc69813cdae.json",
+            "provenance/ingestion/5e2cf237-c95f-4595-b3fa-60a322ed4d00.json",
+            "provenance/ingestion/6dabc578-6585-4502-9676-d421743dbe7e.json"
+          ],
+          "result_head": "5284e168375dfa5fcad56b5b27aca2a801153c76"
+        }
+      ],
+      "number": 2,
+      "plan_artifact_bytes": 6314,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.463119,
+      "candidate_preparation_seconds": 0.044822,
+      "distribution_bytes": 46130,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 24,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.222041,
+          "emulated_requests": 24,
+          "methods": {
+            "GET": 24,
+            "POST": 0
+          },
+          "response_bytes": 24142,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 17,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.068969,
+          "emulated_requests": 17,
+          "methods": {
+            "GET": 17,
+            "POST": 0
+          },
+          "response_bytes": 15055,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 32,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.39415,
+          "emulated_requests": 32,
+          "methods": {
+            "GET": 30,
+            "POST": 2
+          },
+          "response_bytes": 19493,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "5284e168375dfa5fcad56b5b27aca2a801153c76",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000003-0000-4000-8000-000000000001.json",
+            "records/changes/00000003-0000-4000-8000-000000000002.json",
+            "records/events/00000003-0000-4000-8000-000000000003.json",
+            "records/events/00000003-0000-4000-8000-000000000004.json",
+            "records/reports/00000003-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "b5479b3450db5eaa05bccc751847e8f192118e7e"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "b5479b3450db5eaa05bccc751847e8f192118e7e",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/1a3708f5-5207-4538-90de-93bc00080672.json",
+            "provenance/ingestion/4e7b334f-bb41-440c-9b05-4801ca0eb833.json",
+            "provenance/ingestion/607c4315-18c9-4828-8de3-f99602fa0f12.json",
+            "provenance/ingestion/9900f2ac-920c-418f-bce9-701452c0707b.json",
+            "provenance/ingestion/e71e8d8c-2f1a-40b6-b3a5-d963d7c1efb5.json"
+          ],
+          "result_head": "2fee19a8b50634ba805d265d17a1f38e1410ac1e"
+        }
+      ],
+      "number": 3,
+      "plan_artifact_bytes": 6314,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.568871,
+      "candidate_preparation_seconds": 0.057049,
+      "distribution_bytes": 58415,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 24,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.266674,
+          "emulated_requests": 24,
+          "methods": {
+            "GET": 24,
+            "POST": 0
+          },
+          "response_bytes": 27123,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 17,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.196166,
+          "emulated_requests": 17,
+          "methods": {
+            "GET": 17,
+            "POST": 0
+          },
+          "response_bytes": 17321,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 33,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.372705,
+          "emulated_requests": 33,
+          "methods": {
+            "GET": 31,
+            "POST": 2
+          },
+          "response_bytes": 22236,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "2fee19a8b50634ba805d265d17a1f38e1410ac1e",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000004-0000-4000-8000-000000000001.json",
+            "records/changes/00000004-0000-4000-8000-000000000002.json",
+            "records/events/00000004-0000-4000-8000-000000000003.json",
+            "records/events/00000004-0000-4000-8000-000000000004.json",
+            "records/reports/00000004-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "1db44a364982fba0734a4a4df11cf96b4724bb99"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "1db44a364982fba0734a4a4df11cf96b4724bb99",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/0a923e87-e457-4873-8cf2-212b8abb4084.json",
+            "provenance/ingestion/1f588605-7290-4502-8b76-efd3bc5c453f.json",
+            "provenance/ingestion/5231b6e0-f25d-475b-86d2-f847c3dc81fa.json",
+            "provenance/ingestion/6c1cef77-80f4-4082-89f5-d5bf16d06b9e.json",
+            "provenance/ingestion/cc225c7b-b57e-428e-b131-471664b20517.json"
+          ],
+          "result_head": "c8c144d1a7d54d26493fbbf18eb0da267a9c2f1a"
+        }
+      ],
+      "number": 4,
+      "plan_artifact_bytes": 6314,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.795424,
+      "candidate_preparation_seconds": 0.039496,
+      "distribution_bytes": 70879,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 24,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.417002,
+          "emulated_requests": 24,
+          "methods": {
+            "GET": 24,
+            "POST": 0
+          },
+          "response_bytes": 30367,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 17,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.248547,
+          "emulated_requests": 17,
+          "methods": {
+            "GET": 17,
+            "POST": 0
+          },
+          "response_bytes": 19850,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 34,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.546877,
+          "emulated_requests": 34,
+          "methods": {
+            "GET": 32,
+            "POST": 2
+          },
+          "response_bytes": 25242,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "c8c144d1a7d54d26493fbbf18eb0da267a9c2f1a",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000005-0000-4000-8000-000000000001.json",
+            "records/changes/00000005-0000-4000-8000-000000000002.json",
+            "records/events/00000005-0000-4000-8000-000000000003.json",
+            "records/events/00000005-0000-4000-8000-000000000004.json",
+            "records/reports/00000005-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "b5e8530c997bc450dd04342c039411e64ac68f35"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "b5e8530c997bc450dd04342c039411e64ac68f35",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/24d6e304-08f6-4bbc-afa4-fee1eede1bad.json",
+            "provenance/ingestion/425bb172-def6-4c73-ae91-dca1707725aa.json",
+            "provenance/ingestion/5700a598-c1f2-4863-b62c-e0b46fbd33ef.json",
+            "provenance/ingestion/a7d62267-0857-4e25-ace8-ec5737057912.json",
+            "provenance/ingestion/ea03f1f9-28e4-45b7-b899-7274ac9db2c5.json"
+          ],
+          "result_head": "ccc4d0b8681643f276de85c12d13f0e03b3f29ad"
+        }
+      ],
+      "number": 5,
+      "plan_artifact_bytes": 6314,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.583854,
+      "candidate_preparation_seconds": 0.03638,
+      "distribution_bytes": 83201,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 24,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.462946,
+          "emulated_requests": 24,
+          "methods": {
+            "GET": 24,
+            "POST": 0
+          },
+          "response_bytes": 33789,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 17,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.135879,
+          "emulated_requests": 17,
+          "methods": {
+            "GET": 17,
+            "POST": 0
+          },
+          "response_bytes": 22557,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 35,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.447975,
+          "emulated_requests": 35,
+          "methods": {
+            "GET": 33,
+            "POST": 2
+          },
+          "response_bytes": 28426,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "ccc4d0b8681643f276de85c12d13f0e03b3f29ad",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000006-0000-4000-8000-000000000001.json",
+            "records/changes/00000006-0000-4000-8000-000000000002.json",
+            "records/events/00000006-0000-4000-8000-000000000003.json",
+            "records/events/00000006-0000-4000-8000-000000000004.json",
+            "records/reports/00000006-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "07267a77fd312ab81fd2785947e2d3ad2badf849"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "07267a77fd312ab81fd2785947e2d3ad2badf849",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/19166409-5bc3-4123-8f6e-d05b3430980e.json",
+            "provenance/ingestion/a1e7dedc-b938-4756-8a23-da73427de5fa.json",
+            "provenance/ingestion/a9f437fe-737c-43f3-9eb8-c58e21633f97.json",
+            "provenance/ingestion/c5980d51-b6b4-41ea-a51e-c653d7c83edf.json",
+            "provenance/ingestion/e51c859f-57bc-41f6-8e46-a42b1f3d1b79.json"
+          ],
+          "result_head": "2ad42cfffcc4c6c704faf18601eae4c0eb30ea0c"
+        }
+      ],
+      "number": 6,
+      "plan_artifact_bytes": 6314,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.654531,
+      "candidate_preparation_seconds": 0.042439,
+      "distribution_bytes": 95660,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 24,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.503552,
+          "emulated_requests": 24,
+          "methods": {
+            "GET": 24,
+            "POST": 0
+          },
+          "response_bytes": 37070,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 17,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.131168,
+          "emulated_requests": 17,
+          "methods": {
+            "GET": 17,
+            "POST": 0
+          },
+          "response_bytes": 25123,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 36,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.523363,
+          "emulated_requests": 36,
+          "methods": {
+            "GET": 34,
+            "POST": 2
+          },
+          "response_bytes": 31469,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "2ad42cfffcc4c6c704faf18601eae4c0eb30ea0c",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000007-0000-4000-8000-000000000001.json",
+            "records/changes/00000007-0000-4000-8000-000000000002.json",
+            "records/events/00000007-0000-4000-8000-000000000003.json",
+            "records/events/00000007-0000-4000-8000-000000000004.json",
+            "records/reports/00000007-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "c9a11ac057017b910a69e86a69c8e41c88340023"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "c9a11ac057017b910a69e86a69c8e41c88340023",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/1407468d-2749-44c6-a8b4-d30888032032.json",
+            "provenance/ingestion/419b07a8-a13d-4025-a2d5-f9690d3fe8ca.json",
+            "provenance/ingestion/9939ee56-f1d5-46db-a31e-4f52a8eef6dd.json",
+            "provenance/ingestion/c7f6332b-72f8-4cf5-80a6-e3b16199d1c8.json",
+            "provenance/ingestion/fa01ec5c-12ec-4a74-b162-086459588cc9.json"
+          ],
+          "result_head": "45f7bee0bcf6c219d1be805f7afef0659be62014"
+        }
+      ],
+      "number": 7,
+      "plan_artifact_bytes": 6314,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.780739,
+      "candidate_preparation_seconds": 0.038535,
+      "distribution_bytes": 108173,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 24,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.737875,
+          "emulated_requests": 24,
+          "methods": {
+            "GET": 24,
+            "POST": 0
+          },
+          "response_bytes": 40488,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 17,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.163441,
+          "emulated_requests": 17,
+          "methods": {
+            "GET": 17,
+            "POST": 0
+          },
+          "response_bytes": 27826,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 37,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.617298,
+          "emulated_requests": 37,
+          "methods": {
+            "GET": 35,
+            "POST": 2
+          },
+          "response_bytes": 34649,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "45f7bee0bcf6c219d1be805f7afef0659be62014",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000008-0000-4000-8000-000000000001.json",
+            "records/changes/00000008-0000-4000-8000-000000000002.json",
+            "records/events/00000008-0000-4000-8000-000000000003.json",
+            "records/events/00000008-0000-4000-8000-000000000004.json",
+            "records/reports/00000008-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "ec54bb87af08d7949cc5a4a7720fdc3bf8c3ebc0"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "ec54bb87af08d7949cc5a4a7720fdc3bf8c3ebc0",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/089f750e-ffe3-46ee-9946-43482e75efd4.json",
+            "provenance/ingestion/62598731-54ec-4d91-bac5-481a6af6f927.json",
+            "provenance/ingestion/684c90c7-5813-4e8f-9887-9a1f5614a3d8.json",
+            "provenance/ingestion/e65263bf-2ddc-400e-a70d-a074d57390b9.json",
+            "provenance/ingestion/ec83eca6-574e-419a-9501-90cac091cadb.json"
+          ],
+          "result_head": "1d19ee4c1662a4fbb94d2ac80db23e3b859598a5"
+        }
+      ],
+      "number": 8,
+      "plan_artifact_bytes": 6314,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 1.034783,
+      "candidate_preparation_seconds": 0.058322,
+      "distribution_bytes": 118789,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 24,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.629601,
+          "emulated_requests": 24,
+          "methods": {
+            "GET": 24,
+            "POST": 0
+          },
+          "response_bytes": 43959,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 17,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.242376,
+          "emulated_requests": 17,
+          "methods": {
+            "GET": 17,
+            "POST": 0
+          },
+          "response_bytes": 30582,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 38,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.792407,
+          "emulated_requests": 38,
+          "methods": {
+            "GET": 36,
+            "POST": 2
+          },
+          "response_bytes": 37882,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "1d19ee4c1662a4fbb94d2ac80db23e3b859598a5",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000009-0000-4000-8000-000000000001.json",
+            "records/changes/00000009-0000-4000-8000-000000000002.json",
+            "records/events/00000009-0000-4000-8000-000000000003.json",
+            "records/events/00000009-0000-4000-8000-000000000004.json",
+            "records/reports/00000009-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "f5e42b69e1d87e3fe6431237072372fdfd610d5f"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "f5e42b69e1d87e3fe6431237072372fdfd610d5f",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/317c4c7e-3e58-4213-a552-51ab3217e96a.json",
+            "provenance/ingestion/78501782-3dde-4f6c-85e7-bbbe35c5299a.json",
+            "provenance/ingestion/84ea20d7-5ba8-4b7f-8a65-92566cb8aed2.json",
+            "provenance/ingestion/8e00e6e0-ac3d-4ee5-bff4-7917143e0837.json",
+            "provenance/ingestion/be8812ed-fb90-4f89-809a-5971917ebdc5.json"
+          ],
+          "result_head": "ac8c48dfcab37934a1a61917ae77b820d8e8a7bb"
+        }
+      ],
+      "number": 9,
+      "plan_artifact_bytes": 6314,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.984964,
+      "candidate_preparation_seconds": 0.037411,
+      "distribution_bytes": 129531,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 24,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.584539,
+          "emulated_requests": 24,
+          "methods": {
+            "GET": 24,
+            "POST": 0
+          },
+          "response_bytes": 47339,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 17,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.237153,
+          "emulated_requests": 17,
+          "methods": {
+            "GET": 17,
+            "POST": 0
+          },
+          "response_bytes": 33248,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 39,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.747811,
+          "emulated_requests": 39,
+          "methods": {
+            "GET": 37,
+            "POST": 2
+          },
+          "response_bytes": 41027,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "ac8c48dfcab37934a1a61917ae77b820d8e8a7bb",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/0000000a-0000-4000-8000-000000000001.json",
+            "records/changes/0000000a-0000-4000-8000-000000000002.json",
+            "records/events/0000000a-0000-4000-8000-000000000003.json",
+            "records/events/0000000a-0000-4000-8000-000000000004.json",
+            "records/reports/0000000a-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "5fbb78105bde8de9241a27a715e920379dc9334a"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "5fbb78105bde8de9241a27a715e920379dc9334a",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/01c43037-d274-4f0d-9804-9e5bff2bc674.json",
+            "provenance/ingestion/a5d2d42f-7506-4a27-84ab-2356796520ec.json",
+            "provenance/ingestion/a92508f8-f16a-430b-8079-ad684f2ab8ee.json",
+            "provenance/ingestion/b0d43e5f-4ec9-4210-a46e-749a639e93ee.json",
+            "provenance/ingestion/ef0594b6-2add-4de6-8361-3ade02ebac52.json"
+          ],
+          "result_head": "f45ee302c1469f4eda35d6c56bee247afedeae06"
+        }
+      ],
+      "number": 10,
+      "plan_artifact_bytes": 6317,
+      "publish_completed_return": true,
+      "record_count": 5
+    }
+  ],
+  "limitations": [
+    "All repositories, pull requests, accounts, records, and observations are synthetic fixtures.",
+    "No real network request, credential, pull request, write, or deployment is used.",
+    "The strict HTTPS fixture measures production adapter request/response accounting, not wire bytes.",
+    "Provider latency, hourly quotas, scheduler throughput, fairness, and outages are not measured.",
+    "The CLI/event environment layer and independent community reproduction remain unmeasured.",
+    "Fixture preparation and local Git object-serving work are reported outside admission timing."
+  ],
+  "network": {
+    "contract_violations": 0,
+    "emulated_https_requests": 956,
+    "emulated_response_bytes": 1044783,
+    "per_invocation_call_cap": 512,
+    "per_invocation_response_byte_cap": 33554432,
+    "real_network_requests": 0
+  },
+  "profile": "ten-imports",
+  "profile_version": 1,
+  "proof": {
+    "adverse_failure_records": 10,
+    "bytes": 20149,
+    "cold_seconds": 0.554895,
+    "cold_warm_canonical_equal": true,
+    "cold_warm_proof_equal": true,
+    "pages_publications": 10,
+    "published_after_complete_build": true,
+    "published_imports": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "source_equal": true,
+    "warm_seconds": 0.509626
+  },
+  "recovery": {
+    "cold": {
+      "calls": 194,
+      "completed_return": true,
+      "elapsed_scope": "seed-plus-production-wrapper",
+      "elapsed_seconds": 0.554895,
+      "emulated_requests": 194,
+      "methods": {
+        "GET": 194,
+        "POST": 0
+      },
+      "response_bytes": 219510,
+      "seed_outcome": null
+    },
+    "warm": {
+      "calls": 3,
+      "completed_return": true,
+      "elapsed_scope": "seed-plus-production-wrapper",
+      "elapsed_seconds": 0.509626,
+      "emulated_requests": 3,
+      "methods": {
+        "GET": 3,
+        "POST": 0
+      },
+      "response_bytes": 20341,
+      "seed_outcome": true
+    }
+  },
+  "schema_version": 1,
+  "search": {
+    "cold_cache_scope": "fresh-per-query",
+    "cold_warm_equal": true,
+    "queries": [
+      {
+        "adverse_evidence_visible": true,
+        "broad": false,
+        "cold_seconds": 0.118376,
+        "cold_warm_equal": true,
+        "method": "ranked",
+        "name": "exact-case",
+        "query": "Synthetic growth case 00000010",
+        "result_count": 5,
+        "warm_seconds": 0.032614
+      },
+      {
+        "adverse_evidence_visible": true,
+        "broad": true,
+        "cold_seconds": 0.081222,
+        "cold_warm_equal": true,
+        "method": "ranked",
+        "name": "symptom-domain",
+        "query": "synthetic input dock",
+        "result_count": 5,
+        "warm_seconds": 0.021607
+      },
+      {
+        "adverse_evidence_visible": false,
+        "broad": false,
+        "cold_seconds": 0.069741,
+        "cold_warm_equal": true,
+        "method": "substring",
+        "name": "no-hit",
+        "query": "unrepresented quantum printer",
+        "result_count": 0,
+        "warm_seconds": 0.007078
+      }
+    ],
+    "query_set_version": 1,
+    "warm_gate_seconds": 1,
+    "worst_warm_seconds": 0.032614
+  },
+  "status": "success",
+  "timings_seconds": {
+    "admission": {
+      "p50": 0.654531,
+      "p95": 1.034783,
+      "worst": 1.034783
+    },
+    "recovery-distribution": 2.264201,
+    "total": 13.413878
+  }
+}
