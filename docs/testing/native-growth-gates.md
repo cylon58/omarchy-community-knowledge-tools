@@ -1,5 +1,53 @@
 # Native service growth gates
 
+## Final 500-record result
+
+The final run passed at clean revision
+`8cd30c3b8f52935a8830e82401d4682bb9b6cacc`, Python 3.14.7, with measured source
+unchanged from the reviewed CI-accepted candidate. This was one uninterrupted
+run, not a selected best timing. [Raw result](../../experiments/growth/results/native-distributed-500-final-v2.json)
+SHA-256: `3747bfdb880c8832c90126464541b9d34bbfbb55b7b0f5f0bf0f47991f621024`.
+
+```sh
+python -m experiments.growth.gates distributed-500x100 \
+  --output experiments/growth/results/native-distributed-500-final-v2.json \
+  --artifact-output /new/private/artifact-directory
+```
+
+| Measurement | Result |
+| --- | --- |
+| Completed imports and full builds | 100 of 100 |
+| Final records / authenticated receipts | 500 / 500 |
+| Preserved adverse failure reports | 100 |
+| Total fixture runtime | 1,036.766856 seconds |
+| Admission median / p95 / worst | 5.728210 / 12.299742 / 13.334022 seconds |
+| Worst per-import build | 9.298776 seconds |
+| Final cold recovery | 238 requests, 9,294,268 charged bytes, 9.304283 seconds |
+| Final seeded recovery | 3 requests, 1,378,095 charged bytes, 8.226019 seconds |
+| Worst warm query | 0.159706 seconds |
+| Final full proof | 1,377,903 bytes |
+| Maximum ordinary import-job requests | 72 |
+| Maximum built distribution | 2,268,705 bytes |
+| Real network calls / fixture contract violations | 0 / 0 |
+
+Cold/warm canonical data, proof, source and query equality all passed. Proof
+SHA-256 is `a5f81730b40229fe646c52ecf6cc89d0eb469e76895bedb681e32ea2e461621c`,
+matching the separately reconstructed historical graph. A completion manifest
+and proof were retained privately. Total 8,335 emulated requests and 153,260,736
+response bytes span many separately bounded jobs; they are not one job's quota.
+No limits were raised. The prior failed run remains below and in its original raw
+file. Different elapsed times do not establish a controlled CPU speedup.
+
+This passes the declared native-path target, not live scheduler throughput or
+unlimited growth. Normal builds here omit optional update-pack publication; the
+separate actual-publisher experiment covers that path at 500→510 records. Final
+evidence review and live pilot/scheduling checks still gate rollout.
+
+Independent final evidence review passed: all 12 source hashes, counts, declared
+gates, raw/proof/manifest hashes and public-data hygiene agreed. Combined with
+the separately reviewed publisher, queue and health slices, this authorizes a
+bounded pilot—not production promotion or a claim of unattended reliability.
+
 ## Final-source calibration
 
 The reviewed source passed a new ten-import calibration at clean revision

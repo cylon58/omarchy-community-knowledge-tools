@@ -2,6 +2,12 @@
 
 Status: in progress, not a large-scale support claim. Baseline client: `2250d3c`.
 
+Latest milestone: the reviewed final 500-record/100-import native run passed,
+including cold recovery, authenticated receipts and adverse-evidence parity.
+Independent evidence review permits bounded pilot rollout. Production promotion
+and reliable unattended scheduling remain unproven. See the
+[supported beta envelope](testing/supported-beta-envelope.md).
+
 ## Approved direction
 
 Keep Git canonical, deterministic data-only admission, static distribution and

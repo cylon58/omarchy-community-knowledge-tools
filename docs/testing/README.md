@@ -44,7 +44,7 @@ Future recorded runs should preserve stdout and place commentary alongside it.
 | Core data-path growth baseline | 3/10 imports completed; 30-import run hit its 120-second workload alarm after 18 completed publish returns | [Harness, methods and results](../../experiments/growth/README.md); interrupted acceptance count unknown; real Git/admission/receipts/build/sync/search with a local API boundary, not live Actions throughput |
 | Batched receipt recovery | Candidate cut the ten-import run from 37.0 to 21.1 seconds; thirty-import run still hit its alarm | [Comparison, raw results and limitations](recovery-efficiency.md); not yet deployed or a larger-capacity claim |
 | Hosted previous-proof reuse | Small two-import fixture reduced modeled requests from 42 to 24 with exact evidence parity | [Reproducer, raw results and corrections](hosted-proof-reuse.md); native HTTP caps and larger history remain separate gates |
-| Native service growth gates | Ten-import and concentrated-evidence profiles passed; 500-record run completed imports/builds but failed final cold recovery | [Methods, raw successes/failure and review corrections](native-growth-gates.md); full growth gate remains unmet |
+| Native service growth gates | Original 500-record run failed cold recovery; reviewed final 100-import run passed with 500 records/receipts and all 100 adverse reports retained | [Methods, raw successes/failure and review corrections](native-growth-gates.md); local bounded target passed, live pilot still required |
 | Exact cold-failure reconstruction | Reproduced refusal of request 513 after 512 sent requests; separate local replay preserved all evidence | [Postmortem and reproducer](cold-recovery-postmortem.md); original native gate remains failed |
 | GitHub GraphQL field probe | Two public GitHub reads; one tree and one text blob reconstructed to exact Git hashes | [Probe and limitations](graphql-field-probe.md); compatibility sample, not a scale benchmark |
 | Live reconciliation cadence | Hourly configuration did not correspond to hourly recent production runs | [Timestamped read-only observation](scheduled-service-observation.md); cause undiagnosed, unattended cadence still a launch check |
@@ -61,6 +61,10 @@ The public repository contains the regression tests named above. Historical priv
 exploration is explicitly labeled; it is not presented as a public reproducible
 benchmark. Future experiment reports should include the commands, source revision,
 fixture definition, result files, failures, runtime environment and limitations.
+
+See the [tested beta envelope](supported-beta-envelope.md) for the combined
+interpretation, remaining limits and live promotion gates. A passing local scale
+test is not proof of reliable hosted scheduling.
 
 ## Corrected assumptions
 
