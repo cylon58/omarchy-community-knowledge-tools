@@ -1,0 +1,1180 @@
+{
+  "artifact": {
+    "export_seconds": 0.015941,
+    "exported": true,
+    "files": [
+      "canonical-objects.bundle",
+      "manifest.json"
+    ],
+    "requested": true
+  },
+  "configuration": {
+    "imports": 10,
+    "overall_seconds": 1200,
+    "phase_seconds": 120,
+    "records": 50,
+    "warm_search_seconds": 1
+  },
+  "counts": {
+    "full_build_completions": 10,
+    "imports_completed": 10,
+    "imports_requested": 10,
+    "known_mutation_acceptances": 10,
+    "receipts": 50,
+    "records": 50,
+    "successful_publish_returns": 10
+  },
+  "deadline_scope": null,
+  "environment": {
+    "python_version": "3.14.7",
+    "source_revision": "80a0589a597f67e76c11e1d0d8d759600c30f5a2",
+    "source_sha256": {
+      "experiments/growth/baseline.py": "47a8cb01e2b711c015f55b4d3d6fa96630b64be032b743f9f42865edf2a8a4f0",
+      "experiments/growth/gates.py": "c99f5662ff9713ea42a0fcab28482797c53323813e20ef31314259ff7dba8592",
+      "omarchy_knowledge/canonical.py": "523745715cfef882f371c9419d2dd8608632c15f5d6f344d8912ad4777e0513e",
+      "omarchy_knowledge/coordinator.py": "20e9c7fae392114046973b629bdabb124db01061c94e64ba759ed24701c9ce72",
+      "omarchy_knowledge/discovery.py": "f39b65797884a4516bdf9e5f82c8b6c714e66d6c5595d16978e1f3ecf1e12f95",
+      "omarchy_knowledge/distribution.py": "45e8f997777b5630e925673743c3a7be532ec7521c56e2c22fac6aea1d1cede2",
+      "omarchy_knowledge/fair_intake.py": "b83aacd6d55dccec06e181f56d0ded2b5a30b2b9f7314bc2a16cb743e42b63dc",
+      "omarchy_knowledge/github_native.py": "f1f5bc0e252cb08ad5cdd342ed7d752ffa92a315fedf3e6bcb85fe0be15366f5",
+      "omarchy_knowledge/github_object_batch.py": "7f3f8557d9f1826bbfd8d069ac88f9230dc9ed244b85f911145c5d54d2abc3c4",
+      "omarchy_knowledge/intake_status.py": "4b09b7fba86295adf11e8ac5bc2c44df70c137a430ee8c3feff99501c25ab7da",
+      "omarchy_knowledge/object_bundle.py": "ba6772bf0686815b536896433a43943e811a45b2dfe3b7e19c40b58e45e9759f",
+      "omarchy_knowledge/service.py": "cfe39b1778b79a78a670a513f8e337acd538d2cd54b94b3919a8ea99d82775e1"
+    },
+    "working_tree": {
+      "dirty": false,
+      "paths": []
+    }
+  },
+  "failure_kind": null,
+  "failure_stage": null,
+  "fixture": {
+    "candidate_preparation_seconds": 0.33502,
+    "git_commands": 419,
+    "initial_setup_seconds": 0.115442,
+    "intake_bootstrap": {
+      "canonical_mutations": 0,
+      "completed": true,
+      "counters": {
+        "closed": 0,
+        "cursor_drifts": 0,
+        "evaluations": 0,
+        "imported": 0,
+        "not_ready": 0,
+        "page_fetches": 1,
+        "plans": 0,
+        "rejected": 0,
+        "rows_consumed": 0,
+        "rows_returned": 0
+      },
+      "elapsed_seconds": 0.035416,
+      "emulated_https_requests": 19,
+      "entrypoint_exit_codes": {
+        "build": 0,
+        "plan": 0,
+        "publish": 0
+      },
+      "failure_kind": null,
+      "failure_phase": null,
+      "imported_records": 0,
+      "jobs": {
+        "build": {
+          "adapter_calls": 5,
+          "adapter_response_bytes": 16778000,
+          "completed_return": true,
+          "elapsed_seconds": 0.005368,
+          "emulated_https_requests": 5,
+          "failure_kind": null,
+          "graphql_calls": 1,
+          "graphql_points": 1,
+          "request_methods": {
+            "GET": 4,
+            "POST": 1
+          },
+          "seed_outcome": null
+        },
+        "planning": {
+          "adapter_calls": 8,
+          "adapter_response_bytes": 16778804,
+          "completed_return": true,
+          "elapsed_seconds": 0.025457,
+          "emulated_https_requests": 8,
+          "failure_kind": null,
+          "graphql_calls": 1,
+          "graphql_points": 1,
+          "request_methods": {
+            "GET": 7,
+            "POST": 1
+          },
+          "seed_outcome": false
+        },
+        "publish": {
+          "adapter_calls": 6,
+          "adapter_response_bytes": 16778101,
+          "completed_return": true,
+          "elapsed_seconds": 0.003667,
+          "emulated_https_requests": 6,
+          "failure_kind": null,
+          "graphql_calls": 1,
+          "graphql_points": 1,
+          "request_methods": {
+            "GET": 5,
+            "POST": 1
+          },
+          "seed_outcome": false
+        }
+      },
+      "methods": {
+        "GET": 16,
+        "POST": 3
+      },
+      "modeled_prior": "validated-legacy-from-known-initial-canonical",
+      "pages_bundle_bytes": 242,
+      "pages_publications": 1,
+      "plan_artifact_bytes": 842,
+      "publish_artifact_bytes": 1080,
+      "scan_outcome": "no-eligible",
+      "selected_action": "after",
+      "status_bytes": 2274,
+      "status_sha256": "9f3f1ed6dd8d122af42f61d707f0c32684146631107077db23b3b685d4c29bfb",
+      "stop_reason": "cycle-complete",
+      "trusted_lane": "scheduled"
+    },
+    "object_reader": {
+      "cache_hits": 2152,
+      "cached_object_bytes": 139010,
+      "cached_objects": 232,
+      "local_subprocesses": 1
+    }
+  },
+  "imports": [
+    {
+      "admission_seconds": 0.120731,
+      "candidate_preparation_seconds": 0.03223,
+      "distribution_bytes": 22873,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 10,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.060938,
+          "emulated_requests": 10,
+          "graphql_calls": 5,
+          "graphql_points": 5,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 5,
+            "POST": 5
+          },
+          "response_bytes": 16098,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 11,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.024022,
+          "emulated_requests": 11,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 7,
+            "POST": 4
+          },
+          "response_bytes": 11159,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 23,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.096709,
+          "emulated_requests": 23,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 17,
+            "POST": 6
+          },
+          "response_bytes": 12450,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "edc7d3fdfef24fbcb7898d5f5197d82d74d127b1",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000001-0000-4000-8000-000000000001.json",
+            "records/changes/00000001-0000-4000-8000-000000000002.json",
+            "records/events/00000001-0000-4000-8000-000000000003.json",
+            "records/events/00000001-0000-4000-8000-000000000004.json",
+            "records/reports/00000001-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "147cda9479e6d83aabb159859a19934d3988627a"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "147cda9479e6d83aabb159859a19934d3988627a",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/116c433f-e314-4258-a66c-bafd27815bbf.json",
+            "provenance/ingestion/97d9af59-26dc-4837-8b14-e2247f130e44.json",
+            "provenance/ingestion/9fef6a97-e634-4c13-a0ac-003de7e7b25c.json",
+            "provenance/ingestion/aca81a44-4408-4326-8729-4da86eac0324.json",
+            "provenance/ingestion/da135d93-d16a-43b6-838d-5b3ed9901f96.json"
+          ],
+          "result_head": "cab17f46812ea87e5a33f0a8915e4eea861b2113"
+        }
+      ],
+      "number": 1,
+      "plan_artifact_bytes": 7022,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.182483,
+      "candidate_preparation_seconds": 0.030077,
+      "distribution_bytes": 34922,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 10,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.099344,
+          "emulated_requests": 10,
+          "graphql_calls": 5,
+          "graphql_points": 5,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 5,
+            "POST": 5
+          },
+          "response_bytes": 20891,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 11,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.032034,
+          "emulated_requests": 11,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 7,
+            "POST": 4
+          },
+          "response_bytes": 15818,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 24,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.150449,
+          "emulated_requests": 24,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 18,
+            "POST": 6
+          },
+          "response_bytes": 16866,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "cab17f46812ea87e5a33f0a8915e4eea861b2113",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000002-0000-4000-8000-000000000001.json",
+            "records/changes/00000002-0000-4000-8000-000000000002.json",
+            "records/events/00000002-0000-4000-8000-000000000003.json",
+            "records/events/00000002-0000-4000-8000-000000000004.json",
+            "records/reports/00000002-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "dc62dc2a4bc74746a436329dba6757f4a9d48148"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "dc62dc2a4bc74746a436329dba6757f4a9d48148",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/0937e462-4437-4bb0-bbb3-1e6b2e862c25.json",
+            "provenance/ingestion/160ae585-5604-4281-a7fd-1a8a45706e7f.json",
+            "provenance/ingestion/4ab9ec16-1c29-459b-83c1-9cc69813cdae.json",
+            "provenance/ingestion/5e2cf237-c95f-4595-b3fa-60a322ed4d00.json",
+            "provenance/ingestion/6dabc578-6585-4502-9676-d421743dbe7e.json"
+          ],
+          "result_head": "5284e168375dfa5fcad56b5b27aca2a801153c76"
+        }
+      ],
+      "number": 2,
+      "plan_artifact_bytes": 7022,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.271831,
+      "candidate_preparation_seconds": 0.030429,
+      "distribution_bytes": 46947,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 10,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.157401,
+          "emulated_requests": 10,
+          "graphql_calls": 5,
+          "graphql_points": 5,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 5,
+            "POST": 5
+          },
+          "response_bytes": 24042,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 11,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.0461,
+          "emulated_requests": 11,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 7,
+            "POST": 4
+          },
+          "response_bytes": 18681,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 25,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.225731,
+          "emulated_requests": 25,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 19,
+            "POST": 6
+          },
+          "response_bytes": 19704,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "5284e168375dfa5fcad56b5b27aca2a801153c76",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000003-0000-4000-8000-000000000001.json",
+            "records/changes/00000003-0000-4000-8000-000000000002.json",
+            "records/events/00000003-0000-4000-8000-000000000003.json",
+            "records/events/00000003-0000-4000-8000-000000000004.json",
+            "records/reports/00000003-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "b5479b3450db5eaa05bccc751847e8f192118e7e"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "b5479b3450db5eaa05bccc751847e8f192118e7e",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/1a3708f5-5207-4538-90de-93bc00080672.json",
+            "provenance/ingestion/4e7b334f-bb41-440c-9b05-4801ca0eb833.json",
+            "provenance/ingestion/607c4315-18c9-4828-8de3-f99602fa0f12.json",
+            "provenance/ingestion/9900f2ac-920c-418f-bce9-701452c0707b.json",
+            "provenance/ingestion/e71e8d8c-2f1a-40b6-b3a5-d963d7c1efb5.json"
+          ],
+          "result_head": "2fee19a8b50634ba805d265d17a1f38e1410ac1e"
+        }
+      ],
+      "number": 3,
+      "plan_artifact_bytes": 7022,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.371387,
+      "candidate_preparation_seconds": 0.039081,
+      "distribution_bytes": 59232,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 10,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.218631,
+          "emulated_requests": 10,
+          "graphql_calls": 5,
+          "graphql_points": 5,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 5,
+            "POST": 5
+          },
+          "response_bytes": 27173,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 11,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.0824,
+          "emulated_requests": 11,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 7,
+            "POST": 4
+          },
+          "response_bytes": 21520,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 26,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.288987,
+          "emulated_requests": 26,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 20,
+            "POST": 6
+          },
+          "response_bytes": 22522,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "2fee19a8b50634ba805d265d17a1f38e1410ac1e",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000004-0000-4000-8000-000000000001.json",
+            "records/changes/00000004-0000-4000-8000-000000000002.json",
+            "records/events/00000004-0000-4000-8000-000000000003.json",
+            "records/events/00000004-0000-4000-8000-000000000004.json",
+            "records/reports/00000004-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "1db44a364982fba0734a4a4df11cf96b4724bb99"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "1db44a364982fba0734a4a4df11cf96b4724bb99",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/0a923e87-e457-4873-8cf2-212b8abb4084.json",
+            "provenance/ingestion/1f588605-7290-4502-8b76-efd3bc5c453f.json",
+            "provenance/ingestion/5231b6e0-f25d-475b-86d2-f847c3dc81fa.json",
+            "provenance/ingestion/6c1cef77-80f4-4082-89f5-d5bf16d06b9e.json",
+            "provenance/ingestion/cc225c7b-b57e-428e-b131-471664b20517.json"
+          ],
+          "result_head": "c8c144d1a7d54d26493fbbf18eb0da267a9c2f1a"
+        }
+      ],
+      "number": 4,
+      "plan_artifact_bytes": 7022,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.433464,
+      "candidate_preparation_seconds": 0.038556,
+      "distribution_bytes": 71697,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 10,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.261205,
+          "emulated_requests": 10,
+          "graphql_calls": 5,
+          "graphql_points": 5,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 5,
+            "POST": 5
+          },
+          "response_bytes": 30567,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 11,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.093433,
+          "emulated_requests": 11,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 7,
+            "POST": 4
+          },
+          "response_bytes": 24622,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 27,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.340031,
+          "emulated_requests": 27,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 21,
+            "POST": 6
+          },
+          "response_bytes": 25603,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "c8c144d1a7d54d26493fbbf18eb0da267a9c2f1a",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000005-0000-4000-8000-000000000001.json",
+            "records/changes/00000005-0000-4000-8000-000000000002.json",
+            "records/events/00000005-0000-4000-8000-000000000003.json",
+            "records/events/00000005-0000-4000-8000-000000000004.json",
+            "records/reports/00000005-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "b5e8530c997bc450dd04342c039411e64ac68f35"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "b5e8530c997bc450dd04342c039411e64ac68f35",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/24d6e304-08f6-4bbc-afa4-fee1eede1bad.json",
+            "provenance/ingestion/425bb172-def6-4c73-ae91-dca1707725aa.json",
+            "provenance/ingestion/5700a598-c1f2-4863-b62c-e0b46fbd33ef.json",
+            "provenance/ingestion/a7d62267-0857-4e25-ace8-ec5737057912.json",
+            "provenance/ingestion/ea03f1f9-28e4-45b7-b899-7274ac9db2c5.json"
+          ],
+          "result_head": "ccc4d0b8681643f276de85c12d13f0e03b3f29ad"
+        }
+      ],
+      "number": 5,
+      "plan_artifact_bytes": 7022,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.467004,
+      "candidate_preparation_seconds": 0.03226,
+      "distribution_bytes": 84020,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 10,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.348657,
+          "emulated_requests": 10,
+          "graphql_calls": 5,
+          "graphql_points": 5,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 5,
+            "POST": 5
+          },
+          "response_bytes": 34139,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 11,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.097984,
+          "emulated_requests": 11,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 7,
+            "POST": 4
+          },
+          "response_bytes": 27903,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 28,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.36902,
+          "emulated_requests": 28,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 22,
+            "POST": 6
+          },
+          "response_bytes": 28862,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "ccc4d0b8681643f276de85c12d13f0e03b3f29ad",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000006-0000-4000-8000-000000000001.json",
+            "records/changes/00000006-0000-4000-8000-000000000002.json",
+            "records/events/00000006-0000-4000-8000-000000000003.json",
+            "records/events/00000006-0000-4000-8000-000000000004.json",
+            "records/reports/00000006-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "07267a77fd312ab81fd2785947e2d3ad2badf849"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "07267a77fd312ab81fd2785947e2d3ad2badf849",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/19166409-5bc3-4123-8f6e-d05b3430980e.json",
+            "provenance/ingestion/a1e7dedc-b938-4756-8a23-da73427de5fa.json",
+            "provenance/ingestion/a9f437fe-737c-43f3-9eb8-c58e21633f97.json",
+            "provenance/ingestion/c5980d51-b6b4-41ea-a51e-c653d7c83edf.json",
+            "provenance/ingestion/e51c859f-57bc-41f6-8e46-a42b1f3d1b79.json"
+          ],
+          "result_head": "2ad42cfffcc4c6c704faf18601eae4c0eb30ea0c"
+        }
+      ],
+      "number": 6,
+      "plan_artifact_bytes": 7022,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.582513,
+      "candidate_preparation_seconds": 0.033785,
+      "distribution_bytes": 96479,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 10,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.380813,
+          "emulated_requests": 10,
+          "graphql_calls": 5,
+          "graphql_points": 5,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 5,
+            "POST": 5
+          },
+          "response_bytes": 37570,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 11,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.133236,
+          "emulated_requests": 11,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 7,
+            "POST": 4
+          },
+          "response_bytes": 31043,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 29,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.449277,
+          "emulated_requests": 29,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 23,
+            "POST": 6
+          },
+          "response_bytes": 31980,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "2ad42cfffcc4c6c704faf18601eae4c0eb30ea0c",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000007-0000-4000-8000-000000000001.json",
+            "records/changes/00000007-0000-4000-8000-000000000002.json",
+            "records/events/00000007-0000-4000-8000-000000000003.json",
+            "records/events/00000007-0000-4000-8000-000000000004.json",
+            "records/reports/00000007-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "c9a11ac057017b910a69e86a69c8e41c88340023"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "c9a11ac057017b910a69e86a69c8e41c88340023",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/1407468d-2749-44c6-a8b4-d30888032032.json",
+            "provenance/ingestion/419b07a8-a13d-4025-a2d5-f9690d3fe8ca.json",
+            "provenance/ingestion/9939ee56-f1d5-46db-a31e-4f52a8eef6dd.json",
+            "provenance/ingestion/c7f6332b-72f8-4cf5-80a6-e3b16199d1c8.json",
+            "provenance/ingestion/fa01ec5c-12ec-4a74-b162-086459588cc9.json"
+          ],
+          "result_head": "45f7bee0bcf6c219d1be805f7afef0659be62014"
+        }
+      ],
+      "number": 7,
+      "plan_artifact_bytes": 7022,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.637826,
+      "candidate_preparation_seconds": 0.030921,
+      "distribution_bytes": 108992,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 10,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.45897,
+          "emulated_requests": 10,
+          "graphql_calls": 5,
+          "graphql_points": 5,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 5,
+            "POST": 5
+          },
+          "response_bytes": 41138,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 11,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.136227,
+          "emulated_requests": 11,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 7,
+            "POST": 4
+          },
+          "response_bytes": 34319,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 30,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.501599,
+          "emulated_requests": 30,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 24,
+            "POST": 6
+          },
+          "response_bytes": 35235,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "45f7bee0bcf6c219d1be805f7afef0659be62014",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000008-0000-4000-8000-000000000001.json",
+            "records/changes/00000008-0000-4000-8000-000000000002.json",
+            "records/events/00000008-0000-4000-8000-000000000003.json",
+            "records/events/00000008-0000-4000-8000-000000000004.json",
+            "records/reports/00000008-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "ec54bb87af08d7949cc5a4a7720fdc3bf8c3ebc0"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "ec54bb87af08d7949cc5a4a7720fdc3bf8c3ebc0",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/089f750e-ffe3-46ee-9946-43482e75efd4.json",
+            "provenance/ingestion/62598731-54ec-4d91-bac5-481a6af6f927.json",
+            "provenance/ingestion/684c90c7-5813-4e8f-9887-9a1f5614a3d8.json",
+            "provenance/ingestion/e65263bf-2ddc-400e-a70d-a074d57390b9.json",
+            "provenance/ingestion/ec83eca6-574e-419a-9501-90cac091cadb.json"
+          ],
+          "result_head": "1d19ee4c1662a4fbb94d2ac80db23e3b859598a5"
+        }
+      ],
+      "number": 8,
+      "plan_artifact_bytes": 7022,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.75477,
+      "candidate_preparation_seconds": 0.035542,
+      "distribution_bytes": 119609,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 10,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.45861,
+          "emulated_requests": 10,
+          "graphql_calls": 5,
+          "graphql_points": 5,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 5,
+            "POST": 5
+          },
+          "response_bytes": 44759,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 11,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.159801,
+          "emulated_requests": 11,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 7,
+            "POST": 4
+          },
+          "response_bytes": 37648,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 31,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.594969,
+          "emulated_requests": 31,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 25,
+            "POST": 6
+          },
+          "response_bytes": 38543,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "1d19ee4c1662a4fbb94d2ac80db23e3b859598a5",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/00000009-0000-4000-8000-000000000001.json",
+            "records/changes/00000009-0000-4000-8000-000000000002.json",
+            "records/events/00000009-0000-4000-8000-000000000003.json",
+            "records/events/00000009-0000-4000-8000-000000000004.json",
+            "records/reports/00000009-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "f5e42b69e1d87e3fe6431237072372fdfd610d5f"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "f5e42b69e1d87e3fe6431237072372fdfd610d5f",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/317c4c7e-3e58-4213-a552-51ab3217e96a.json",
+            "provenance/ingestion/78501782-3dde-4f6c-85e7-bbbe35c5299a.json",
+            "provenance/ingestion/84ea20d7-5ba8-4b7f-8a65-92566cb8aed2.json",
+            "provenance/ingestion/8e00e6e0-ac3d-4ee5-bff4-7917143e0837.json",
+            "provenance/ingestion/be8812ed-fb90-4f89-809a-5971917ebdc5.json"
+          ],
+          "result_head": "ac8c48dfcab37934a1a61917ae77b820d8e8a7bb"
+        }
+      ],
+      "number": 9,
+      "plan_artifact_bytes": 7022,
+      "publish_completed_return": true,
+      "record_count": 5
+    },
+    {
+      "admission_seconds": 0.839534,
+      "candidate_preparation_seconds": 0.032139,
+      "distribution_bytes": 130351,
+      "full_build_completion": true,
+      "jobs": {
+        "build": {
+          "calls": 10,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.575313,
+          "emulated_requests": 10,
+          "graphql_calls": 5,
+          "graphql_points": 5,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 5,
+            "POST": 5
+          },
+          "response_bytes": 48294,
+          "seed_outcome": true
+        },
+        "planning": {
+          "calls": 11,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.17788,
+          "emulated_requests": 11,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 7,
+            "POST": 4
+          },
+          "response_bytes": 40390,
+          "seed_outcome": true
+        },
+        "publish": {
+          "calls": 32,
+          "completed_return": true,
+          "elapsed_scope": "seed-plus-production-wrapper",
+          "elapsed_seconds": 0.661654,
+          "emulated_requests": 32,
+          "graphql_calls": 4,
+          "graphql_points": 4,
+          "graphql_remaining": 5000,
+          "methods": {
+            "GET": 26,
+            "POST": 6
+          },
+          "response_bytes": 41763,
+          "seed_outcome": true
+        }
+      },
+      "known_mutation_acceptance": true,
+      "mutations": [
+        {
+          "addition_count": 5,
+          "expected_head": "ac8c48dfcab37934a1a61917ae77b820d8e8a7bb",
+          "headline": "Omarchy knowledge snapshot import",
+          "paths": [
+            "records/cases/0000000a-0000-4000-8000-000000000001.json",
+            "records/changes/0000000a-0000-4000-8000-000000000002.json",
+            "records/events/0000000a-0000-4000-8000-000000000003.json",
+            "records/events/0000000a-0000-4000-8000-000000000004.json",
+            "records/reports/0000000a-0000-4000-8000-000000000100.json"
+          ],
+          "result_head": "5fbb78105bde8de9241a27a715e920379dc9334a"
+        },
+        {
+          "addition_count": 5,
+          "expected_head": "5fbb78105bde8de9241a27a715e920379dc9334a",
+          "headline": "Record source-bound ingestion receipt",
+          "paths": [
+            "provenance/ingestion/01c43037-d274-4f0d-9804-9e5bff2bc674.json",
+            "provenance/ingestion/a5d2d42f-7506-4a27-84ab-2356796520ec.json",
+            "provenance/ingestion/a92508f8-f16a-430b-8079-ad684f2ab8ee.json",
+            "provenance/ingestion/b0d43e5f-4ec9-4210-a46e-749a639e93ee.json",
+            "provenance/ingestion/ef0594b6-2add-4de6-8361-3ade02ebac52.json"
+          ],
+          "result_head": "f45ee302c1469f4eda35d6c56bee247afedeae06"
+        }
+      ],
+      "number": 10,
+      "plan_artifact_bytes": 7025,
+      "publish_completed_return": true,
+      "record_count": 5
+    }
+  ],
+  "limitations": [
+    "All repositories, pull requests, accounts, records, and observations are synthetic fixtures.",
+    "No real network request, credential, pull request, write, or deployment is used.",
+    "The strict HTTPS fixture measures production adapter request/response accounting, not wire bytes.",
+    "Provider latency, hourly quotas, scheduler throughput, fairness, and outages are not measured.",
+    "The CLI/event environment layer and independent community reproduction remain unmeasured.",
+    "Fixture preparation and local Git object-serving work are reported outside admission timing.",
+    "Search freshness is evaluated at one synthetic fixture time; elapsed and deadline clocks remain live."
+  ],
+  "network": {
+    "contract_violations": 0,
+    "emulated_https_requests": 538,
+    "emulated_response_bytes": 1104005,
+    "per_invocation_call_cap": 512,
+    "per_invocation_response_byte_cap": 33554432,
+    "real_network_requests": 0
+  },
+  "profile": "ten-imports",
+  "profile_version": 1,
+  "proof": {
+    "adverse_failure_records": 10,
+    "bytes": 20149,
+    "cold_seconds": 0.495027,
+    "cold_warm_canonical_equal": true,
+    "cold_warm_proof_equal": true,
+    "pages_publications": 10,
+    "public_status_sha256": "487f43a1074dcd53a8c815eaf22d47b90d96dd020ba102d7bb1b1b2aed657a7d",
+    "published_after_complete_build": true,
+    "published_imports": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "source_equal": true,
+    "warm_seconds": 0.487638
+  },
+  "recovery": {
+    "cold": {
+      "calls": 31,
+      "completed_return": true,
+      "elapsed_scope": "seed-plus-production-wrapper",
+      "elapsed_seconds": 0.495027,
+      "emulated_requests": 31,
+      "failure_kind": null,
+      "failure_phase": null,
+      "graphql_calls": 18,
+      "graphql_points": 18,
+      "graphql_remaining": 5000,
+      "methods": {
+        "GET": 13,
+        "POST": 18
+      },
+      "phase": "cold",
+      "response_bytes": 219108,
+      "seed_outcome": null
+    },
+    "warm": {
+      "calls": 3,
+      "completed_return": true,
+      "elapsed_scope": "seed-plus-production-wrapper",
+      "elapsed_seconds": 0.487638,
+      "emulated_requests": 3,
+      "failure_kind": null,
+      "failure_phase": null,
+      "graphql_calls": 0,
+      "graphql_points": 0,
+      "graphql_remaining": null,
+      "methods": {
+        "GET": 3,
+        "POST": 0
+      },
+      "phase": "warm",
+      "response_bytes": 20341,
+      "seed_outcome": true
+    }
+  },
+  "schema_version": 1,
+  "search": {
+    "cold_cache_scope": "fresh-per-query",
+    "cold_warm_equal": true,
+    "queries": [
+      {
+        "adverse_evidence_visible": true,
+        "broad": false,
+        "cold_seconds": 0.097682,
+        "cold_warm_equal": true,
+        "method": "ranked",
+        "name": "exact-case",
+        "query": "Synthetic growth case 00000010",
+        "result_count": 5,
+        "warm_seconds": 0.026847
+      },
+      {
+        "adverse_evidence_visible": true,
+        "broad": true,
+        "cold_seconds": 0.088728,
+        "cold_warm_equal": true,
+        "method": "ranked",
+        "name": "symptom-domain",
+        "query": "synthetic input dock",
+        "result_count": 5,
+        "warm_seconds": 0.019749
+      },
+      {
+        "adverse_evidence_visible": false,
+        "broad": false,
+        "cold_seconds": 0.065256,
+        "cold_warm_equal": true,
+        "method": "substring",
+        "name": "no-hit",
+        "query": "unrepresented quantum printer",
+        "result_count": 0,
+        "warm_seconds": 0.006447
+      }
+    ],
+    "query_set_version": 1,
+    "status_evaluation_at": "2026-09-16T16:00:00Z",
+    "warm_gate_seconds": 1,
+    "worst_warm_seconds": 0.026847
+  },
+  "status": "success",
+  "timings_seconds": {
+    "admission": {
+      "p50": 0.467004,
+      "p95": 0.839534,
+      "worst": 0.839534
+    },
+    "recovery-distribution": 2.063285,
+    "total": 10.268289
+  }
+}

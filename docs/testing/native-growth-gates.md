@@ -1,5 +1,27 @@
 # Native service growth gates
 
+## Final-source calibration
+
+The reviewed source passed a new ten-import calibration at clean revision
+`80a0589a597f67e76c11e1d0d8d759600c30f5a2` (code identical to CI-accepted
+`fec42587fb4aef581a7b1cad28498a56b769c771`). Command:
+
+```sh
+python -m experiments.growth.gates ten-imports \
+  --output experiments/growth/results/native-ten-imports-final-v2.json \
+  --artifact-output /new/private/artifact-directory
+```
+
+[Unmodified raw result](../../experiments/growth/results/native-ten-imports-final-v2.json):
+50records/50receipts across10completed imports/builds,10adverse failure reports,
+10.268289seconds total, worst admission0.839534seconds, cold recovery0.495027seconds
+in31emulated requests, warm recovery0.487638seconds in3requests, worst warm
+query0.026847seconds. Exact canonical/proof/source/search parity passed, with
+zero real network requests and zero fixture contract violations. Explicit legacy
+bootstrap completed without canonical mutations. Final proof and completion
+manifest were retained privately; the public raw file embeds source hashes.
+This calibration authorizes the larger measurement, not a500-record capacity claim.
+
 Measurement scope: this gate covers native admission/reconciliation, canonical
 build/proof validation, recovery and search. Ordinary per-import builds call the
 canonical builder directly; they do not execute optional update-pack generation
