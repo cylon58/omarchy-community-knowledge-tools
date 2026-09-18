@@ -58,6 +58,11 @@ variable and otherwise skips. See the [health test ledger](service-health.md).
 No important finding remains in that scoped review. A new hosted CI run is still
 required before acceptance of the combined candidate.
 
+[Combined CI35291102137](https://github.com/cylon58/omarchy-community-knowledge-tools/actions/runs/35291102137)
+subsequently passed on Python3.11 and3.13 at
+`fec42587fb4aef581a7b1cad28498a56b769c771`. This closes the prior CI fixture
+blocker, not the remaining growth, cadence or rollout gates.
+
 ## Remaining gates at review time
 
 The unattended workflow, installed-entrypoint smoke, bounded live observations,

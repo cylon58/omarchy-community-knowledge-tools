@@ -236,3 +236,48 @@ Workflow and budget-fixture hashes above are unchanged. Scoped re-review passed;
 the portability finding is closed, with no new important finding. The earlier
 hash/result remains historical evidence, not the current test version. Hosted CI
 and live verification remain separate gates.
+
+### First bounded live observation
+
+Source: `fec42587fb4aef581a7b1cad28498a56b769c771`, accepted by scoped review
+and [hosted CI35291102137](https://github.com/cylon58/omarchy-community-knowledge-tools/actions/runs/35291102137)
+on Python3.11 and3.13. These reads did not deploy the candidate.
+
+The first controller invocation incorrectly used `python -m omarchy_knowledge.cli`.
+That module has no module-entry guard: both commands returned0 with zero output,
+without running a check. The zero-byte stdout files are preserved as
+`service-health-{production,pilot}-v1-empty.stdout`; these are invocation mistakes,
+not successful health results. The corrected checkout invocation explicitly calls
+the same function used by the installed console entry point:
+
+```sh
+python -c 'from omarchy_knowledge.cli import main; raise SystemExit(main())' \
+  health --deployment production
+python -c 'from omarchy_knowledge.cli import main; raise SystemExit(main())' \
+  health --deployment pilot
+```
+
+On2026-09-18 at00:29UTC, [production raw JSON](../../experiments/growth/results/service-health-production-v2.json)
+returned exit0/overallok:26records,26receipts, matching main/Pages revision,
+generation373seconds old, scheduled Pages completion355seconds old. Six reads
+charged121,167bytes. Unknown legacy build/cursor metrics and partial upstream
+evidence remain explicitly listed; overallok does not mean every metric is known.
+
+The [pilot raw JSON](../../experiments/growth/results/service-health-pilot-v2.json)
+returned exit1/overallfailure:4records,4receipts, matching revisions, generation
+21seconds old, but the latest selected completed successful scheduled Pages job
+was7,973seconds old (limit7,200). Six reads charged125,422bytes. This distinguishes
+fresh page content from evidence of recently completed scheduled operation. It
+does not diagnose the scheduling delay or establish that a newer in-progress run
+could not complete afterward. No immediate rerun was used to erase the failure.
+
+Raw SHA-256 values:
+
+```text
+335ce4320236b33491eedf2cde465f163a0c2644c347e9f4113f985c5bc27eb6  service-health-production-v2.json
+181f7e27326e9a7fc7c52cfe7b5e3be5d06bb5f155c6b756ab16291717a84e91  service-health-pilot-v2.json
+```
+
+Both deployments still use the older service; no growth deployment, notification
+change or user-client installation occurred. These are two point-in-time checks,
+not proof of reliable unattended cadence. The outstanding schedule risk remains.
