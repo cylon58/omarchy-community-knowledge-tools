@@ -2,6 +2,10 @@
 
 This is a bounded evidence statement, not an unlimited-capacity promise.
 
+Current rollout progress: manual pilot transition, authenticated recovery and a
+hosted watcher run passed. Production promotion remains pending actual scheduled
+execution of the upgraded pilot. See [live evidence](growth-pilot-rollout.md).
+
 ## What has been demonstrated locally
 
 - The native admission/reconciliation/build/recovery/search path passed 500

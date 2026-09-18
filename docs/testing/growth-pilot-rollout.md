@@ -12,6 +12,11 @@ passed before rollout. Core, workflow and final growth evidence received separat
 scoped review. Toolkit main advanced by an ordinary fast-forward from `2250d3c`;
 history-protection rules were preserved.
 
+The pinned candidate's hosted suite ran 495 tests per version: Python 3.13 in
+92.306 seconds and Python 3.11 in 91.613 seconds, each with two explicit optional
+offline-installation skips. Prepared-wheelhouse installation checks were exercised
+separately; the skips are not installation passes.
+
 The clean pilot started at `5490d2390db8ff54a0cb86071f4e90f49a04d72b`, using
 toolkit/policy `9720575ed4d73b19549ef118f442cf611e009526`. The renderer produced
 exactly three files. Independent comparison confirmed that changing the new SHA
@@ -83,6 +88,31 @@ legacy metrics as unknown; pilot reports current measured capacity with object
 visits and upstream completeness unknown. This demonstrates hosted installation,
 capture, artifact upload and final gating for a successful pair. Synthetic tests
 cover failure capture; no artificial live outage was introduced.
+
+## Exact-revision package preparation
+
+A separate detached worktree at `1a15dceac62520b6f26d634f93261630f89a548a`
+was used to build a wheel without network access or dependency resolution.
+The recorded wheel was 147,904 bytes, SHA-256
+`4c1a02f48500aa241c04ab6b5b77bbb8b98160ed97606005198d5e0bb2a2afeb`.
+It installed successfully into a new disposable environment using only the
+prepared offline dependency wheels. Its installed `health --help` and `status`
+commands succeeded from outside the checkout; status recognized the previously
+authenticated pilot cache and its exact source revision. This is packaging/cache
+compatibility evidence, not a new live sync or a change to the user's installation.
+
+Representative commands with caller-selected new temporary paths:
+
+```sh
+python -m pip wheel --no-index --no-deps --no-build-isolation \
+  --wheel-dir /new/wheels /reviewed/checkout
+python -m venv /new/test-venv
+/new/test-venv/bin/python -m pip install --no-index \
+  --find-links /prepared/dependency-wheels \
+  /new/wheels/omarchy_community_knowledge_tools-0.1.0-py3-none-any.whl
+/new/test-venv/bin/omarchy-knowledge health --help
+/new/test-venv/bin/omarchy-knowledge status --cache /authenticated/pilot-cache
+```
 
 ## What is not established yet
 

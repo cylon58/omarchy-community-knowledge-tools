@@ -1,7 +1,9 @@
 # Testing unattended service health
 
-Status: checker/projection candidate implemented and scoped review passed;
-unattended workflow reviewed, with hosted CI and deployment pending. This notebook records the
+Status: checker/projection and unattended workflow reviewed; hosted CI and a manual
+watcher run passed. Pilot publication has current metrics; production remains on
+the old service. New-release unattended scheduling remains a promotion gate.
+See the [live rollout notebook](growth-pilot-rollout.md). This notebook records the
 read-only checker separately from the service it observes. The
 [design](../plans/service-health-design.md) and
 [implementation sequence](../plans/service-health-implementation.md) define the
