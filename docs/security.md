@@ -93,9 +93,13 @@ credentials, proxies or arbitrary source URLs. Stale, missing, malformed, oversi
 or incomplete proof fails closed before replacing the cache. In particular, a
 Pages deployment lag is an availability failure, not permission to accept an old
 head as current or bypass receipt authentication. Previously verified cached
-queries remain available with their original age. The hosted publisher still reads
-canonical objects through its scoped API adapter; it does not consume its own
-Pages bundle to generate the next bundle.
+queries remain available with their original age. The hosted publisher may reuse
+its previous fixed-origin Pages proof as an inert, bounded object-cache seed and
+as input to optional update-pack generation. That seed does not establish the
+current head or receipt authority: the publisher still anchors current state
+through its scoped API adapter, performs canonical validation and independently
+replays the exported proof offline. Invalid or unavailable optional reuse loses
+acceleration, not these checks. Shared request, byte and time budgets still apply.
 
 After a successful sync, a per-cache random key seals one atomic CURRENT envelope.
 The seal binds the snapshot manifest digest (which binds index and records), every

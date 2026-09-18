@@ -219,7 +219,7 @@ class HostedProofReuse(unittest.TestCase):
         from omarchy_knowledge.github_native import GitHubRead, NativeUnavailable
         from omarchy_knowledge.object_bundle import MAX_COMPRESSED_BUNDLE
 
-        Connection, _, head, _, _, blob_raw = self.adapter(b"missing", pages_status=404)
+        Connection, seen, head, _, _, blob_raw = self.adapter(b"missing", pages_status=404)
         reader = GitHubRead(connection_factory=Connection)
 
         self.assertFalse(reader.seed_canonical())
@@ -230,10 +230,17 @@ class HostedProofReuse(unittest.TestCase):
         self.assertEqual(reader.http.calls, 5)
 
         exhausted = GitHubRead(connection_factory=Connection)
-        with patch("omarchy_knowledge.github_native.MAX_CALLS", 1):
-            self.assertFalse(exhausted.seed_canonical())
-            with self.assertRaises(NativeUnavailable):
-                exhausted.branch()
+        exhausted.http.max_calls = 1
+        self.assertFalse(exhausted.seed_canonical())
+        self.assertEqual(
+            (exhausted.http.calls, exhausted.http.bytes),
+            (1, MAX_COMPRESSED_BUNDLE + 1),
+        )
+        seed_requests = list(seen)
+        with self.assertRaises(NativeUnavailable):
+            exhausted.branch()
+        self.assertEqual(seen, seed_requests)
+        self.assertEqual(exhausted.http.bytes, MAX_COMPRESSED_BUNDLE + 1)
 
     def test_invalid_or_over_capacity_seed_is_discarded_atomically(self):
         """Break caught: a partially installed seed consumes cache capacity."""

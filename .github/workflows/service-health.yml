@@ -1,0 +1,71 @@
+{
+  "name": "Public service health",
+  "on": {
+    "schedule": [
+      {
+        "cron": "43 * * * *"
+      }
+    ],
+    "workflow_dispatch": {}
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "concurrency": {
+    "group": "omarchy-knowledge-service-health",
+    "cancel-in-progress": true
+  },
+  "jobs": {
+    "health": {
+      "if": "${{ github.repository_id == '1373429982' && github.repository == 'cylon58/omarchy-community-knowledge-tools' && github.ref == 'refs/heads/main' && github.event.repository.default_branch == 'main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 10,
+      "permissions": {
+        "contents": "read"
+      },
+      "steps": [
+        {
+          "name": "Check out the exact trusted main revision",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "ref": "${{ github.sha }}",
+            "persist-credentials": false,
+            "fetch-depth": 1
+          }
+        },
+        {
+          "name": "Provide pinned Python",
+          "uses": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+          "with": {
+            "python-version": "3.13"
+          }
+        },
+        {
+          "name": "Install the fixed toolkit runtime",
+          "run": "python -m venv \"$RUNNER_TEMP/runtime\"\n\"$RUNNER_TEMP/runtime/bin/python\" -m pip install --disable-pip-version-check --only-binary=:all: --no-deps jsonschema==4.26.0 attrs==26.1.0 jsonschema-specifications==2025.9.1 referencing==0.37.0 rpds-py==2026.6.3\n\"$RUNNER_TEMP/runtime/bin/python\" -m pip install --disable-pip-version-check --no-build-isolation --no-deps .\n"
+        },
+        {
+          "name": "Capture both deployment reports",
+          "run": "set -u\nreport_dir=\"$RUNNER_TEMP/service-health\"\nmkdir -p \"$report_dir\"\nset +e\n\"$RUNNER_TEMP/runtime/bin/omarchy-knowledge\" health --deployment production > \"$report_dir/production.json\"\nproduction_exit=$?\n\"$RUNNER_TEMP/runtime/bin/omarchy-knowledge\" health --deployment pilot > \"$report_dir/pilot.json\"\npilot_exit=$?\nset -e\nprintf '{\"production\":%s,\"pilot\":%s}\\n' \"$production_exit\" \"$pilot_exit\" > \"$report_dir/exit-codes.json\"\n"
+        },
+        {
+          "name": "Retain same-run data-only reports",
+          "if": "${{ always() }}",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "service-health-${{ github.run_id }}-${{ github.run_attempt }}",
+            "path": "${{ runner.temp }}/service-health/*.json",
+            "retention-days": 7,
+            "if-no-files-found": "error",
+            "compression-level": 6
+          }
+        },
+        {
+          "name": "Expose required-check failures",
+          "if": "${{ always() }}",
+          "run": "report_dir=\"$RUNNER_TEMP/service-health\"\n\"$RUNNER_TEMP/runtime/bin/python\" - \"$report_dir\" <<'PY'\nimport json\nfrom pathlib import Path\nimport sys\n\nroot = Path(sys.argv[1])\nexpected = {\n    'version', 'deployment', 'checked_at', 'overall', 'source',\n    'availability', 'intake', 'capacity', 'evidence_freshness',\n    'warnings', 'failures', 'unknowns', 'transport',\n}\ncodes = json.loads((root / 'exit-codes.json').read_bytes())\nif set(codes) != {'production', 'pilot'}:\n    raise SystemExit(1)\nrequired_failure = False\nfor deployment in ('production', 'pilot'):\n    code = codes[deployment]\n    if type(code) is not int or code not in {0, 1}:\n        raise SystemExit(1)\n    report = json.loads((root / f'{deployment}.json').read_bytes())\n    if (not isinstance(report, dict) or set(report) != expected\n            or type(report['version']) is not int or report['version'] != 1\n            or report['deployment'] != deployment\n            or report['overall'] not in {'ok', 'warning', 'failure'}):\n        raise SystemExit(1)\n    required = 1 if report['overall'] == 'failure' else 0\n    if code != required:\n        raise SystemExit(1)\n    required_failure = required_failure or required == 1\nif required_failure:\n    raise SystemExit(1)\nPY\n"
+        }
+      ]
+    }
+  }
+}

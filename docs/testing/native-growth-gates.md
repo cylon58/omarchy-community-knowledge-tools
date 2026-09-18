@@ -1,5 +1,13 @@
 # Native service growth gates
 
+Measurement scope: this gate covers native admission/reconciliation, canonical
+build/proof validation, recovery and search. Ordinary per-import builds call the
+canonical builder directly; they do not execute optional update-pack generation
+and publication. A pass must not be called a complete current-publisher lifecycle
+test. That path has separate [actual-publisher500→510 evidence](update-pack-production.md).
+The guarded queue/bootstrap tests and live pilot establish additional, distinct
+workflow boundaries. Report these together without conflating their scopes.
+
 ## Final rerun preflight (pending corrections)
 
 After the reviewed fair-intake integration, read-only preflight found three

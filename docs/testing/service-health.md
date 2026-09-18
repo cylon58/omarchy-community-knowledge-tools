@@ -1,7 +1,7 @@
 # Testing unattended service health
 
 Status: checker/projection candidate implemented and scoped review passed;
-unattended workflow and deployment pending. This notebook records the
+unattended workflow reviewed, with hosted CI and deployment pending. This notebook records the
 read-only checker separately from the service it observes. The
 [design](../plans/service-health-design.md) and
 [implementation sequence](../plans/service-health-implementation.md) define the
@@ -166,3 +166,73 @@ new important regression. The original offline probes now reject each malformed
 case, and the near-cap probe performs zero requests without changing counters.
 This accepts the checker slice, not the pending unattended workflow or live rollout.
 A fresh controller run of all14 health tests passed in0.172 seconds.
+
+### Unattended workflow candidate
+
+The separate `Public service health` workflow checks production and pilot, with
+read-only permissions, immutable action pins, fixed repository/main/event guards,
+and no PR trigger or provider calls. Its hourly `:43` schedule is a requested
+cadence, not a promise of delivery. Both reports and exit codes are captured
+before the final gate and retained as same-run artifacts for seven days.
+Missing, malformed or contradictory captures fail closed.
+
+Reproducible focused command (from the checkout in its prepared environment):
+
+```sh
+python -m unittest -q tests.test_health tests.test_health_workflow \
+  tests.test_hosted_proof_reuse tests.test_ci_workflow
+```
+
+The initial workflow tests failed because the workflow did not exist (two errors
+in three tests). The first implementation then exposed a real gate bug: a valid
+failure report paired with exit1 incorrectly left the gate successful. The fix
+validates both reports before failing if either requires failure. All three tests
+then passed in3.987 seconds. These tests execute the capture and gate scripts;
+they do not merely search the workflow text.
+
+An offline disposable-environment smoke test installs the package and invokes its
+console entry point with a mocked health seam. This establishes packaging and
+command wiring, not live service health. A timing invocation using unavailable
+`/usr/bin/time` failed before running tests; shell timing replaced it. The final
+worker run passed25 tests in5.630 seconds. A fresh controller run passed the same
+25 tests in5.610 seconds. No production source changed in this workflow slice.
+
+The previously failing CI budget fixture was also reproduced and repaired by
+setting the reader's actual instance limit, retaining its failed-seed byte/call
+accounting and no-new-request assertions. See the
+[core review ledger](core-release-review.md) for the failed hosted run.
+
+Frozen SHA-256 values:
+
+```text
+0ffefd96da68877730acc0edb6c827976118b6e74a69e3073635ffd4f837f0d7  .github/workflows/service-health.yml
+9c369deb7ba2675fcc602a23b6b40fd4c8c3c2aaf4f9d8d16d9c6412c7f3612e  tests/test_health_workflow.py
+8753982dc4eafc87e01479b17ed5f59771b0f40075cce096f7c0b48b669c363f  tests/test_hosted_proof_reuse.py
+```
+
+Independent review, green hosted CI and real bounded observations are still
+required. No workflow dispatch, deployment, notification-setting change or live
+health check is implied by these local tests.
+
+### Workflow review correction and acceptance
+
+Independent review found that the new installation test hardcoded the developer's
+private wheelhouse directory. Local success did not make that portable to hosted
+CI. The test now follows the existing `OMARCHY_KNOWLEDGE_TEST_WHEELHOUSE` opt-in
+convention: absent/unavailable dependencies yield an explicit skip, never a
+fabricated installation pass or an implicit network install.
+
+The initial expected-skip assertion failed because the old test actually performed
+the private installation. After correction, the unset path skipped and the explicit
+offline path passed. The worker's25-test run passed in5.677 seconds. The controller
+independently ran the three workflow tests with a prepared wheelhouse (all passed
+in4.038 seconds), then without the variable (three tests, one skipped,0.178 seconds).
+Reproduce the installed path by prefixing the command above with
+`OMARCHY_KNOWLEDGE_TEST_WHEELHOUSE=/path/to/prepared/wheels`.
+
+Corrected workflow-test SHA-256:
+`3088aefb78a867fcd8766f19438a20a28347020312d172e81b1bbb1deb50698e`.
+Workflow and budget-fixture hashes above are unchanged. Scoped re-review passed;
+the portability finding is closed, with no new important finding. The earlier
+hash/result remains historical evidence, not the current test version. Hosted CI
+and live verification remain separate gates.

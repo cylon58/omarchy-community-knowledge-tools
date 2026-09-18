@@ -62,8 +62,9 @@ batching subsequently passed the exact cold comparison in238 emulated requests
 with full evidence/proof parity. A live compatibility check then exposed a fixture/
 parser directory-size mismatch, corrected and checked against the live API; the
 public 26-record corpus also passed cold authenticated recovery. Incremental client
-transfer and fair intake integration are now implemented and reviewed; health
-reporting remains unfinished. None of these branch changes is deployed yet.
+transfer and fair intake integration are now implemented and reviewed. The health
+checker is reviewed; its separate unattended workflow is undergoing review.
+None of these branch changes is deployed yet.
 
 The [format comparison](testing/proof-formats.md) favored one direct-predecessor
 update pack over prefix buckets or individual object downloads. Three subsequent
@@ -96,6 +97,13 @@ engine or raised caps. Any replacement of authenticated history with a checkpoin
 would require its own explicit trust design.
 
 ## Predeclared gates
+
+Scope clarification from broad core review: the native100-import gate measures
+admission/reconciliation, canonical build, proof recovery and search. Its normal
+per-import build does not run optional update-pack generation/publication. Combine
+that result with the separately measured actual-publisher500→510 test and guarded
+queue/pilot evidence; do not label the native gate alone a complete current
+publisher lifecycle test. This does not change any size, timing or byte threshold.
 
 Initial beta targets (targets, not achieved measurements): at least 500 synthetic
 records across 100 accepted imports with mixed evidence; each individual admission,

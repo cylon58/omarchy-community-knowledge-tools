@@ -12,8 +12,9 @@ Use the pinned runtime described in `docs/deployment.md`, then run:
 python -m unittest discover -s tests -q
 ```
 
-The wheel-install integration test needs an explicitly prepared offline wheelhouse;
-without it, that test reports a skip. CI covers Python 3.11 and 3.13. See workflow
+The wheel-install integration tests need an explicitly prepared offline wheelhouse
+selected with `OMARCHY_KNOWLEDGE_TEST_WHEELHOUSE`; without it, those tests report
+skips. CI covers Python 3.11 and 3.13. See workflow
 logs for the exact dependency setup and runtime; do not assume your local timings
 will match ours.
 
@@ -53,7 +54,8 @@ Future recorded runs should preserve stdout and place commentary alongside it.
 | Update-pack variation | Three same-base updates used4.90–5.37% of full bytes with exact proof/data parity | [Raw scenarios, reviewed corrections and scope](update-pack-variation.md); still one synthetic history, not deployed-client measurements |
 | Production update-pack integration | Reviewed actual-client500→510 run: matching proof transfer2.98% of full; same-head0downloads; wrong-base fallback and exact parity | [Integration notebook, raw result and two deferred harness-hardening findings](update-pack-production.md); not deployed, matching-window only, final pipeline gate separate |
 | Fair intake traversal | Reviewed scanner reached all200 eligible heads in a mixed1,000-PR fixture; guarded service reached an eligible contribution after205 closed rows | [Fixtures, review failures/corrections and raw results](fair-intake.md); local persistence/failure-resume checks passed, not deployed or a hosted throughput claim |
-| Service health preflight | Corrected completion-time API assumption; bounded job-attempt read supplies explicit Pages-job completion | [Predeclared tests and limits](service-health.md); implementation and hosted evidence pending |
+| Service health | Bounded checker reviewed after four corrections; unattended workflow reviewed after portability correction | [Predeclared tests, failures and limits](service-health.md); live and hosted evidence pending |
+| Core integration review | No new important core defect; clarified optional-publisher measurement scope and corrected stale security documentation | [Review and CI failure ledger](core-release-review.md); conditional next-gate readiness, not launch approval |
 
 The public repository contains the regression tests named above. Historical private
 exploration is explicitly labeled; it is not presented as a public reproducible
