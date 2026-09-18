@@ -1,0 +1,99 @@
+name: Validate and accept data contributions
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pull_number:
+        description: Numeric pull request number to retry
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: knowledge-intake-${{ github.event.pull_request.number || inputs.pull_number }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.state == 'open' && github.event.pull_request.draft == false)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out immutable trusted toolkit only
+        uses: actions/checkout@__ACTIONS_CHECKOUT_COMMIT__
+        with:
+          repository: __TOOLKIT_REPOSITORY__
+          ref: __TOOLKIT_COMMIT__
+          path: toolkit
+          persist-credentials: false
+      - name: Set up pinned Python action
+        uses: actions/setup-python@__ACTIONS_SETUP_PYTHON_COMMIT__
+        with:
+          python-version: '3.14.7'
+      - name: Install hash-locked binary runtime dependencies
+        run: >-
+          python -m pip install --ignore-installed --require-hashes --only-binary=:all:
+          --requirement ./toolkit/templates/requirements-intake.lock
+      - name: Validate current pull request and current main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          OMARCHY_KNOWLEDGE_REPOSITORY_ID: '__DATA_REPOSITORY_ID__'
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_number }}
+          PYTHONPATH: ${{ github.workspace }}/toolkit
+        run: >-
+          python -c 'import json, os;
+          from omarchy_knowledge.intake import validate_pr;
+          result = validate_pr(os.environ["GITHUB_REPOSITORY"], int(os.environ["PR_NUMBER"]));
+          print(json.dumps(result, sort_keys=True));
+          raise SystemExit(0 if result["status"] in {"valid", "accepted"} else 1)'
+
+  accept:
+    needs: validate
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.state == 'open' && github.event.pull_request.draft == false)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Check out immutable trusted toolkit only
+        uses: actions/checkout@__ACTIONS_CHECKOUT_COMMIT__
+        with:
+          repository: __TOOLKIT_REPOSITORY__
+          ref: __TOOLKIT_COMMIT__
+          path: toolkit
+          persist-credentials: false
+      - name: Set up pinned Python action
+        uses: actions/setup-python@__ACTIONS_SETUP_PYTHON_COMMIT__
+        with:
+          python-version: '3.14.7'
+      - name: Install hash-locked binary runtime dependencies
+        run: >-
+          python -m pip install --ignore-installed --require-hashes --only-binary=:all:
+          --requirement ./toolkit/templates/requirements-intake.lock
+      - name: Independently revalidate and accept current candidate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          OMARCHY_KNOWLEDGE_REPOSITORY_ID: '__DATA_REPOSITORY_ID__'
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_number }}
+          PYTHONPATH: ${{ github.workspace }}/toolkit
+        run: >-
+          python -c 'import json, os;
+          from omarchy_knowledge.intake import accept_pr;
+          result = accept_pr(os.environ["GITHUB_REPOSITORY"], int(os.environ["PR_NUMBER"]));
+          print(json.dumps(result, sort_keys=True));
+          raise SystemExit(0 if result["status"] == "accepted" else 1)'
+
+# This is an inert template. Task 6 must replace every __...__ value with a
+# verified immutable action/toolkit commit and the configured numeric repository
+# identity before proposing activation. It never checks out the pull request.

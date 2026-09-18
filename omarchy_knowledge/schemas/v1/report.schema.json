@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "report.schema.json",
+  "allOf": [
+    {"$ref": "common.schema.json#/$defs/envelope"},
+    {"properties": {
+      "type": {"const": "report"},
+      "payload": {"type": "object", "additionalProperties": false,
+        "required": ["case_id", "observation_date", "environment", "test_method", "baseline", "expected_result", "result", "actual_result", "limitations", "provenance", "adverse_effects", "activation", "root_cause"],
+        "properties": {
+          "case_id": {"$ref": "common.schema.json#/$defs/uuid"}, "change_id": {"$ref": "common.schema.json#/$defs/uuid"},
+          "observation_date": {"type": "string", "format": "date"},
+          "environment": {"type": "object", "additionalProperties": false, "required": ["origin", "architecture", "components", "topology"], "properties": {
+            "origin": {"enum": ["firsthand", "journal-import", "external-source"]}, "architecture": {"type": "string", "pattern": "^[a-z0-9_+-]{1,40}$"}, "channel": {"enum": ["stable", "testing", "development", "rc", "edge", "unknown"]},
+            "runtime_mode": {"enum": ["native", "vm", "container", "unknown"]}, "components": {"type": "array", "maxItems": 48, "items": {"$ref": "common.schema.json#/$defs/environment_component"}},
+            "features": {"type": "array", "maxItems": 24, "items": {"$ref": "common.schema.json#/$defs/feature_observation"}}, "settings": {"type": "array", "maxItems": 24, "items": {"$ref": "common.schema.json#/$defs/setting_observation"}},
+            "complete_component_observations": {"type": "array", "maxItems": 24, "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/complete_component_observation"}},
+            "topology": {"type": "object", "additionalProperties": false, "required": ["nodes", "edges"], "properties": {"nodes": {"type": "array", "maxItems": 48, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,39}$"}}, "edges": {"type": "array", "maxItems": 96, "items": {"$ref": "common.schema.json#/$defs/topology_edge"}}}}
+          }},
+          "test_method": {"$ref": "common.schema.json#/$defs/text"}, "baseline": {"enum": ["reproduced", "not-reproduced", "not-tested"]}, "expected_result": {"$ref": "common.schema.json#/$defs/text"},
+          "result": {"enum": ["success", "failure", "partial", "inconclusive", "not-tested"]}, "actual_result": {"$ref": "common.schema.json#/$defs/text"},
+          "limitations": {"$ref": "common.schema.json#/$defs/text"}, "provenance": {"$ref": "common.schema.json#/$defs/text"},
+          "duration": {"type": "string", "maxLength": 100}, "repetitions": {"type": "integer", "minimum": 1, "maximum": 10000},
+          "adverse_effects": {"$ref": "common.schema.json#/$defs/text"}, "activation": {"type": "object", "additionalProperties": false, "required": ["state", "details"], "properties": {"state": {"enum": ["active", "not-active", "unknown"]}, "details": {"$ref": "common.schema.json#/$defs/text"}}}, "root_cause": {"type": "object", "additionalProperties": false, "required": ["assessment", "rationale"], "properties": {"assessment": {"enum": ["unknown", "suspected", "supported"]}, "rationale": {"$ref": "common.schema.json#/$defs/text"}}},
+          "intervention_deviations": {"type": "string", "maxLength": 4000}, "workaround_absent": {"type": "boolean"}
+        }}
+    }}
+  ]
+}

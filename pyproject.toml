@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "omarchy-community-knowledge-tools"
+version = "0.3.0"
+requires-python = ">=3.11"
+dependencies = ["jsonschema==4.26.0", "referencing==0.37.0"]
+
+[project.scripts]
+omarchy-knowledge = "omarchy_knowledge.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["omarchy_knowledge*"]
+
+[tool.setuptools.package-data]
+omarchy_knowledge = ["schemas/v1/*.json", "skills/*/SKILL.md"]

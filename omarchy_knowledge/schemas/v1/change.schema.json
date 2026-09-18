@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "change.schema.json",
+  "allOf": [
+    {"$ref": "common.schema.json#/$defs/envelope"},
+    {"properties": {
+      "type": {"const": "change"},
+      "payload": {"type": "object", "additionalProperties": false,
+        "required": ["case_id", "intent", "method", "explanation", "applicability", "procedure", "risk", "effects", "rollback", "validation_plan", "requires_root", "activation", "affected_files"],
+        "properties": {
+          "case_id": {"$ref": "common.schema.json#/$defs/uuid"}, "intent": {"enum": ["corrective", "optional", "undetermined"]},
+          "method": {"enum": ["configuration", "workaround", "plugin", "package", "upstream-update"]}, "explanation": {"$ref": "common.schema.json#/$defs/text"},
+          "applicability": {"type": "object", "additionalProperties": false, "required": ["requires"], "properties": {
+            "requires": {"type": "array", "maxItems": 24, "items": {"$ref": "common.schema.json#/$defs/predicate"}},
+            "requires_any": {"type": "array", "maxItems": 12, "items": {"type": "array", "minItems": 1, "maxItems": 24, "items": {"$ref": "common.schema.json#/$defs/predicate"}}},
+            "excludes": {"type": "array", "maxItems": 24, "items": {"$ref": "common.schema.json#/$defs/predicate"}},
+            "uncertain_conditions": {"type": "array", "maxItems": 24, "items": {"$ref": "common.schema.json#/$defs/predicate"}}
+          }},
+          "procedure": {"oneOf": [
+            {"type": "object", "additionalProperties": false, "required": ["kind", "steps"], "properties": {"kind": {"const": "instructions"}, "steps": {"type": "array", "minItems": 1, "maxItems": 24, "items": {"$ref": "common.schema.json#/$defs/text"}}}},
+            {"type": "object", "additionalProperties": false, "required": ["kind", "reference"], "properties": {"kind": {"const": "artifact-reference"}, "reference": {"type": "object", "additionalProperties": false, "required": ["artifact_kind", "identifier", "version", "revision", "source_description"], "properties": {"artifact_kind": {"enum": ["plugin", "package", "configuration", "documentation", "other"]}, "identifier": {"$ref": "common.schema.json#/$defs/identifier"}, "version": {"$ref": "common.schema.json#/$defs/short_text"}, "revision": {"$ref": "common.schema.json#/$defs/short_text"}, "source_description": {"$ref": "common.schema.json#/$defs/short_text"}, "url": {"type": "string", "format": "uri", "maxLength": 1000}, "path": {"type": "string", "pattern": "^\\{[a-z_]+\\}/.{1,300}$"}}, "anyOf": [{"required": ["url"]}, {"required": ["path"]}]}}}
+          ]},
+          "risk": {"enum": ["none", "low", "medium", "high", "unknown"]}, "effects": {"$ref": "common.schema.json#/$defs/text"},
+          "rollback": {"$ref": "common.schema.json#/$defs/text"}, "validation_plan": {"$ref": "common.schema.json#/$defs/text"},
+          "requires_root": {"enum": ["yes", "no", "unknown"]}, "activation": {"type": "object", "additionalProperties": false, "required": ["required", "details"], "properties": {"required": {"enum": ["none", "relogin", "reboot", "service-restart", "manual", "unknown"]}, "details": {"$ref": "common.schema.json#/$defs/text"}}},
+          "affected_files": {"type": "array", "maxItems": 24, "uniqueItems": true, "items": {"type": "string", "pattern": "^\\{[a-z_]+\\}/.{1,300}$"}}
+        }}
+    }}
+  ]
+}

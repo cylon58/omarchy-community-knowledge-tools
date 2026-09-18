@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "common.schema.json",
+  "$defs": {
+    "uuid": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "text": {"type": "string", "minLength": 1, "maxLength": 4000},
+    "short_text": {"type": "string", "minLength": 1, "maxLength": 200},
+    "identifier": {"type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._+:-]{0,127}$"},
+    "alias": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,39}$"},
+    "envelope": {"type": "object", "additionalProperties": false, "required": ["schema_version", "id", "type", "created_at", "provenance", "payload"], "properties": {
+      "schema_version": {"const": 1, "type": "integer"}, "id": {"$ref": "#/$defs/uuid"},
+      "type": {"enum": ["case", "change", "report", "event"]}, "created_at": {"type": "string", "format": "date-time", "pattern": "Z$", "maxLength": 40},
+      "provenance": {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"enum": ["firsthand", "journal-import", "external-source"]}, "sources": {"type": "array", "maxItems": 12, "uniqueItems": true, "items": {"type": "string", "format": "uri", "maxLength": 1000}}}},
+      "payload": {"type": "object"}
+    }},
+    "version_constraint": {"type": "object", "additionalProperties": false, "required": ["op", "version"], "properties": {"op": {"enum": ["=", "!=", ">", ">=", "<", "<="]}, "version": {"$ref": "#/$defs/short_text"}}},
+    "hardware_selector": {"type": "object", "additionalProperties": false, "required": ["kind", "role"], "properties": {
+      "kind": {"const": "hardware"}, "role": {"enum": ["host", "cpu", "dock", "keyboard", "receiver", "mouse", "display", "gpu", "firmware", "network", "storage", "audio", "printer", "bluetooth", "usb-device", "pci-device", "other"]},
+      "vendor": {"type": "string", "maxLength": 100}, "product": {"type": "string", "maxLength": 100}, "model": {"type": "string", "maxLength": 160},
+      "vendor_id": {"type": "string", "pattern": "^[0-9a-fA-F]{4}$"}, "product_id": {"type": "string", "pattern": "^[0-9a-fA-F]{4}$"}
+    }},
+    "software_selector": {"type": "object", "additionalProperties": false, "required": ["kind", "component"], "properties": {
+      "kind": {"const": "software"}, "component": {"enum": ["omarchy", "kernel", "compositor", "shell", "plugin", "package", "firmware", "terminal", "workspace", "other"]}, "name": {"$ref": "#/$defs/identifier"}
+    }, "allOf": [{"if": {"properties": {"component": {"enum": ["plugin", "package", "other"]}}}, "then": {"required": ["name"]}}]},
+    "selector": {"oneOf": [{"$ref": "#/$defs/hardware_selector"}, {"$ref": "#/$defs/software_selector"}]},
+    "feature_observation": {"type": "object", "additionalProperties": false, "required": ["feature", "value"], "properties": {"feature": {"enum": ["num-lock", "ac-power", "lid-state", "display-connected", "suspend"]}, "value": {"type": ["boolean", "string", "integer"]}}},
+    "setting_observation": {"type": "object", "additionalProperties": false, "required": ["setting", "value"], "properties": {"setting": {"enum": ["num-lock", "ac-power", "lid-state", "display-connected", "input-layout", "repeat-rate"]}, "value": {"type": ["boolean", "string", "integer"]}}},
+    "complete_component_observation": {"type": "object", "additionalProperties": false, "required": ["selector", "basis"], "properties": {"selector": {"$ref": "#/$defs/selector"}, "basis": {"enum": ["direct-enumeration", "authoritative-inventory"]}}},
+    "predicate": {"oneOf": [
+      {"type": "object", "additionalProperties": false, "required": ["kind", "selector", "scheme", "constraints"], "properties": {"kind": {"const": "software"}, "selector": {"$ref": "#/$defs/software_selector"}, "scheme": {"enum": ["arch", "semver", "upstream", "ancestry"]}, "constraints": {"type": "array", "minItems": 1, "maxItems": 8, "items": {"$ref": "#/$defs/version_constraint"}}, "channel": {"enum": ["stable", "testing", "development", "rc", "edge", "unknown"]}, "architecture": {"type": "string", "pattern": "^[a-z0-9_+-]{1,40}$"}}},
+      {"type": "object", "additionalProperties": false, "required": ["kind", "selector", "presence"], "properties": {"kind": {"const": "component"}, "selector": {"$ref": "#/$defs/selector"}, "presence": {"type": "boolean"}}},
+      {"type": "object", "additionalProperties": false, "required": ["kind", "feature", "value"], "properties": {"kind": {"const": "feature"}, "feature": {"enum": ["num-lock", "ac-power", "lid-state", "display-connected", "suspend"]}, "value": {"type": ["boolean", "string", "integer"]}}},
+      {"type": "object", "additionalProperties": false, "required": ["kind", "setting", "value"], "properties": {"kind": {"const": "setting"}, "setting": {"enum": ["num-lock", "ac-power", "lid-state", "display-connected", "input-layout", "repeat-rate"]}, "value": {"type": ["boolean", "string", "integer"]}}},
+      {"type": "object", "additionalProperties": false, "required": ["kind", "topology"], "properties": {
+        "kind": {"const": "topology"},
+        "topology": {"type": "object", "additionalProperties": false, "required": ["selectors", "required_edges"], "properties": {
+          "selectors": {"type": "array", "minItems": 1, "maxItems": 12, "items": {"type": "object", "additionalProperties": false, "required": ["alias", "selector"], "properties": {"alias": {"$ref": "#/$defs/alias"}, "selector": {"$ref": "#/$defs/selector"}}}},
+          "required_edges": {"type": "array", "minItems": 1, "maxItems": 24, "items": {"$ref": "#/$defs/topology_edge"}}
+        }}
+      }}
+    ]},
+    "topology_edge": {"type": "object", "additionalProperties": false, "required": ["from", "to", "relation"], "properties": {"from": {"$ref": "#/$defs/alias"}, "to": {"$ref": "#/$defs/alias"}, "relation": {"enum": ["connected_to", "contains", "delivers_input_to", "runs_on", "controls"]}, "transport": {"enum": ["usb", "usb-c", "thunderbolt", "bluetooth", "wireless", "software", "unknown"]}, "via": {"type": "array", "maxItems": 12, "uniqueItems": true, "items": {"$ref": "#/$defs/alias"}}, "detail": {"enum": ["exact", "summarized"]}}},
+    "environment_component": {"type": "object", "additionalProperties": false, "required": ["alias", "selector"], "properties": {"alias": {"$ref": "#/$defs/alias"}, "selector": {"$ref": "#/$defs/selector"}, "version": {"$ref": "#/$defs/short_text"}, "version_scheme": {"enum": ["arch", "semver", "upstream", "ancestry", "vendor"]}}, "allOf": [{"if": {"required": ["version"]}, "then": {"required": ["version_scheme"]}}, {"if": {"required": ["version_scheme"]}, "then": {"required": ["version"]}}]},
+    "fixed_in": {"type": "object", "additionalProperties": false, "required": ["any_of"], "properties": {"any_of": {"type": "array", "minItems": 1, "maxItems": 12, "items": {"type": "object", "additionalProperties": false, "required": ["all_of"], "properties": {"all_of": {"type": "array", "minItems": 1, "maxItems": 12, "items": {"$ref": "#/$defs/predicate"}}}}}}}
+  }
+}
