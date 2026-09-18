@@ -196,6 +196,45 @@ class UpdatePackProductionTests(unittest.TestCase):
         self.assertIn("matching_base", measurement["clients"])
         self.assertIn("fixture", measurement)
 
+    def test_same_head_zero_download_still_requires_exact_semantic_parity(self):
+        """Break caught: unchanged-head transport passes with corrupted local data."""
+        from experiments.growth import gates, update_pack_production
+
+        source = gates.run_gate("one-import")
+        measurement = {}
+        budget = gates._DeadlineBudget(300)
+
+        def corrupt_same_head(phase, observed):
+            if phase == "same-head-client-recorded":
+                observed["clients"]["same_head"]["parity"]["records"] = False
+
+        with gates._alarm_handler(budget) as alarm, self.assertRaises(RuntimeError):
+            update_pack_production._run_fixture_measurement(
+                source, budget, alarm, measurement,
+                checkpoint=corrupt_same_head,
+            )
+
+        same = measurement["clients"]["same_head"]
+        self.assertEqual(same["transport"]["proof"]["requests"], 0)
+        self.assertFalse(same["parity"]["records"])
+
+    def test_matching_byte_gate_uses_exact_integer_quarter(self):
+        """Break caught: a rounded 0.250000 ratio hides a one-byte gate miss."""
+        from experiments.growth import update_pack_production
+
+        matching = {"parity": {
+            "records": True, "receipts": True, "source": True,
+            "upstream": True, "adverse_evidence": True,
+        }}
+        self.assertFalse(update_pack_production._matching_client_passes(
+            matching, proof_bytes=2_500_001, full_bytes=10_000_000,
+            expected_update_bytes=2_500_001, require_ratio=True,
+        ))
+        self.assertTrue(update_pack_production._matching_client_passes(
+            matching, proof_bytes=2_500_000, full_bytes=10_000_000,
+            expected_update_bytes=2_500_000, require_ratio=True,
+        ))
+
     def test_small_build_failure_keeps_real_publish_return_and_mutation_audit(self):
         """Break caught: post-acceptance build failure erases observed publication facts."""
         from experiments.growth import gates, update_pack_production

@@ -1,5 +1,50 @@
 # Native service growth gates
 
+## Final rerun preflight (pending corrections)
+
+After the reviewed fair-intake integration, read-only preflight found three
+measurement gaps to correct before another expensive 100-import run: the final
+source map omitted its baseline generator, cold/warm recovery failures could lose
+their adapter metrics, and the newly explicit bootstrap lacked independent phase
+timing/failure accounting. Existing raw results remain unchanged. These are
+measuring-instrument corrections, not proof of increased production capacity.
+The final run also awaits the health implementation and a frozen-source calibration.
+
+The correction candidate passed51 focused/related tests in12.747 seconds:
+
+```sh
+python -m unittest -q tests.test_growth_gates tests.test_update_pack_production \
+  tests.test_fair_intake tests.test_fair_intake_service
+```
+
+New tests first reproduced missing generator provenance and missing bootstrap/cold
+failure metrics. A warm-prefill injection initially targeted the wrong call; it
+was corrected to the actual warm prefill. Another cold test initially threw before
+making adapter calls; it now throws after a real canonical read so retained nonzero
+request observations are tested. Unknown final canonical/parity facts remain null.
+
+Each guarded bootstrap command now has its own120-second phase clamp against the
+same absolute overall budget. Partial reports retain elapsed, seed, adapter,
+artifact/exit and observed mutation/publication facts. The final source map includes
+the baseline generator and executed build-health producer dependencies.
+
+The same slice addresses three previously deferred minor checks: exact integer
+comparison for the25% byte gate, explicit same-head semantic parity, and removal
+of an unreachable scanner branch with before/after characterization tests.
+Changing the same-head condition back to zero-download-only made its regression
+test fail as expected. Historical raw output was not edited.
+
+Frozen gate SHA-256:
+`c99f5662ff9713ea42a0fcab28482797c53323813e20ef31314259ff7dba8592`.
+Independent review is pending. No new ten-import calibration or full100-import
+timing run is established by these focused tests.
+
+Independent specification and quality review accepted all six corrections with no
+new important regression. Small diagnostics checked failed-proof accounting, the
+exact byte boundary and successive absolute-deadline clamps. A fresh controller
+run of five targeted failure/parity/byte-gate tests passed in2.295 seconds. Health
+corrections and combined CI still precede calibration and final-run authorization.
+
 These runs exercise real request adapters and service planning/publishing wrappers
 against a strict local HTTPS fixture. No public PR, paid model call or external
 network request is generated. The [harness contract](../plans/native-growth-gates.md)

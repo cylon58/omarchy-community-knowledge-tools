@@ -410,6 +410,8 @@ class UpdatePublisherTests(unittest.TestCase):
                     patch.object(service, "GitHubRead", return_value=API()), \
                     patch.object(service, "_publisher_build",
                                  return_value=(data, b"full", update)) as publisher, \
+                    patch.object(service, "_successful_build_health",
+                                 return_value={"sentinel": "health"}), \
                     patch("omarchy_knowledge.resolution.refresh_canonical",
                           side_effect=lambda value: value), \
                     patch("omarchy_knowledge.distribution.build_site",
@@ -428,6 +430,7 @@ class UpdatePublisherTests(unittest.TestCase):
         self.assertEqual(captured["update_manifest"], b"manifest")
         self.assertEqual(captured["update_bundle"], b"pack")
         self.assertEqual(captured["intake_scan"]["selected_action"], "after")
+        self.assertEqual(captured["build_health"], {"sentinel": "health"})
 
     def test_native_pages_fixture_serves_exact_artifacts_atomically(self):
         """Break caught: native evidence bypasses fixed update routes or partial state."""

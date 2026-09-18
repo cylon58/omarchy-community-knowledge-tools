@@ -206,3 +206,9 @@ compares a six-decimal rounded ratio. The saved same-head parity fields are all 
 and its matching ratio is far below the boundary. Final release review will triage
 explicit parity gating and an exact integer threshold; these are not erased from
 the experimental record or treated as reasons to repeat a successful large run.
+
+Both were subsequently corrected and independently reviewed in the
+[final harness preflight](native-growth-gates.md#final-rerun-preflight-pending-corrections):
+same-head success now requires exact semantic parity, and the byte gate compares
+integer counts. Focused boundary/mutation tests establish those corrections; the
+historical raw measurement and its source identity above remain unchanged.

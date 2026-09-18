@@ -13,6 +13,15 @@ from unittest.mock import patch
 
 
 class GrowthGateTests(unittest.TestCase):
+    def test_measured_sources_bind_generator_and_executed_build_dependencies(self):
+        """Break caught: a result omits code that constructs or projects its corpus."""
+        from experiments.growth import gates
+
+        self.assertIn("experiments/growth/baseline.py", gates.MEASURED_SOURCES)
+        self.assertIn("omarchy_knowledge/distribution.py", gates.MEASURED_SOURCES)
+        self.assertIn("omarchy_knowledge/intake_status.py", gates.MEASURED_SOURCES)
+        self.assertIn("omarchy_knowledge/service.py", gates.MEASURED_SOURCES)
+
     def test_profiles_generate_the_predeclared_record_batches(self):
         """Break caught: a named gate silently measures a smaller/easier corpus."""
         from experiments.growth.gates import _profile_batches
@@ -77,7 +86,7 @@ class GrowthGateTests(unittest.TestCase):
         from experiments.growth import gates
 
         @contextmanager
-        def phase_failure(_budget, _seconds=gates.PHASE_SECONDS):
+        def phase_failure(_budget, _alarm=None, _seconds=gates.PHASE_SECONDS):
             raise gates._DeadlineExpired("phase")
             yield
 
@@ -85,8 +94,98 @@ class GrowthGateTests(unittest.TestCase):
             result = gates.run_gate("one-import")
 
         self.assertEqual(result["status"], "failure", result)
-        self.assertEqual(result["failure_stage"], "planning")
+        self.assertEqual(result["failure_stage"], "intake-bootstrap")
         self.assertEqual(result["deadline_scope"], "phase")
+
+    def test_bootstrap_failure_retains_elapsed_seed_adapter_and_observed_facts(self):
+        """Break caught: interrupted setup disappears or invents zero work."""
+        from experiments.growth import gates
+        from omarchy_knowledge import service
+
+        original = service.main
+
+        def fail_after_publish(argv=None):
+            value = original(argv)
+            if argv and argv[0] == "publish":
+                raise RuntimeError("private response body")
+            return value
+
+        with patch.object(service, "main", fail_after_publish):
+            result = gates.run_gate("one-import")
+
+        bootstrap = result["fixture"]["intake_bootstrap"]
+        self.assertEqual(result["failure_stage"], "intake-bootstrap")
+        self.assertEqual(bootstrap["failure_kind"], "RuntimeError")
+        self.assertEqual(bootstrap["failure_phase"], "publish")
+        self.assertGreaterEqual(bootstrap["elapsed_seconds"], 0)
+        self.assertEqual(set(bootstrap["jobs"]), {"planning", "publish"})
+        self.assertTrue(bootstrap["jobs"]["planning"]["completed_return"])
+        self.assertFalse(bootstrap["jobs"]["publish"]["completed_return"])
+        self.assertIsNotNone(bootstrap["jobs"]["publish"]["seed_outcome"])
+        self.assertGreater(bootstrap["jobs"]["publish"]["adapter_calls"], 0)
+        self.assertEqual(bootstrap["canonical_mutations"], 0)
+        self.assertEqual(bootstrap["imported_records"], 0)
+        self.assertEqual(bootstrap["pages_publications"], 0)
+        self.assertNotIn("private response body", json.dumps(result))
+
+    def test_recovery_failure_retains_cold_metrics_without_inventing_results(self):
+        """Break caught: canonical validation failure erases exhausted adapter facts."""
+        from experiments.growth import gates
+        from omarchy_knowledge import canonical
+
+        original = canonical.read_canonical
+        calls = 0
+
+        def fail_cold(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            value = original(*args, **kwargs)
+            if calls == 5:
+                raise RuntimeError("private remote response")
+            return value
+
+        with patch.object(canonical, "read_canonical", fail_cold):
+            result = gates.run_gate("one-import")
+
+        cold = result["recovery"]["cold"]
+        self.assertEqual(result["failure_stage"], "recovery-distribution")
+        self.assertEqual(cold["failure_phase"], "canonical-validation")
+        self.assertEqual(cold["failure_kind"], "RuntimeError")
+        self.assertFalse(cold["completed_return"])
+        self.assertGreater(cold["calls"], 0)
+        self.assertGreater(cold["response_bytes"], 0)
+        self.assertGreaterEqual(cold["elapsed_seconds"], 0)
+        self.assertIsNone(result["counts"]["records"])
+        self.assertIsNone(result["counts"]["receipts"])
+        self.assertIsNone(result["proof"]["cold_warm_canonical_equal"])
+        self.assertNotIn("private remote response", json.dumps(result))
+
+    def test_warm_prefill_failure_retains_metrics_and_unknown_seed_outcome(self):
+        """Break caught: failed warm prefill is reported as a completed seed."""
+        from experiments.growth import gates
+        from omarchy_knowledge.github_native import GitHubRead
+
+        original = GitHubRead.seed_canonical
+        calls = 0
+
+        def fail_warm(adapter):
+            nonlocal calls
+            calls += 1
+            if calls == 6:
+                raise RuntimeError("private cached payload")
+            return original(adapter)
+
+        with patch.object(GitHubRead, "seed_canonical", fail_warm):
+            result = gates.run_gate("one-import")
+
+        warm = result["recovery"]["warm"]
+        self.assertEqual(result["failure_stage"], "recovery-distribution")
+        self.assertEqual(warm["failure_phase"], "prefill")
+        self.assertEqual(warm["failure_kind"], "RuntimeError")
+        self.assertFalse(warm["completed_return"])
+        self.assertIsNone(warm["seed_outcome"])
+        self.assertGreaterEqual(warm["calls"], 0)
+        self.assertNotIn("private cached payload", json.dumps(result))
 
     def test_gate_uses_service_plan_and_publish_wrappers_with_same_run_ids(self):
         """Break caught: direct publish omits production reconciliation semantics."""
@@ -172,6 +271,18 @@ class GrowthGateTests(unittest.TestCase):
         self.assertEqual(result["search"]["queries"][-1]["result_count"], 0)
         self.assertTrue(result["search"]["queries"][0]["adverse_evidence_visible"])
         self.assertLess(result["search"]["worst_warm_seconds"], 1.0)
+        self.assertTrue(result["fixture"]["intake_bootstrap"]["completed"])
+        self.assertIsNone(result["fixture"]["intake_bootstrap"]["failure_kind"])
+        self.assertGreaterEqual(
+            result["fixture"]["intake_bootstrap"]["elapsed_seconds"], 0)
+        self.assertEqual(
+            set(result["fixture"]["intake_bootstrap"]["jobs"]),
+            {"planning", "publish", "build"},
+        )
+        for bootstrap_job in result["fixture"]["intake_bootstrap"]["jobs"].values():
+            self.assertTrue(bootstrap_job["completed_return"])
+            self.assertIsNone(bootstrap_job["failure_kind"])
+            self.assertGreaterEqual(bootstrap_job["elapsed_seconds"], 0)
 
     def test_searches_use_one_fixed_status_time_without_freezing_elapsed_clocks(self):
         """Break caught: six search status reads cross wall-clock second boundaries."""

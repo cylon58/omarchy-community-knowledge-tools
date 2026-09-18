@@ -35,8 +35,9 @@ scheduled builds or incomplete recovery. Warn on current main/publication drift
 and measured persistent cursor reset; do not invent a grace-period duration from
 one sample. Use bounded response sizes and hard wall deadlines.
 
-GitHub run failures can notify repository watchers who enable those notifications.
-Document that setup rather than claiming an alert was delivered. Keep a standalone
+GitHub Actions notification delivery depends on account settings and who triggered
+or owns the schedule, not merely repository watching. Document that setup rather
+than claiming an alert was delivered. Keep a standalone
 CLI suitable for an independently operated monitor: a checker on GitHub Actions
 alone cannot detect an Actions-wide scheduler outage. Do not introduce a paid
 monitoring service or external notification recipient without separate approval.

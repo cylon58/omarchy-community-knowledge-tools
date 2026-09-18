@@ -120,6 +120,15 @@ def _parity(snapshot, expected):
     }
 
 
+def _matching_client_passes(matching, *, proof_bytes, full_bytes,
+                            expected_update_bytes, require_ratio):
+    return (
+        proof_bytes == expected_update_bytes
+        and (not require_ratio or 4 * proof_bytes <= full_bytes)
+        and all(matching["parity"].values())
+    )
+
+
 def _sync_client(fixture, policy, cache, expected):
     from omarchy_knowledge.canonical import sync
     from omarchy_knowledge.github_native import GitHubRead
@@ -165,8 +174,10 @@ def _publish_records(fixture, policy, number, records, cohorts, budget, alarm,
     from omarchy_knowledge.coordinator import canonical
     from omarchy_knowledge.distribution import build_site
     from omarchy_knowledge.github_native import GitHubRead, GitHubWriter, strict_json
-    from omarchy_knowledge.service import (_publisher_build, plan_run,
-                                           public_intake_scan, publish_run)
+    from omarchy_knowledge.service import (
+        _publisher_build, _successful_build_health, plan_run,
+        public_intake_scan, publish_run,
+    )
 
     mutation_start = len(fixture.successful_mutations)
     publication.update({
@@ -259,12 +270,14 @@ def _publish_records(fixture, policy, number, records, cohorts, budget, alarm,
             raise
         if update is None:
             raise RuntimeError("Publisher omitted matching direct update")
+        build_health = _successful_build_health(builder, data, proof)
         public_data = gates._refresh_offline(deepcopy(data))
         distribution = build_site(
             public_data, site, status=status["status"],
             intake_cursor=status["cursor"],
             cursor_health=status["cursor_health"],
             intake_scan=public_intake_scan(status), proof_bundle=proof,
+            build_health=build_health,
             update_manifest=update[0], update_bundle=update[1],
         )
         build_metrics = gates._adapter_metrics(
@@ -315,8 +328,9 @@ def _run_skipped_intermediate_fixture(source, budget, alarm):
                     fixture, policy,
                 )
                 fixture.publish_pages(base_proof, len(source["imports"]))
-                gates._bootstrap_fixture_intake(fixture, policy, root)
                 expected_base = gates._refresh_offline(deepcopy(base_data))
+            gates._bootstrap_fixture_intake(
+                fixture, policy, root, budget=budget, alarm=alarm)
             cache = root / "base-cache"
             with gates._phase_deadline(budget, alarm, PHASE_SECONDS):
                 cold = _sync_client(fixture, policy, cache, expected_base)
@@ -418,9 +432,13 @@ def _run_fixture_measurement(source, budget, alarm, measurement, *,
                         "contributions_in_final_pr": 2,
                     }
                     fixture.publish_pages(base_proof, base_imports)
-                    measurement["intake_bootstrap"] = gates._bootstrap_fixture_intake(
-                        fixture, policy, root)
                     expected_base = gates._refresh_offline(deepcopy(base_data))
+                measurement["active_phase"] = "intake-bootstrap"
+                bootstrap = {}
+                measurement["intake_bootstrap"] = bootstrap
+                gates._bootstrap_fixture_intake(
+                    fixture, policy, root, budget=budget, alarm=alarm,
+                    observation=bootstrap)
                 checkpoint("base-recorded", measurement)
 
                 measurement["active_phase"] = "cold-base-client"
@@ -474,9 +492,11 @@ def _run_fixture_measurement(source, budget, alarm, measurement, *,
                     )
                     measurement["clients"]["matching_base"] = matching
                 checkpoint("matching-client-recorded", measurement)
-                if (proof_bytes != len(update[0]) + len(update[1])
-                        or (require_ratio and matching["warm_to_full_ratio"] > .25)
-                        or not all(matching["parity"].values())):
+                if not _matching_client_passes(
+                        matching, proof_bytes=proof_bytes,
+                        full_bytes=len(target_proof),
+                        expected_update_bytes=len(update[0]) + len(update[1]),
+                        require_ratio=require_ratio):
                     raise RuntimeError("Matching-base client gate failed")
 
                 measurement["active_phase"] = "same-head-client"
@@ -484,7 +504,8 @@ def _run_fixture_measurement(source, budget, alarm, measurement, *,
                     same = _sync_client(fixture, policy, cache, expected_target)
                     measurement["clients"]["same_head"] = same
                 checkpoint("same-head-client-recorded", measurement)
-                if same["transport"]["proof"]["requests"] != 0:
+                if (same["transport"]["proof"]["requests"] != 0
+                        or not all(same["parity"].values())):
                     raise RuntimeError("Same-head client downloaded proof artifacts")
 
                 measurement["active_phase"] = "wrong-base-client"

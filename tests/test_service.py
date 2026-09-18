@@ -711,6 +711,17 @@ class Service(unittest.TestCase):
             with patch.dict(os.environ, env), patch('omarchy_knowledge.service.GitHubRead', return_value=api), \
                     patch('omarchy_knowledge.service.GitHubWriter', return_value=api), \
                     patch('omarchy_knowledge.service._validated_proof', return_value=b'proof-bundle-fixture'), \
+                    patch('omarchy_knowledge.service._successful_build_health', return_value={
+                        'version': 1, 'record_count': 0, 'receipt_count': 0,
+                        'proof': {'object_count': 1, 'raw_bytes': 1,
+                                  'compressed_bytes': 20},
+                        'canonical_builder': {
+                            'scope': 'successful-build-canonical-adapter',
+                            'request_attempts': None,
+                            'charged_response_bytes': None,
+                            'object_visits': None,
+                        },
+                    }), \
                     contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(main([command, *common, *arguments]), 0)
                 self.assertNotIn('GITHUB_TOKEN', os.environ)
@@ -731,6 +742,7 @@ class Service(unittest.TestCase):
         )
         self.assertEqual(validated.cursor.cycle, 1)
         self.assertEqual(validated.intake_scan.selected_action, 'after')
+        self.assertEqual(validated.build_health['record_count'], 0)
         self.assertIn('CATALOG_UNAVAILABLE', (site / 'index.html').read_text())
         self.assertEqual(api.writes, 0)
 

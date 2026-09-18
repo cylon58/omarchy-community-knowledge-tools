@@ -65,6 +65,9 @@ Independent specification and quality review passed. One minor cleanup remains:
 an unreachable defensive evaluation-limit branch has a misleading comment. The
 actual twentieth-evaluation stop is covered and works; final release review will
 triage the redundant branch.
+That branch was subsequently removed with before/after characterization tests and
+independent review in the [final harness preflight](native-growth-gates.md#final-rerun-preflight-pending-corrections).
+The original scanner result and source hashes above remain historical evidence.
 The scanner commit `f2f706b` passed Python 3.11 and 3.13 hosted checks in
 [CI run 35278691788](https://github.com/cylon58/omarchy-community-knowledge-tools/actions/runs/35278691788).
 
@@ -267,6 +270,9 @@ The raw source map identifies the measured implementation, including the baselin
 generator. A fresh controller run of both queue/failure tests passed in 0.473
 seconds. These results do not repeat the full 100-import growth gate, re-execute
 the historical 400-OID reconstruction, or establish live hosted scheduling.
+
+The reviewed integration commit `f0a1035` passed Python3.11 and3.13 hosted checks
+in [CI run35286929382](https://github.com/cylon58/omarchy-community-knowledge-tools/actions/runs/35286929382).
 
 ## Limits to keep visible
 

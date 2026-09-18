@@ -42,6 +42,7 @@ PAGE_ARTIFACTS = frozenset({
     "canonical-update.json",
     "canonical-update.bundle",
     "status.json",
+    "distribution.json",
 })
 PAGES_ATTEMPT_SECONDS = 15
 # Admission requires merge_commit_sha to bind the exact GitHub test merge to B/H.
@@ -140,7 +141,7 @@ def _pages_exchange(factory, deployment, artifact, maximum, deadline=None):
             and type(maximum) is int)
     if artifact == "canonical-update.json":
         require(maximum == MAX_MANIFEST)
-    elif artifact == "status.json":
+    elif artifact in {"status.json", "distribution.json"}:
         require(maximum == MAX_RESPONSE)
     elif artifact == "canonical-objects.bundle":
         require(maximum == MAX_COMPRESSED_BUNDLE)
@@ -151,7 +152,7 @@ def _pages_exchange(factory, deployment, artifact, maximum, deadline=None):
     deadline = time.monotonic() + 10 if deadline is None else min(deadline, time.monotonic() + 10)
     connection = factory(host, timeout=min(5, max(.001, deadline - time.monotonic())))
     try:
-        headers = {"Accept": ("application/json" if artifact == "status.json"
+        headers = {"Accept": ("application/json" if artifact in {"status.json", "distribution.json"}
                               else "application/octet-stream"),
                    "User-Agent": "omarchy-knowledge-native/1"}
         connection.request("GET", path, body=None, headers=headers)
@@ -186,16 +187,25 @@ def _pages_stdio_worker():
 
 
 class _HTTP:
-    def __init__(self, *, deployment="production", connection_factory=http.client.HTTPSConnection):
+    def __init__(self, *, deployment="production", connection_factory=http.client.HTTPSConnection,
+                 max_calls=MAX_CALLS, max_bytes=MAX_BYTES,
+                 total_seconds=TOTAL_SECONDS, health_routes=False):
         require(deployment in DEPLOYMENTS)
+        require(type(max_calls) is int and 0 < max_calls <= MAX_CALLS
+                and type(max_bytes) is int and 0 < max_bytes <= MAX_BYTES
+                and type(total_seconds) is int and 0 < total_seconds <= TOTAL_SECONDS
+                and type(health_routes) is bool)
         self.repository = DEPLOYMENTS[deployment][0]
         self.factory = connection_factory
+        self.max_calls = max_calls
+        self.max_bytes = max_bytes
+        self.health_routes = health_routes
         self.calls = 0
         self.bytes = 0
         self.graphql_calls = 0
         self.graphql_points = 0
         self.graphql_remaining = None
-        self.deadline = time.monotonic() + TOTAL_SECONDS
+        self.deadline = time.monotonic() + total_seconds
 
     def reserve_pages(self, maximum, *, reserve_calls=0, reserve_bytes=0,
                       reserve_seconds=0):
@@ -206,8 +216,8 @@ class _HTTP:
         now = time.monotonic()
         enforced = maximum + 1  # one-byte sentinel detects an oversized body
         require(maximum > 0
-                and self.calls + 1 + reserve_calls <= MAX_CALLS
-                and self.bytes + enforced + reserve_bytes <= MAX_BYTES
+                and self.calls + 1 + reserve_calls <= self.max_calls
+                and self.bytes + enforced + reserve_bytes <= self.max_bytes
                 and now < self.deadline
                 and (reserve_seconds == 0
                      or now + PAGES_ATTEMPT_SECONDS + reserve_seconds
@@ -217,7 +227,15 @@ class _HTTP:
     def charge_pages(self, amount):
         require(type(amount) is int and amount >= 0)
         self.bytes += amount
-        require(self.bytes <= MAX_BYTES and time.monotonic() < self.deadline)
+        require(self.bytes <= self.max_bytes and time.monotonic() < self.deadline)
+
+    def reserve_health_api(self, maximum):
+        """Prove a full body plus overflow sentinel fits before transfer."""
+        require(self.health_routes and type(maximum) is int and maximum > 0)
+        now = time.monotonic()
+        require(self.calls + 1 <= self.max_calls
+                and self.bytes + maximum + 1 <= self.max_bytes
+                and now < self.deadline)
 
     def request(self, method, path, body=None, token=None, *, charge_unknown=False):
         prefix = "/repos/" + self.repository
@@ -227,10 +245,18 @@ class _HTTP:
             or re.fullmatch(r"/pulls/[1-9][0-9]{0,9}", suffix)
             or re.fullmatch(r"/pulls\?state=all&sort=created&direction=asc&per_page=20&page=[1-9][0-9]{0,9}", suffix)
             or re.fullmatch(r"/pulls\?state=open&sort=created&direction=desc&per_page=20&page=(?:[1-9]|10)", suffix))
-        require((method == "GET" and allowed_read and body is None)
+        allowed_health = self.health_routes and suffix is not None and (
+            suffix == "/actions/workflows/reconcile.yml/runs?event=schedule&per_page=20&page=1"
+            or re.fullmatch(
+                r"/actions/runs/[1-9][0-9]{0,18}/attempts/[1-9][0-9]{0,9}/jobs\?per_page=20&page=1",
+                suffix,
+            ) is not None
+        )
+        require((method == "GET" and (allowed_read or allowed_health) and body is None)
                 or (method == "POST" and path == "/graphql" and body is not None))
         self.calls += 1
-        require(self.calls <= MAX_CALLS and self.bytes < MAX_BYTES and time.monotonic() < self.deadline)
+        require(self.calls <= self.max_calls and self.bytes < self.max_bytes
+                and time.monotonic() < self.deadline)
         require(body is None or len(body) <= MAX_RESPONSE)
         try:
             if self.factory is not http.client.HTTPSConnection:
@@ -254,12 +280,12 @@ class _HTTP:
         except (NativeUnavailable, OSError, subprocess.SubprocessError) as exc:
             if charge_unknown:
                 self.bytes += MAX_RESPONSE + 1
-                require(self.bytes <= MAX_BYTES and time.monotonic() < self.deadline)
+                require(self.bytes <= self.max_bytes and time.monotonic() < self.deadline)
             if isinstance(exc, NativeUnavailable):
                 raise
             raise NativeUnavailable() from exc
         self.bytes += len(raw)
-        require(self.bytes <= MAX_BYTES and time.monotonic() < self.deadline)
+        require(self.bytes <= self.max_bytes and time.monotonic() < self.deadline)
         return strict_json(raw)
 
 
@@ -523,6 +549,60 @@ class GitHubRead:
             return True
         except (NativeUnavailable, ValueError):
             return False
+
+
+class HealthRead(GitHubRead):
+    """Six-route anonymous health reader with tighter per-instance budgets."""
+
+    MAX_ATTEMPTS = 8
+    MAX_CHARGED_BYTES = 8 * 1024 * 1024
+    DEADLINE_SECONDS = 60
+
+    def __init__(self, *, deployment="production",
+                 connection_factory=http.client.HTTPSConnection):
+        super().__init__(deployment=deployment,
+                         connection_factory=connection_factory)
+        self.http = _HTTP(
+            deployment=deployment, connection_factory=connection_factory,
+            max_calls=self.MAX_ATTEMPTS,
+            max_bytes=self.MAX_CHARGED_BYTES,
+            total_seconds=self.DEADLINE_SECONDS,
+            health_routes=True,
+        )
+
+    def _health_get(self, suffix):
+        self.http.reserve_health_api(MAX_RESPONSE)
+        return self.http.request(
+            "GET", "/repos/" + self.repository_name + suffix,
+            charge_unknown=True,
+        )
+
+    def repository(self):
+        return self._health_get("")
+
+    def branch(self):
+        data = self._health_get("/git/ref/heads/main")
+        require(data["ref"] == "refs/heads/main"
+                and data["object"]["type"] == "commit")
+        return _oid(data["object"]["sha"])
+
+    def scheduled_runs(self):
+        return self._health_get(
+            "/actions/workflows/reconcile.yml/runs"
+            "?event=schedule&per_page=20&page=1"
+        )
+
+    def run_attempt_jobs(self, run_id, attempt):
+        require(type(run_id) is int and 0 < run_id <= 2**63 - 1
+                and type(attempt) is int and 0 < attempt <= 2_147_483_647)
+        return self._health_get(
+            "/actions/runs/" + str(run_id) + "/attempts/" + str(attempt)
+            + "/jobs?per_page=20&page=1"
+        )
+
+    def health_artifact(self, artifact):
+        require(artifact in {"status.json", "distribution.json"})
+        return self._pages(artifact, MAX_RESPONSE)
 
 
 class APIObjects:

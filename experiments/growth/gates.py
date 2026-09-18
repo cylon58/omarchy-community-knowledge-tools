@@ -42,6 +42,7 @@ PROFILES = {
 }
 MEASURED_SOURCES = (
     "experiments/growth/gates.py",
+    "experiments/growth/baseline.py",
     "omarchy_knowledge/canonical.py",
     "omarchy_knowledge/coordinator.py",
     "omarchy_knowledge/discovery.py",
@@ -53,6 +54,12 @@ MEASURED_SOURCES = (
     "omarchy_knowledge/intake_status.py",
     "omarchy_knowledge/service.py",
 )
+
+
+def _failure_kind(error):
+    """Return only a bounded exception class name, never exception text."""
+    name = type(error).__name__
+    return name if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,79}", name) else "Exception"
 
 
 class _DeadlineExpired(Exception):
@@ -748,6 +755,44 @@ def _run_job(fixture, adapter, action):
         raise
 
 
+def _recovery_pass(report, name, fixture, adapter, action, *, seed=False):
+    """Run one recovery path while retaining facts observed before failure."""
+    request_start = len(fixture.requests)
+    started = time.monotonic()
+    seed_outcome = None
+    failure_phase = "prefill" if seed else "canonical-validation"
+    try:
+        if seed:
+            seed_outcome = adapter.seed_canonical()
+        failure_phase = "canonical-validation"
+        data = action("canonical-validation")
+        failure_phase = "proof-validation"
+        proof = action("proof-validation", data)
+    except BaseException as error:
+        report[name] = {
+            **_adapter_metrics(
+                adapter, seed_outcome=seed_outcome,
+                elapsed=time.monotonic() - started, completed_return=False,
+                request_start=request_start, fixture=fixture,
+            ),
+            "phase": name,
+            "failure_phase": failure_phase,
+            "failure_kind": _failure_kind(error),
+        }
+        raise
+    report[name] = {
+        **_adapter_metrics(
+            adapter, seed_outcome=seed_outcome,
+            elapsed=time.monotonic() - started, completed_return=True,
+            request_start=request_start, fixture=fixture,
+        ),
+        "phase": name,
+        "failure_phase": None,
+        "failure_kind": None,
+    }
+    return data, proof
+
+
 def _source_hashes():
     return {path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
             for path in MEASURED_SOURCES}
@@ -921,7 +966,8 @@ def _query_specs(profile: str, batches: list[list[dict]]):
 
 
 def _scheduled_service_entrypoints(fixture, policy, root, *, run_id, now,
-                                   expected_build_exit=0):
+                                   expected_build_exit=0, budget=None, alarm=None,
+                                   observation=None):
     """Run the guarded production plan/publish/build commands on fixture HTTPS."""
     import contextlib
     import io
@@ -956,9 +1002,16 @@ def _scheduled_service_entrypoints(fixture, policy, root, *, run_id, now,
         "--toolkit-revision", policy.toolkit_revision,
     ]
 
+    jobs = observation.setdefault("jobs", {}) if observation is not None else {}
+
     def invoke(command, arguments):
+        job_name = "planning" if command == "plan" else command
         request_start = len(fixture.requests)
+        started = time.monotonic()
         adapters = []
+        seed = {"outcome": None}
+        metrics = {}
+        jobs[job_name] = metrics
 
         def reader(*_args, **kwargs):
             adapter = NativeRead(
@@ -966,6 +1019,14 @@ def _scheduled_service_entrypoints(fixture, policy, root, *, run_id, now,
                 read_token=kwargs.get("read_token"),
                 connection_factory=fixture.connection_factory,
             )
+            original_seed = adapter.seed_canonical
+
+            def observed_seed():
+                outcome = original_seed()
+                seed["outcome"] = outcome
+                return outcome
+
+            adapter.seed_canonical = observed_seed
             adapters.append(adapter)
             return adapter
 
@@ -974,54 +1035,102 @@ def _scheduled_service_entrypoints(fixture, policy, root, *, run_id, now,
                 token, deployment=kwargs.get("deployment", policy.deployment),
                 connection_factory=fixture.connection_factory,
             )
+            original_seed = adapter.seed_canonical
+
+            def observed_seed():
+                outcome = original_seed()
+                seed["outcome"] = outcome
+                return outcome
+
+            adapter.seed_canonical = observed_seed
             adapters.append(adapter)
             return adapter
 
-        with patch.dict(os.environ, environment), \
-                patch.object(service, "GitHubRead", side_effect=reader), \
-                patch.object(service, "GitHubWriter", side_effect=writer), \
-                patch.object(service, "_utc_now", return_value=now), \
-                patch("omarchy_knowledge.resolution.refresh_canonical",
-                      side_effect=_refresh_offline), \
-                contextlib.redirect_stdout(io.StringIO()):
-            exit_code = service.main([command, *common, *arguments])
-        if len(adapters) != 1:
-            raise RuntimeError("Service command did not create one bounded adapter")
-        adapter = adapters[0]
-        requests = fixture.requests[request_start:]
-        return exit_code, {
-            "adapter_calls": adapter.http.calls,
-            "adapter_response_bytes": adapter.http.bytes,
-            "graphql_calls": adapter.http.graphql_calls,
-            "graphql_points": adapter.http.graphql_points,
-            "emulated_https_requests": len(requests),
-            "request_methods": {
-                method: sum(row["method"] == method for row in requests)
-                for method in ("GET", "POST")
-            },
-        }
+        completed = False
+        failure = None
+        try:
+            deadline = (_phase_deadline(budget, alarm, PHASE_SECONDS)
+                        if budget is not None else contextlib.nullcontext())
+            with deadline, patch.dict(os.environ, environment), \
+                    patch.object(service, "GitHubRead", side_effect=reader), \
+                    patch.object(service, "GitHubWriter", side_effect=writer), \
+                    patch.object(service, "_utc_now", return_value=now), \
+                    patch("omarchy_knowledge.resolution.refresh_canonical",
+                          side_effect=_refresh_offline), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                exit_code = service.main([command, *common, *arguments])
+            completed = True
+            if len(adapters) != 1:
+                raise RuntimeError("Service command did not create one bounded adapter")
+            return exit_code, metrics
+        except BaseException as error:
+            failure = error
+            raise
+        finally:
+            adapter = adapters[0] if len(adapters) == 1 else None
+            requests = fixture.requests[request_start:]
+            metrics.update({
+                "seed_outcome": seed["outcome"],
+                "adapter_calls": (adapter.http.calls if adapter is not None else None),
+                "adapter_response_bytes": (
+                    adapter.http.bytes if adapter is not None else None),
+                "graphql_calls": (
+                    adapter.http.graphql_calls if adapter is not None else None),
+                "graphql_points": (
+                    adapter.http.graphql_points if adapter is not None else None),
+                "emulated_https_requests": len(requests),
+                "request_methods": {
+                    method: sum(row["method"] == method for row in requests)
+                    for method in ("GET", "POST")
+                },
+                "elapsed_seconds": round(time.monotonic() - started, 6),
+                "completed_return": completed,
+                "failure_kind": (_failure_kind(failure)
+                                 if failure is not None else None),
+            })
 
     plan_exit, planning_metrics = invoke(
         "plan", ["--output", str(plan_path)])
+    if observation is not None:
+        observation["entrypoint_exit_codes"]["plan"] = plan_exit
     if plan_exit != 0:
+        planning_metrics["failure_kind"] = "ServiceExit"
         raise RuntimeError("Scheduled planning entrypoint failed")
     plan_raw = plan_path.read_bytes()
     if not 0 < len(plan_raw) <= MAX_PLAN:
         raise RuntimeError("Plan artifact exceeded bound")
     planned = strict_json(plan_raw)
+    if observation is not None:
+        observation.update({
+            "scan_outcome": planned["scan_outcome"],
+            "stop_reason": planned["stop_reason"],
+            "counters": planned["counters"],
+            "plan_artifact_bytes": len(plan_raw),
+        })
 
     publish_exit, publish_metrics = invoke(
         "publish", ["--input", str(plan_path), "--output", str(publish_path)])
+    if observation is not None:
+        observation["entrypoint_exit_codes"]["publish"] = publish_exit
     if publish_exit != 0:
+        publish_metrics["failure_kind"] = "ServiceExit"
         raise RuntimeError("Scheduled publish entrypoint failed")
     publish_raw = publish_path.read_bytes()
     if not 0 < len(publish_raw) <= 64 * 1024:
         raise RuntimeError("Publish artifact exceeded bound")
     published = strict_json(publish_raw)
+    if observation is not None:
+        observation.update({
+            "selected_action": published["selected_action"],
+            "publish_artifact_bytes": len(publish_raw),
+        })
 
     build_exit, build_metrics = invoke(
         "build", ["--input", str(publish_path), "--output", str(site)])
+    if observation is not None:
+        observation["entrypoint_exit_codes"]["build"] = build_exit
     if build_exit != expected_build_exit:
+        build_metrics["failure_kind"] = "ServiceExit"
         raise RuntimeError("Scheduled build entrypoint had unexpected result")
     proof = public_status = None
     if build_exit == 0:
@@ -1040,43 +1149,84 @@ def _scheduled_service_entrypoints(fixture, policy, root, *, run_id, now,
     }
 
 
-def _bootstrap_fixture_intake(fixture, policy, root):
+def _bootstrap_fixture_intake(fixture, policy, root, *, budget=None, alarm=None,
+                              observation=None):
     """Run the explicit scheduled legacy bootstrap before measured imports."""
     run_id = 2_147_483_647
+    observation = observation if observation is not None else {}
+    observation.update({
+        "modeled_prior": "validated-legacy-from-known-initial-canonical",
+        "trusted_lane": "scheduled", "selected_action": None,
+        "scan_outcome": None, "stop_reason": None, "counters": None,
+        "canonical_mutations": None, "imported_records": None,
+        "pages_publications": None, "pages_bundle_bytes": None,
+        "status_bytes": None, "status_sha256": None,
+        "emulated_https_requests": None, "methods": None,
+        "plan_artifact_bytes": None, "publish_artifact_bytes": None,
+        "entrypoint_exit_codes": {"plan": None, "publish": None, "build": None},
+        "jobs": {},
+        "elapsed_seconds": None, "completed": False,
+        "failure_phase": None, "failure_kind": None,
+    })
     all_request_start = len(fixture.requests)
     mutation_start = len(fixture.successful_mutations)
-    transaction = _scheduled_service_entrypoints(
-        fixture, policy, Path(root) / "bootstrap-transaction",
-        run_id=run_id, now="2026-09-17T16:00:00Z",
-    )
-    planned, published = transaction["planned"], transaction["published"]
-    if (published["prior_state"] != "legacy"
-            or published["selected_action"] != "after"
-            or not published["pages_publishable"]
-            or published["status"]["status"] != "idle"):
-        raise RuntimeError("Synthetic legacy bootstrap was not publishable")
-    proof, status = transaction["proof"], transaction["public_status"]
-    fixture.bootstrap_pages(proof, status)
-    requests = fixture.requests[all_request_start:]
-    mutations = fixture.successful_mutations[mutation_start:]
-    return {
-        "modeled_prior": "validated-legacy-from-known-initial-canonical",
-        "trusted_lane": "scheduled", "selected_action": "after",
-        "scan_outcome": planned["scan_outcome"],
-        "stop_reason": planned["stop_reason"],
-        "counters": planned["counters"],
-        "canonical_mutations": len(mutations), "imported_records": 0,
-        "pages_publications": 1,
-        "pages_bundle_bytes": len(proof), "status_bytes": len(status),
-        "status_sha256": hashlib.sha256(status).hexdigest(),
-        "emulated_https_requests": len(requests),
-        "methods": {method: sum(row["method"] == method for row in requests)
-                    for method in ("GET", "POST")},
-        "plan_artifact_bytes": transaction["plan_artifact_bytes"],
-        "publish_artifact_bytes": transaction["publish_artifact_bytes"],
-        "entrypoint_exit_codes": transaction["entrypoint_exit_codes"],
-        "jobs": transaction["jobs"],
-    }
+    pages_before = fixture.pages_state
+    started = time.monotonic()
+    try:
+        transaction = _scheduled_service_entrypoints(
+            fixture, policy, Path(root) / "bootstrap-transaction",
+            run_id=run_id, now="2026-09-17T16:00:00Z",
+            budget=budget, alarm=alarm, observation=observation,
+        )
+        planned, published = transaction["planned"], transaction["published"]
+        if (published["prior_state"] != "legacy"
+                or published["selected_action"] != "after"
+                or not published["pages_publishable"]
+                or published["status"]["status"] != "idle"):
+            raise RuntimeError("Synthetic legacy bootstrap was not publishable")
+        proof, status = transaction["proof"], transaction["public_status"]
+        observation.update({
+            "selected_action": "after",
+            "scan_outcome": planned["scan_outcome"],
+            "stop_reason": planned["stop_reason"],
+            "counters": planned["counters"],
+            "pages_bundle_bytes": len(proof), "status_bytes": len(status),
+            "status_sha256": hashlib.sha256(status).hexdigest(),
+            "plan_artifact_bytes": transaction["plan_artifact_bytes"],
+            "publish_artifact_bytes": transaction["publish_artifact_bytes"],
+            "entrypoint_exit_codes": transaction["entrypoint_exit_codes"],
+        })
+        fixture.bootstrap_pages(proof, status)
+        observation["completed"] = True
+        return observation
+    except BaseException as error:
+        observation["failure_kind"] = _failure_kind(error)
+        observation["failure_phase"] = next(
+            (name for name in ("planning", "publish", "build")
+             if name not in observation["jobs"]
+             or not observation["jobs"][name]["completed_return"]
+             or observation["jobs"][name]["failure_kind"] is not None),
+            "publication",
+        )
+        raise
+    finally:
+        requests = fixture.requests[all_request_start:]
+        mutations = fixture.successful_mutations[mutation_start:]
+        observation.update({
+            "elapsed_seconds": round(time.monotonic() - started, 6),
+            "canonical_mutations": len(mutations),
+            "imported_records": sum(
+                row["addition_count"]
+                for row in mutations
+                if row["headline"] == "Omarchy knowledge snapshot import"
+            ),
+            "pages_publications": int(fixture.pages_state != pages_before),
+            "emulated_https_requests": len(requests),
+            "methods": {
+                method: sum(row["method"] == method for row in requests)
+                for method in ("GET", "POST")
+            },
+        })
 
 
 def run_gate(profile: str, *, artifact_output: Path | None = None):
@@ -1105,13 +1255,19 @@ def run_gate(profile: str, *, artifact_output: Path | None = None):
                 from omarchy_knowledge.coordinator import Policy, canonical
                 from omarchy_knowledge.distribution import build_site
                 from omarchy_knowledge.github_native import GitHubRead, GitHubWriter, strict_json
-                from omarchy_knowledge.service import (_validated_proof, plan_run,
-                                                       public_intake_scan,
-                                                       publish_run)
+                from omarchy_knowledge.service import (
+                    _successful_build_health, _validated_proof, plan_run,
+                    public_intake_scan, publish_run,
+                )
 
                 policy = Policy("a" * 40, "b" * 40)
-                report["fixture"]["intake_bootstrap"] = _bootstrap_fixture_intake(
-                    fixture, policy, root)
+                stage = "intake-bootstrap"
+                bootstrap = {}
+                report["fixture"]["intake_bootstrap"] = bootstrap
+                _bootstrap_fixture_intake(
+                    fixture, policy, root, budget=budget, alarm=alarm,
+                    observation=bootstrap,
+                )
                 for number, records in enumerate(batches, 1):
                     item = {"number": number, "record_count": len(records),
                             "candidate_preparation_seconds": None,
@@ -1175,6 +1331,8 @@ def run_gate(profile: str, *, artifact_output: Path | None = None):
                             def build(api):
                                 current = read_canonical(api, policy, now=FIXED_NOW)
                                 proof = _validated_proof(api, policy, current)
+                                build_health = _successful_build_health(
+                                    api, current, proof)
                                 data = _refresh_offline(current)
                                 site = root / "sites" / str(number)
                                 distribution = build_site(
@@ -1182,7 +1340,7 @@ def run_gate(profile: str, *, artifact_output: Path | None = None):
                                     intake_cursor=publish_status["cursor"],
                                     cursor_health=publish_status["cursor_health"],
                                     intake_scan=public_intake_scan(publish_status),
-                                    proof_bundle=proof)
+                                    proof_bundle=proof, build_health=build_health)
                                 return current, proof, distribution, site
 
                             built, item["jobs"]["build"] = _run_job(
@@ -1211,28 +1369,29 @@ def run_gate(profile: str, *, artifact_output: Path | None = None):
                 with _phase_deadline(budget, alarm):
                     cold = GitHubRead(read_token=SYNTHETIC_TOKEN,
                                       connection_factory=fixture.connection_factory)
-                    cold_request_start = len(fixture.requests)
-                    cold_started = time.monotonic()
-                    cold_data = read_canonical(cold, policy, now=FIXED_NOW)
-                    cold_proof = _validated_proof(cold, policy, cold_data)
-                    cold_seconds = time.monotonic() - cold_started
-                    report["recovery"]["cold"] = _adapter_metrics(
-                        cold, seed_outcome=None, elapsed=cold_seconds,
-                        completed_return=True, request_start=cold_request_start,
-                        fixture=fixture)
+                    cold_data, cold_proof = _recovery_pass(
+                        report["recovery"], "cold", fixture, cold,
+                        lambda phase, data=None: (
+                            read_canonical(cold, policy, now=FIXED_NOW)
+                            if phase == "canonical-validation"
+                            else _validated_proof(cold, policy, data)
+                        ),
+                    )
+                    cold_seconds = report["recovery"]["cold"]["elapsed_seconds"]
 
                     warm = GitHubRead(read_token=SYNTHETIC_TOKEN,
                                       connection_factory=fixture.connection_factory)
-                    warm_request_start = len(fixture.requests)
-                    warm_started = time.monotonic()
-                    warm_seed = warm.seed_canonical()
-                    warm_data = read_canonical(warm, policy, now=FIXED_NOW)
-                    warm_proof = _validated_proof(warm, policy, warm_data)
-                    warm_proof_seconds = time.monotonic() - warm_started
-                    report["recovery"]["warm"] = _adapter_metrics(
-                        warm, seed_outcome=warm_seed, elapsed=warm_proof_seconds,
-                        completed_return=True, request_start=warm_request_start,
-                        fixture=fixture)
+                    warm_data, warm_proof = _recovery_pass(
+                        report["recovery"], "warm", fixture, warm,
+                        lambda phase, data=None: (
+                            read_canonical(warm, policy, now=FIXED_NOW)
+                            if phase == "canonical-validation"
+                            else _validated_proof(warm, policy, data)
+                        ),
+                        seed=True,
+                    )
+                    warm_seed = report["recovery"]["warm"]["seed_outcome"]
+                    warm_proof_seconds = report["recovery"]["warm"]["elapsed_seconds"]
                     if not warm_seed:
                         raise RuntimeError("Published proof was not reusable")
 
@@ -1347,7 +1506,7 @@ def run_gate(profile: str, *, artifact_output: Path | None = None):
                                       else "PhaseDeadlineExpired")
         else:
             report["status"] = "failure"
-            report["failure_kind"] = type(error).__name__
+            report["failure_kind"] = _failure_kind(error)
         report["failure_stage"] = stage
         metrics = getattr(error, "_growth_job_metrics", None)
         if metrics is not None and report["imports"]:

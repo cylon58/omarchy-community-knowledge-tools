@@ -541,6 +541,44 @@ class PublicIntakeStatus:
     cursor: IntakeCursor | None
     cursor_health: CursorHealth | None
     intake_scan: IntakeScan | None
+    build_health: dict[str, Any] | None = None
+
+
+def validate_build_health(value: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate exact measured build metadata; null means not measured."""
+    value = _exact(value, {
+        "version", "record_count", "receipt_count", "proof",
+        "canonical_builder",
+    })
+    _require(type(value["version"]) is int and value["version"] == 1)
+    for field in ("record_count", "receipt_count"):
+        _require(type(value[field]) is int and 0 <= value[field] <= 4096)
+    proof = _exact(value["proof"], {
+        "object_count", "raw_bytes", "compressed_bytes",
+    })
+    _require(type(proof["object_count"]) is int
+             and 1 <= proof["object_count"] <= 5000)
+    _require(type(proof["raw_bytes"]) is int
+             and 1 <= proof["raw_bytes"] <= 20 * 1024 * 1024)
+    _require(type(proof["compressed_bytes"]) is int
+             and 1 <= proof["compressed_bytes"] <= 16 * 1024 * 1024)
+    builder = _exact(value["canonical_builder"], {
+        "scope", "request_attempts", "charged_response_bytes", "object_visits",
+    })
+    _require(builder["scope"] == "successful-build-canonical-adapter")
+    for field, maximum in (("request_attempts", 512),
+                           ("charged_response_bytes", 32 * 1024 * 1024)):
+        measured = builder[field]
+        _require(measured is None or
+                 (type(measured) is int and 0 <= measured <= maximum))
+    _require(builder["object_visits"] is None)
+    return {
+        "version": 1,
+        "record_count": value["record_count"],
+        "receipt_count": value["receipt_count"],
+        "proof": dict(proof),
+        "canonical_builder": dict(builder),
+    }
 
 
 def validate_safe_status(value: Mapping[str, Any]) -> dict[str, Any]:
@@ -666,8 +704,12 @@ def validate_intake_status(
     legacy_fields = fields - _SAFE_FIELDS
     if legacy_fields == _PUBLIC_FIELDS:
         kind = PublicStatusKind.LEGACY
-    elif legacy_fields == _PUBLIC_FIELDS | {
-            "intake_cursor", "cursor_health", "intake_scan"}:
+    elif legacy_fields in (_PUBLIC_FIELDS | {
+            "intake_cursor", "cursor_health", "intake_scan"},
+            _PUBLIC_FIELDS | {
+                "intake_cursor", "cursor_health", "intake_scan",
+                "build_health",
+            }):
         kind = PublicStatusKind.CURRENT
     else:
         raise ValueError("invalid public intake status")
@@ -685,8 +727,15 @@ def validate_intake_status(
     _require(value["pr_behavior"] == "snapshots-imported-prs-remain-open")
     _validate_upstream(value["upstream"])
     if kind is PublicStatusKind.LEGACY:
-        return PublicIntakeStatus(kind, source_revision, None, None, None)
+        return PublicIntakeStatus(kind, source_revision, None, None, None, None)
     cursor = IntakeCursor.from_mapping(value["intake_cursor"])
     health = CursorHealth.from_mapping(value["cursor_health"])
     intake_scan = IntakeScan.from_mapping(value["intake_scan"])
-    return PublicIntakeStatus(kind, source_revision, cursor, health, intake_scan)
+    build_health = (validate_build_health(value["build_health"])
+                    if "build_health" in value else None)
+    if build_health is not None:
+        _require(build_health["record_count"] == records
+                 and build_health["receipt_count"] >= receipted)
+    return PublicIntakeStatus(
+        kind, source_revision, cursor, health, intake_scan, build_health,
+    )

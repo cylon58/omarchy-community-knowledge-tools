@@ -52,6 +52,11 @@ def _parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser('routes', help='print owned canonical routes; external projects remain unselected')
 
+    health = commands.add_parser(
+        'health', help='check one fixed public service deployment read-only')
+    health.add_argument('--deployment', choices=('production', 'pilot'),
+                        required=True)
+
     sync = commands.add_parser('sync', help='verify canonical GitHub main objects and atomically cache receipts')
     sync.add_argument('--cache', required=True)
     sync.add_argument('--config', help='rendered deployment.json with reviewed immutable toolkit/policy pins')
@@ -261,6 +266,11 @@ def _dispatch(args) -> Any:
 def main(argv=None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
+    if args.command == "health":
+        from .health import check
+        report = check(args.deployment)
+        _print(report)
+        return 1 if report["overall"] == "failure" else 0
     if args.command == "admission-check":
         from .admission import TreeCandidateV1, check_tree
         from .git_objects import GitObjectReader

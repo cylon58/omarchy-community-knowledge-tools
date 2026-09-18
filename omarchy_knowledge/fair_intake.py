@@ -275,14 +275,6 @@ def scan(
             elif (row.pull_request, row.head) in imported:
                 counts["imported"] += 1
             else:
-                if counts["evaluations"] == MAX_EVALUATIONS:
-                    # This branch is reachable only when non-candidates followed
-                    # the twentieth evaluation on a fetched page.
-                    counts["rows_consumed"] -= 1
-                    offset = index
-                    after_pull_request = rows[index - 1].pull_request if index else None
-                    return transition(ScanOutcome.NO_ELIGIBLE,
-                                      StopReason.PREPARATION_LIMIT)
                 evaluation = evaluate(row)
                 counts["evaluations"] += 1
                 if type(evaluation) is not CandidateEvaluation:

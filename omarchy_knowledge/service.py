@@ -349,6 +349,18 @@ def _publisher_build(api, policy, *, now=None):
     return data, proof, update
 
 
+def _successful_build_health(api, data, proof):
+    """Project the completed canonical-builder scope before upstream refresh."""
+    from .distribution import build_health_projection
+
+    http = getattr(api, 'http', None)
+    return build_health_projection(
+        data, proof,
+        api_calls=getattr(http, 'calls', None),
+        response_bytes=getattr(http, 'bytes', None),
+    )
+
+
 def guard_event(policy, environment, event):
     """Trusted event identity/ref gate, before token use or any API call."""
     require(environment.get('GITHUB_REPOSITORY') == policy.repository
@@ -565,6 +577,7 @@ def main(argv=None):
             status = envelope['status']
             api = GitHubRead(deployment=args.deployment, read_token=token)
             data, proof, update = _publisher_build(api, policy)
+            build_health = _successful_build_health(api, data, proof)
             data = refresh_canonical(data)
             manifest, pack = update if update is not None else (None, None)
             value = build_site(
@@ -572,6 +585,7 @@ def main(argv=None):
                 intake_cursor=cursor.to_mapping(),
                 cursor_health=health.to_mapping(),
                 intake_scan=public_intake_scan(envelope),
+                build_health=build_health,
                 update_manifest=manifest, update_bundle=pack,
             )
         if args.command != 'build':

@@ -74,7 +74,8 @@ of full proof bytes, with safe wrong-base fallback, unchanged-head reuse and exa
 evidence parity. See the [production-path measurement](testing/update-pack-production.md).
 Full validation CPU and older-cache downloads remain unchanged; the full pipeline
 and live rollout gates are still separate. Two low-severity harness hardening
-findings remain visible for final review.
+findings were subsequently corrected with focused tests and independent review;
+their original discovery remains in the notebook.
 
 The [pure queue scanner](testing/fair-intake.md) also passed its mixed1,000-PR
 fixture, reaching all200 eligible heads in201 simulated runs within every per-run

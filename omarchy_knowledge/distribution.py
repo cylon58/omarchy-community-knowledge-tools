@@ -10,11 +10,40 @@ from .snapshots import (_canonical, _open_directory, _write_regular_at,
                         _bounded_directory_names, MAX_SNAPSHOT_BYTES)
 
 
+def build_health_projection(data, proof_bundle, *, api_calls=None,
+                            response_bytes=None):
+    """Measure one successful builder execution without another network read."""
+    from .object_bundle import decode
+
+    objects = decode(proof_bundle, data['source']['data_revision'])
+    for value in (api_calls, response_bytes):
+        if value is not None and (type(value) is not int or value < 0):
+            raise ValueError('Invalid canonical builder measurement')
+    return {
+        'version': 1,
+        'record_count': len(data['records']),
+        'receipt_count': len(data['receipts']),
+        'proof': {
+            'object_count': len(objects),
+            'raw_bytes': sum(len(raw) for raw in objects.values()),
+            'compressed_bytes': len(proof_bundle),
+        },
+        'canonical_builder': {
+            'scope': 'successful-build-canonical-adapter',
+            'request_attempts': api_calls,
+            'charged_response_bytes': response_bytes,
+            # APIObjects.visits resets per enforcement window; it is not a
+            # whole-build total and must remain unknown in this projection.
+            'object_visits': None,
+        },
+    }
+
+
 def build_site(data, output, *, status, intake_cursor=None,
                cursor_health=None, intake_scan=None, proof_bundle=None,
-               update_manifest=None, update_bundle=None):
+               update_manifest=None, update_bundle=None, build_health=None):
     from .intake_status import (CursorHealth, IntakeScan,
-                                validate_safe_status)
+                                validate_build_health, validate_safe_status)
     from .fair_intake import IntakeCursor
     status = validate_safe_status(status)
     projection = {}
@@ -28,6 +57,8 @@ def build_site(data, output, *, status, intake_cursor=None,
             'cursor_health': CursorHealth.from_mapping(cursor_health).to_mapping(),
             'intake_scan': IntakeScan.from_mapping(intake_scan).to_mapping(),
         }
+    if build_health is not None:
+        projection['build_health'] = validate_build_health(build_health)
     with tempfile.TemporaryDirectory(prefix='omarchy-export-') as temporary:
         snapshot = Path(temporary) / 'snapshot'
         snapshot_data(data, snapshot)
