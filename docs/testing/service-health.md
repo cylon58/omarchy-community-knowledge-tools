@@ -2,7 +2,8 @@
 
 Status: checker/projection and unattended workflow reviewed; hosted CI and a manual
 watcher run passed. Pilot publication has current metrics; production remains on
-the old service. New-release unattended scheduling remains a promotion gate.
+the old service. The subsequent unattended observation failed scheduled-success
+freshness on both services, holding promotion without changing the threshold.
 See the [live rollout notebook](growth-pilot-rollout.md). This notebook records the
 read-only checker separately from the service it observes. The
 [design](../plans/service-health-design.md) and

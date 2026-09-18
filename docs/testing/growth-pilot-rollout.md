@@ -1,7 +1,8 @@
 # Bounded growth pilot rollout
 
 Status: manual pilot transition and authenticated client recovery passed;
-new-release unattended scheduling and production promotion remain pending.
+the bounded unattended observation failed scheduled-success freshness. Production
+promotion and the user's installed-client update remain held.
 
 ## Reviewed inputs and rollback
 
@@ -128,3 +129,55 @@ and restore the three original files in a new commit—not a force push/reset.
 Restoring the old service after current-format publication will republish legacy
 status and discard cursor telemetry, so that regression requires explicit review.
 See [recovery procedures](../recovery.md). No rollback was required for this manual run.
+
+## Unattended observation: operational gate failed
+
+No extra dispatch was used to substitute for scheduled execution. Both pilot
+workflows stayed enabled. After the configured 01:17 and02:17 UTC slots, the
+bounded [schedule listing at02:30:28UTC](../../experiments/growth/results/growth-pilot-schedule-window-end.json)
+still showed the latest scheduled pilot run at the old `5490d23` revision. The
+new watcher's [scheduled-run listing](../../experiments/growth/results/growth-watcher-schedule-window-end.json)
+was empty after its first configured01:43 slot. These are timestamped selected
+API fields, not unmodified full API response bodies; `observed_at` is the local
+capture time. The precise cause of delay or omission is not established.
+
+At02:30UTC on2026-09-18, the unchanged health CLI produced these results:
+
+| Observation | Pilot | Production (not upgraded) |
+| --- | --- | --- |
+| CLI exit / overall | 1 / failure | 1 / failure |
+| Last scheduled Pages-job age | 7,283 seconds | 7,640 seconds |
+| Required maximum age | 7,200 seconds | 7,200 seconds |
+| Published-generation age | 5,731 seconds | 7,658 seconds |
+| Generation maximum age | 14,400 seconds | 14,400 seconds |
+| Record / receipt counts | 4 / 4 | 26 / 26 |
+| Main / Pages agreement | Matching | Matching |
+| Data availability / intake checks | OK / OK | OK / OK |
+
+The raw [pilot report](../../experiments/growth/results/growth-pilot-health-window-end.json)
+and [production report](../../experiments/growth/results/growth-production-health-window-end.json)
+both identify only `stale_successful_scheduled_pages_job` as the required failure.
+Each used six fixed anonymous reads. This is not a data-integrity failure or proof
+that the sites were unavailable. The old production service also exceeded the
+same freshness limit; the observation does not establish a regression caused by
+the new pilot code. Unknown upstream evidence and object-visit usage stay unknown.
+
+No threshold was relaxed and no immediate repeat was selected to erase the
+failure. Production remains pinned to `9720575…`, while the pilot remains at the
+reviewed `1a15dce…` release with both workflows active. The hosted watcher also
+remains enabled, but its manual success is not an unattended-delivery guarantee.
+No external scheduler, new credential, notification recipient, paid provider or
+user-client installation was introduced to work around this gate.
+
+Before broad launch, choose and review the operational contract: reliable
+independent triggering would require a separate authority/credential and failure
+model; accepting GitHub's observed best-effort timing would change the declared
+freshness requirement and must be an explicit decision, not a silent test change.
+Until that is resolved and new scheduled evidence is accepted, do not describe
+the service as meeting the two-hour unattended freshness target.
+
+Independent review of all four closing artifacts passed: the raw observations
+support this operational hold, not a data-integrity regression or a diagnosed
+provider cause. Continued scheduling investigation can keep the existing target;
+new triggering authority or changed freshness expectations requires a separate,
+explicit reviewed decision. No such change was made in this session.

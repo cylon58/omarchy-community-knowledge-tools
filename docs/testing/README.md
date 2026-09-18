@@ -67,6 +67,9 @@ interpretation, remaining limits and live promotion gates. A passing local scale
 test is not proof of reliable hosted scheduling.
 The [pilot rollout notebook](growth-pilot-rollout.md) records the immutable pins,
 manual transition, authenticated recovery and hosted health artifacts separately.
+Its closing unattended observation failed scheduled-success freshness on both
+pilot and unchanged production. The data checks remained healthy; production
+promotion is held without relaxing the declared requirement.
 
 ## Corrected assumptions
 

@@ -6,7 +6,8 @@ Latest milestone: the reviewed final 500-record/100-import native run passed,
 including cold recovery, authenticated receipts and adverse-evidence parity.
 Independent evidence review permitted bounded pilot rollout; its manual transition,
 authenticated client sync and hosted health watcher passed. Production promotion
-and new-release unattended scheduling remain unproven. See the
+is held after the unattended observation exceeded the two-hour scheduled-success
+freshness requirement; the unchanged production service also exceeded it. See the
 [supported beta envelope](testing/supported-beta-envelope.md).
 
 ## Approved direction
