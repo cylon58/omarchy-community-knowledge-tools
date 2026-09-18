@@ -65,6 +65,8 @@ fixture definition, result files, failures, runtime environment and limitations.
 See the [tested beta envelope](supported-beta-envelope.md) for the combined
 interpretation, remaining limits and live promotion gates. A passing local scale
 test is not proof of reliable hosted scheduling.
+The [pilot rollout notebook](growth-pilot-rollout.md) records the immutable pins,
+manual transition, authenticated recovery and hosted health artifacts separately.
 
 ## Corrected assumptions
 

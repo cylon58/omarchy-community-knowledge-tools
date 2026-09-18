@@ -1,0 +1,108 @@
+{
+  "availability": {
+    "reason": null,
+    "status": "ok"
+  },
+  "capacity": {
+    "measurements": {
+      "canonical_builder_charged_response_bytes": {
+        "limit": 33554432,
+        "scope": "successful-build-canonical-adapter",
+        "used": 17174
+      },
+      "canonical_builder_request_attempts": {
+        "limit": 512,
+        "scope": "successful-build-canonical-adapter",
+        "used": 9
+      },
+      "distribution_bytes": {
+        "limit": 33554432,
+        "scope": "published-site-files-plus-raw-manifest",
+        "used": 48065
+      },
+      "proof_compressed_bytes": {
+        "limit": 16777216,
+        "scope": "published-full-proof",
+        "used": 5396
+      },
+      "proof_object_count": {
+        "limit": 5000,
+        "scope": "validated-public-proof",
+        "used": 28
+      },
+      "proof_raw_bytes": {
+        "limit": 20971520,
+        "scope": "validated-public-proof",
+        "used": 13987
+      },
+      "receipt_count": {
+        "limit": 4096,
+        "scope": "authenticated-ingestion-receipts",
+        "used": 4
+      },
+      "record_count": {
+        "limit": 4096,
+        "scope": "published-records",
+        "used": 4
+      }
+    },
+    "status": "ok"
+  },
+  "checked_at": "2026-09-18T00:55:59.673126Z",
+  "deployment": "pilot",
+  "evidence_freshness": {
+    "generation": {
+      "age_seconds": 62,
+      "max_age_seconds": 14400,
+      "observed_at": "2026-09-18T00:54:56.950497Z"
+    },
+    "revision_match": true,
+    "scheduled_pages": {
+      "age_seconds": 1615,
+      "max_age_seconds": 7200,
+      "pages_job_completed_at": "2026-09-18T00:29:04Z",
+      "run_attempt": 1,
+      "run_created_at": "2026-09-18T00:27:03Z",
+      "run_id": 35291239613
+    },
+    "status": "ok",
+    "upstream_status": "partial"
+  },
+  "failures": [],
+  "intake": {
+    "format": "current-health-v1",
+    "publication_status": "idle",
+    "receipt_coverage": {
+      "receipted_records": 4,
+      "records": 4
+    },
+    "scan_truncated": false,
+    "status": "ok"
+  },
+  "overall": "ok",
+  "source": {
+    "generated_at": "2026-09-18T00:54:56.950497Z",
+    "main_revision": "cb36db69e7231a33cb461af11bc000b22d0791e6",
+    "pages_revision": "cb36db69e7231a33cb461af11bc000b22d0791e6",
+    "repository": "cylon58/omarchy-community-knowledge-pilot",
+    "repository_id": 1373467908
+  },
+  "transport": {
+    "attempts": {
+      "limit": 8,
+      "used": 6
+    },
+    "body_limit_bytes": 1048576,
+    "charged_response_bytes": {
+      "limit": 8388608,
+      "used": 126495
+    },
+    "deadline_seconds": 60
+  },
+  "unknowns": [
+    "canonical_builder_object_visits",
+    "upstream"
+  ],
+  "version": 1,
+  "warnings": []
+}

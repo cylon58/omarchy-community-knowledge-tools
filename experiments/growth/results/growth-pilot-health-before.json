@@ -1,0 +1,74 @@
+{
+  "availability": {
+    "reason": null,
+    "status": "ok"
+  },
+  "capacity": {
+    "measurements": {
+      "distribution_bytes": {
+        "limit": 33554432,
+        "scope": "published-site-files-plus-raw-manifest",
+        "used": 45688
+      }
+    },
+    "status": "ok"
+  },
+  "checked_at": "2026-09-18T00:51:18.293068Z",
+  "deployment": "pilot",
+  "evidence_freshness": {
+    "generation": {
+      "age_seconds": 1354,
+      "max_age_seconds": 14400,
+      "observed_at": "2026-09-18T00:28:43.981395Z"
+    },
+    "revision_match": true,
+    "scheduled_pages": {
+      "age_seconds": 1334,
+      "max_age_seconds": 7200,
+      "pages_job_completed_at": "2026-09-18T00:29:04Z",
+      "run_attempt": 1,
+      "run_created_at": "2026-09-18T00:27:03Z",
+      "run_id": 35291239613
+    },
+    "status": "ok",
+    "upstream_status": "partial"
+  },
+  "failures": [],
+  "intake": {
+    "format": "legacy",
+    "publication_status": "idle",
+    "receipt_coverage": {
+      "receipted_records": 4,
+      "records": 4
+    },
+    "scan_truncated": false,
+    "status": "ok"
+  },
+  "overall": "ok",
+  "source": {
+    "generated_at": "2026-09-18T00:28:43.981395Z",
+    "main_revision": "5490d2390db8ff54a0cb86071f4e90f49a04d72b",
+    "pages_revision": "5490d2390db8ff54a0cb86071f4e90f49a04d72b",
+    "repository": "cylon58/omarchy-community-knowledge-pilot",
+    "repository_id": 1373467908
+  },
+  "transport": {
+    "attempts": {
+      "limit": 8,
+      "used": 6
+    },
+    "body_limit_bytes": 1048576,
+    "charged_response_bytes": {
+      "limit": 8388608,
+      "used": 125425
+    },
+    "deadline_seconds": 60
+  },
+  "unknowns": [
+    "build_health",
+    "cursor_health",
+    "upstream"
+  ],
+  "version": 1,
+  "warnings": []
+}

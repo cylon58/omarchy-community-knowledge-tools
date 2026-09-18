@@ -1,0 +1,16 @@
+{
+  "data_revision": "cb36db69e7231a33cb461af11bc000b22d0791e6",
+  "deployment": "pilot",
+  "policy_revision": "1a15dceac62520b6f26d634f93261630f89a548a",
+  "receipt_count": 4,
+  "record_count": 4,
+  "ref": "refs/heads/main",
+  "repository": "cylon58/omarchy-community-knowledge-pilot",
+  "repository_id": 1373467908,
+  "source_updated_at": "2026-09-18T00:53:37Z",
+  "toolkit_revision": "1a15dceac62520b6f26d634f93261630f89a548a",
+  "tree_revision": "99febf193c9355a0a1af102de2a7d26db5894cba",
+  "trust": "canonical-api-receipts",
+  "upstream_status": "partial",
+  "verified_at": "2026-09-18T00:55:59.099002Z"
+}

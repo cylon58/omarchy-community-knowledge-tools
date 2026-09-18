@@ -4,8 +4,9 @@ Status: in progress, not a large-scale support claim. Baseline client: `2250d3c`
 
 Latest milestone: the reviewed final 500-record/100-import native run passed,
 including cold recovery, authenticated receipts and adverse-evidence parity.
-Independent evidence review permits bounded pilot rollout. Production promotion
-and reliable unattended scheduling remain unproven. See the
+Independent evidence review permitted bounded pilot rollout; its manual transition,
+authenticated client sync and hosted health watcher passed. Production promotion
+and new-release unattended scheduling remain unproven. See the
 [supported beta envelope](testing/supported-beta-envelope.md).
 
 ## Approved direction
@@ -69,8 +70,8 @@ with full evidence/proof parity. A live compatibility check then exposed a fixtu
 parser directory-size mismatch, corrected and checked against the live API; the
 public 26-record corpus also passed cold authenticated recovery. Incremental client
 transfer and fair intake integration are now implemented and reviewed. The health
-checker is reviewed; its separate unattended workflow is undergoing review.
-None of these branch changes is deployed yet.
+checker and separate unattended workflow are reviewed. The release is deployed
+to the pilot only; production remains unchanged pending live promotion gates.
 
 The [format comparison](testing/proof-formats.md) favored one direct-predecessor
 update pack over prefix buckets or individual object downloads. Three subsequent

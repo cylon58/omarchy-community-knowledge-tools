@@ -1,9 +1,10 @@
 # Native deployment contract
 
-Deployment state: production and pilot still use toolkit/policy revision
-`9720575ed4d73b19549ef118f442cf611e009526` at the latest recorded inspection.
-The growth-readiness branch is a candidate, not an installed service upgrade.
-The baseline queue description below therefore remains relevant until rollout.
+Deployment state: production still uses toolkit/policy revision
+`9720575ed4d73b19549ef118f442cf611e009526`. The pilot has completed a manual
+upgrade to `1a15dceac62520b6f26d634f93261630f89a548a`; unattended new-release
+scheduling remains a promotion gate. See the [rollout evidence](testing/growth-pilot-rollout.md).
+The baseline queue description below therefore remains relevant to production.
 See [candidate changes](#growth-candidate-not-yet-deployed) before rendering this
 branch; local rendering alone does not change either hosted service.
 
@@ -134,7 +135,7 @@ rejected values. PRs intentionally remain open. A failing build/deploy leaves th
 prior site's generation timestamp unchanged; consult Actions for current failures.
 Disabling both workflows and Pages pauses the service; see [recovery](recovery.md).
 
-## Growth candidate (not yet deployed)
+## Growth release (pilot only; production promotion pending)
 
 The candidate replaces scheduled newest-200 selection with a persisted oldest-first
 all-state traversal. Each scan is bounded by ten page fetches, 200 returned rows and
