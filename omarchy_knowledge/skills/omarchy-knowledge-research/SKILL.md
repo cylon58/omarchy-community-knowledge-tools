@@ -32,8 +32,14 @@ that choice and use discovery to identify useful references and the remaining ga
    reports the last successful check without a network request. An empty search
    browses listings; `--limit` accepts 1 through 100 (default 5).
 
-   Inspect `source.state`, `generated_at`, `checked_at`, `refresh_error` and
-   `warnings`. A failed refresh retains the last good index and reports `stale`;
+   Search JSON is compact by default. Inspect `source.state`, `generated_at`,
+   `checked_at`, `refresh_error` and `warning_count`. Use `--full` only when full
+   catalog warnings or listing metadata are needed; `show` retains full detail.
+   Search removes common request wording and tries all remaining terms first.
+   `match.mode: any-term-fallback` means no all-term match was found: returned
+   candidates match only some terms, so verify every requested capability.
+   Generic wording alone returns no candidates; use a specific capability.
+   A failed refresh retains the last good index and reports `stale`;
    an upstream catalog can itself be old even after a successful check. Report
    these limits rather than claiming current availability. An empty result is
    not evidence that no solution exists; try shorter or related terms. If no

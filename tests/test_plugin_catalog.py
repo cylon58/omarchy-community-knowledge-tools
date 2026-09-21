@@ -48,6 +48,24 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(result['results'][0]['id'], 'bob.audio')
         self.assertEqual(catalog.search(self.cache, 'clipboard', offline=True)['results'], [])
 
+    def test_request_wording_and_partial_matches_are_explicit(self):
+        row = plugin(); row.update(name='Screenshot', description='Capture screenshot', tags=['screenshot'])
+        catalog.sync(self.cache, fetch=lambda _: response([row]))
+        result = catalog.search(self.cache, 'I would like to build a better screenshot plugin', offline=True)
+        self.assertEqual(result['total_matches'], 1)
+        self.assertEqual(result['match'], dict(mode='all-terms', terms=['screenshot']))
+        partial = catalog.search(self.cache, 'screenshot annotation', offline=True)
+        self.assertEqual(partial['total_matches'], 1)
+        self.assertEqual(partial['match']['mode'], 'any-term-fallback')
+        self.assertEqual(catalog.search(self.cache, 'better plugin', offline=True)['total_matches'], 0)
+
+    def test_all_term_results_exclude_partial_candidates(self):
+        complete = plugin('alice.complete'); complete.update(name='Screenshot annotation')
+        partial = plugin('alice.partial'); partial.update(name='Screenshot')
+        catalog.sync(self.cache, fetch=lambda _: response([partial, complete]))
+        result = catalog.search(self.cache, 'screenshot annotation', offline=True)
+        self.assertEqual([r['id'] for r in result['results']], ['alice.complete'])
+
     def test_invalid_refresh_preserves_good_index_and_exposes_failure(self):
         catalog.search(self.cache, '', fetch=lambda _: response())
         for bad in [(200, {}, b'<html>down</html>'), response([plugin(), plugin()]), response([])]:
@@ -120,6 +138,28 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(len(result['results']), 1)
 
 class CatalogCliTests(unittest.TestCase):
+    def test_compact_search_preserves_caveats_and_full_retains_diagnostics(self):
+        import io
+        from contextlib import redirect_stdout
+        from omarchy_knowledge.cli import main
+        code, headers, raw = response()
+        payload = json.loads(raw); payload['warnings'] = ['https://github.com/other/repo: unavailable'] * 100
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(catalog, 'fetch_catalog', return_value=(code, headers, json.dumps(payload).encode())):
+                args = ['plugins', 'search', 'clipboard', '--cache', directory, '--json']
+                with redirect_stdout(io.StringIO()) as out:
+                    self.assertEqual(main(args), 0)
+                compact = json.loads(out.getvalue())
+                self.assertEqual(compact['source']['warning_count'], 100)
+                self.assertNotIn('warnings', compact['source'])
+                self.assertEqual(compact['results'][0]['verificationStatus'], 'unverified')
+                self.assertIn('refresh_error', compact['source'])
+                with redirect_stdout(io.StringIO()) as out:
+                    self.assertEqual(main(args + ['--full']), 0)
+                full = json.loads(out.getvalue())
+                self.assertEqual(len(full['source']['warnings']), 100)
+                self.assertLess(len(json.dumps(compact)), len(json.dumps(full)) / 2)
+
     def test_search_command_defaults_to_refresh_and_reports_stale_cache(self):
         import io
         from contextlib import redirect_stdout, redirect_stderr

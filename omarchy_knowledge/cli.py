@@ -41,6 +41,13 @@ def _plugins(options):
               ("; refresh failed: " + source["refresh_error"] if source.get("refresh_error") else ""),
               file=sys.stderr)
     if options.json:
+        if options.plugin_command == 'search' and not options.full:
+            value = dict(value, source={key: source.get(key) for key in
+                         ('url', 'count', 'state', 'generated_at', 'checked_at', 'refresh_error')})
+            value['source']['warning_count'] = len(source['warnings'])
+            value['results'] = [{key: row[key] for key in
+                ('id', 'name', 'description', 'author', 'github_owner', 'repo',
+                 'status', 'installAvailable', 'verificationStatus')} for row in value['results']]
         print(json.dumps(value, ensure_ascii=False, sort_keys=True))
     else:
         print(f"Marketplace catalog: {source['count']} listings; generated {source['generated_at']}")
@@ -49,7 +56,7 @@ def _plugins(options):
         if source.get("refresh_error"):
             print("Last refresh error: " + source["refresh_error"])
         if source["warnings"]:
-            print(f"Marketplace reports {len(source['warnings'])} warnings; use --json for details.")
+            print(f"Marketplace reports {len(source['warnings'])} warnings; use plugins status --json for details.")
         rows = value.get("results", [value["plugin"]] if "plugin" in value else [])
         for row in rows:
             print(f"{row['id']}: {row['name']}")
@@ -58,6 +65,8 @@ def _plugins(options):
             print("  " + row["description"])
             print(f"  Marketplace status: {row['status']}; install available: {row['installAvailable']}")
         if "total_matches" in value:
+            if value['match']['mode'] == 'any-term-fallback':
+                print('Broadened search: partial term matches only; check every requirement.')
             print(f"Showing {len(rows)} of {value['total_matches']} matches. Listings are not local test results.")
     return 1 if options.plugin_command == "sync" and source.get("state") == "stale" else 0
 
@@ -168,6 +177,7 @@ def main(argv=None) -> int:
         if name in {"search", "show"}:
             command.add_argument("--offline", action="store_true")
         if name == "search":
+            command.add_argument('--full', action='store_true', help='include full listing metadata and catalog diagnostics')
             command.add_argument("query", nargs="?", default="")
             command.add_argument("--limit", type=int, default=5)
         if name == "show":

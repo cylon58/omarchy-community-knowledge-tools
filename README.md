@@ -26,7 +26,7 @@ setup will do:
 
 ```sh
 python omarchy-knowledge-setup.py \
-  --wheel ./omarchy_community_knowledge_tools-0.4.0-py3-none-any.whl \
+  --wheel ./omarchy_community_knowledge_tools-0.4.1-py3-none-any.whl \
   --dry-run
 ```
 
@@ -54,6 +54,13 @@ The research skill uses a local marketplace index that checks for updates on eve
 normal plugin search. It preserves creator credit and original repository links.
 Outages keep the last good snapshot with a visible warning; use `--offline` to
 explicitly skip the network.
+
+Search JSON returns compact listings and a warning count by default; add `--full`
+for diagnostic metadata and all catalog warnings. Request wording such as
+"better screenshot plugin" is reduced to capability terms. All-term matches are
+preferred; `match.mode: any-term-fallback` explicitly identifies broader partial
+matches when no listing matches every term. Check candidate capabilities before
+recommending them. This is lexical discovery, not semantic or compatibility proof.
 
 ```sh
 omarchy-knowledge plugins search 'clipboard' --json

@@ -267,13 +267,24 @@ def search(cache, query='', *, limit=5, offline=False, fetch=None):
     tokens = re.findall(r'[^\W_]+', query, re.UNICODE)
     if len(tokens) > 64:
         raise ValueError('Query has too many terms')
+    # Remove request wording, never technical constraints such as "without".
+    filler = {'a', 'an', 'the', 'i', 'want', 'would', 'like', 'to', 'make',
+              'build', 'create', 'plugin', 'plugins', 'that', 'helps', 'help',
+              'me', 'please', 'better', 'omarchy'}
+    terms = list(dict.fromkeys(t.lower() for t in tokens if t.lower() not in filler))
+    mode = 'all-terms' if terms else ('no-terms' if query.strip() else 'browse')
     with _locked(cache) as path:
         source = _refresh(path, offline, fetch or fetch_catalog)
         with _connection(path) as db:
-            if tokens:
-                expression = ' AND '.join('"' + token + '"' for token in tokens)
+            if terms:
+                expression = ' AND '.join('"' + token + '"' for token in terms)
                 count = db.execute('SELECT count(*) FROM plugin_search WHERE plugin_search MATCH ?',
                                    (expression,)).fetchone()[0]
+                if count == 0 and len(terms) > 1:
+                    mode = 'any-term-fallback'
+                    expression = ' OR '.join('"' + token + '"' for token in terms)
+                    count = db.execute('SELECT count(*) FROM plugin_search WHERE plugin_search MATCH ?',
+                                       (expression,)).fetchone()[0]
                 matches = db.execute('SELECT plugins.data FROM plugin_search JOIN plugins '
                                      'ON plugin_search.id=plugins.id WHERE plugin_search MATCH ? '
                                      'ORDER BY bm25(plugin_search, 3, 5, 1, 3, 2, 2), plugins.id LIMIT ?',
@@ -283,7 +294,9 @@ def search(cache, query='', *, limit=5, offline=False, fetch=None):
             else:
                 count = source['count']
                 matches = db.execute('SELECT data FROM plugins ORDER BY id LIMIT ?', (limit,)).fetchall()
-        return dict(source=source, total_matches=count, results=[json.loads(row[0]) for row in matches])
+        return dict(source=source, total_matches=count,
+                    match=dict(mode=mode, terms=terms),
+                    results=[json.loads(row[0]) for row in matches])
 
 
 def show(cache, plugin_id, *, offline=False, fetch=None):
