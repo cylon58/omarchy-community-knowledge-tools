@@ -11,7 +11,7 @@ The setup is explicit. It creates an isolated environment at `~/.local/share/oma
 Preview the exact actions first:
 
 ```sh
-python omarchy-knowledge-setup.py --wheel ./omarchy_community_knowledge_tools-0.3.1-py3-none-any.whl --dry-run
+python omarchy-knowledge-setup.py --wheel ./omarchy_community_knowledge_tools-0.4.0-py3-none-any.whl --dry-run
 ```
 
 After reviewing that output, omit `--dry-run` to install. Setup attempts the first public knowledge refresh. If the network or public repository is unavailable, installation still succeeds and reports that refresh is pending. Search refreshes a snapshot that is at least 24 hours old; `omarchy-knowledge search --offline ...` bypasses refresh and visibly reports the accepted snapshot's age and last refresh error. Without an accepted snapshot, offline search stops with an actionable error.
@@ -28,6 +28,8 @@ Remove only paths tracked by this setup:
 python omarchy-knowledge-setup.py --remove
 ```
 
-Removal follows the ownership receipts across earlier agent-default changes and preserves a launcher or skill link that changed after installation. To recover a broken owned Python environment without deleting drafts or the accepted cache, inspect the new wheel and run `python omarchy-knowledge-setup.py --wheel ./omarchy_community_knowledge_tools-0.3.1-py3-none-any.whl --repair`. Repair preserves the prior environment until the replacement works and restores it if installation fails.
+Removal follows the ownership receipts across earlier agent-default changes and preserves a launcher or skill link that changed after installation. To recover a broken owned Python environment without deleting drafts or the accepted cache, inspect the new wheel and run `python omarchy-knowledge-setup.py --wheel ./omarchy_community_knowledge_tools-0.4.0-py3-none-any.whl --repair`. Repair preserves the prior environment until the replacement works and restores it if installation fails.
 
 Marketplace listing approval is separate from installing the plugin directly. Skill discovery and automatic use depend on each agent; neither is guaranteed on every request.
+
+Setup also attempts to populate the separate local plugin index. Each normal plugin search checks for marketplace updates; offline searches require a prior snapshot. `omarchy-knowledge sync --plugins` refreshes both sources. See [plugin discovery](plugin-discovery.md).

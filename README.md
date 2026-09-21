@@ -26,7 +26,7 @@ setup will do:
 
 ```sh
 python omarchy-knowledge-setup.py \
-  --wheel ./omarchy_community_knowledge_tools-0.3.1-py3-none-any.whl \
+  --wheel ./omarchy_community_knowledge_tools-0.4.0-py3-none-any.whl \
   --dry-run
 ```
 
@@ -47,6 +47,22 @@ Reading and local drafting need no project account, invitation, GitHub account,
 or project API key. Sharing needs the contributor's own GitHub account and normal
 `gh auth login`; never paste a token into chat. Missing GitHub authentication does
 not stop offline search or drafting.
+
+## Discover plugins
+
+The research skill uses a local marketplace index that checks for updates on every
+normal plugin search. It preserves creator credit and original repository links.
+Outages keep the last good snapshot with a visible warning; use `--offline` to
+explicitly skip the network.
+
+```sh
+omarchy-knowledge plugins search 'clipboard' --json
+omarchy-knowledge plugins show omarchy.clipboard --json
+omarchy-knowledge plugins status --json
+```
+
+Plugin listings remain separate from community hardware and system reports.
+See [plugin discovery](docs/plugin-discovery.md) for freshness, bounds and attribution.
 
 ## Research locally
 

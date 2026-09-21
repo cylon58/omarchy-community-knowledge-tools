@@ -17,6 +17,49 @@ from .agents import AGENT_CHOICES
 from .git_store import DEFAULT_CACHE, DEFAULT_REPOSITORY, load_cache, status, sync
 from .records import load_records
 from .research import related, release_claims, search, show
+from . import plugin_catalog
+
+
+def _plugins(options):
+    try:
+        if options.plugin_command == "status":
+            value = {"source": plugin_catalog.status(options.cache)}
+        elif options.plugin_command == "sync":
+            value = {"source": plugin_catalog.sync(options.cache)}
+        elif options.plugin_command == "show":
+            value = plugin_catalog.show(options.cache, options.plugin_id, offline=options.offline)
+        else:
+            value = plugin_catalog.search(options.cache, options.query, limit=options.limit,
+                                          offline=options.offline)
+    except (ValueError, OSError, plugin_catalog.sqlite3.Error) as error:
+        print("Plugin discovery failed: " + str(error), file=sys.stderr)
+        return 1
+    source = value["source"]
+    if source.get("state") in {"stale", "offline"}:
+        print("Using cached plugin catalog from " + source["generated_at"] +
+              "; last successful check: " + source["checked_at"] +
+              ("; refresh failed: " + source["refresh_error"] if source.get("refresh_error") else ""),
+              file=sys.stderr)
+    if options.json:
+        print(json.dumps(value, ensure_ascii=False, sort_keys=True))
+    else:
+        print(f"Marketplace catalog: {source['count']} listings; generated {source['generated_at']}")
+        print(f"Last checked: {source['checked_at']}; state: {source.get('state', 'cached-status')}")
+        print("Source: " + source["url"])
+        if source.get("refresh_error"):
+            print("Last refresh error: " + source["refresh_error"])
+        if source["warnings"]:
+            print(f"Marketplace reports {len(source['warnings'])} warnings; use --json for details.")
+        rows = value.get("results", [value["plugin"]] if "plugin" in value else [])
+        for row in rows:
+            print(f"{row['id']}: {row['name']}")
+            print(f"  Author: {row['author'] or 'not specified'}; repository owner: @{row['github_owner']}")
+            print("  " + row["repo"])
+            print("  " + row["description"])
+            print(f"  Marketplace status: {row['status']}; install available: {row['installAvailable']}")
+        if "total_matches" in value:
+            print(f"Showing {len(rows)} of {value['total_matches']} matches. Listings are not local test results.")
+    return 1 if options.plugin_command == "sync" and source.get("state") == "stale" else 0
 
 
 def _source(snapshot):
@@ -114,6 +157,21 @@ def main(argv=None) -> int:
         command = commands.add_parser(name)
         command.add_argument("--cache", default=str(DEFAULT_CACHE))
         command.add_argument("--repository", default=DEFAULT_REPOSITORY)
+        if name == "sync":
+            command.add_argument("--plugins", action="store_true", help="also refresh the separate plugin index")
+    plugins_command = commands.add_parser("plugins", help="search the marketplace with refresh on use")
+    plugin_commands = plugins_command.add_subparsers(dest="plugin_command", required=True)
+    for name in ("search", "show", "sync", "status"):
+        command = plugin_commands.add_parser(name)
+        command.add_argument("--cache", default=str(DEFAULT_CACHE))
+        command.add_argument("--json", action="store_true")
+        if name in {"search", "show"}:
+            command.add_argument("--offline", action="store_true")
+        if name == "search":
+            command.add_argument("query", nargs="?", default="")
+            command.add_argument("--limit", type=int, default=5)
+        if name == "show":
+            command.add_argument("plugin_id")
     search_command = commands.add_parser("search")
     search_command.add_argument("query")
     search_command.add_argument("--cache", default=str(DEFAULT_CACHE))
@@ -155,7 +213,25 @@ def main(argv=None) -> int:
     )
     skills_command.add_argument("--home", type=Path, default=Path.home())
     options = parser.parse_args(argv)
+    if options.command == "plugins":
+        return _plugins(options)
     if options.command == "sync":
+        if options.plugins:
+            result, errors = {}, []
+            try:
+                value = sync(options.cache, options.repository)
+                result["knowledge"] = {"source": _source(value), "count": len(value["records"])}
+            except (ValueError, RuntimeError) as exc:
+                errors.append("Knowledge refresh failed: " + str(exc))
+            try:
+                result["plugins"] = plugin_catalog.sync(options.cache)
+                if result["plugins"].get("state") == "stale":
+                    errors.append("Plugin refresh failed: " + result["plugins"]["refresh_error"])
+            except (ValueError, OSError, plugin_catalog.sqlite3.Error) as exc:
+                errors.append("Plugin refresh failed: " + str(exc))
+            result["errors"] = errors
+            print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+            return 1 if errors else 0
         try:
             value = sync(options.cache, options.repository)
         except (ValueError, RuntimeError) as exc:

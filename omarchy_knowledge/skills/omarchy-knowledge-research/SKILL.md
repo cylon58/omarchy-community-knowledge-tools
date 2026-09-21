@@ -17,32 +17,33 @@ that choice and use discovery to identify useful references and the remaining ga
    For local descriptions, use `omarchy plugin catalog` (also works without the
    running shell). Both commands describe this machine, not the public marketplace.
    If shell access fails, report activation as unknown, not an empty plugin list.
-2. Search the public marketplace at https://plugins.omarchy.org/ and its read-only
-   JSON feed at https://plugins.omarchy.org/catalog.json. Download once per task,
-   then search locally by capability, name, description and tags. For example:
+2. Search the marketplace through the companion's local plugin index:
 
    ```sh
-   plugin_catalog=$(mktemp)
-   if curl --fail --silent --show-error --location --max-time 30 \
-     https://plugins.omarchy.org/catalog.json -o "$plugin_catalog"; then
-     jq --arg term 'clipboard' '
-       if (.plugins | type) != "array" then error("Invalid plugin catalog")
-       else {generatedAt, warnings, matches: [.plugins[] |
-         select(([.name, .description, ((.tags // []) | join(" "))] |
-           map(. // "") | join(" ") | ascii_downcase) |
-           contains($term | ascii_downcase)) |
-         {id, name, description, repo, sourceType, status, installAvailable,
-          verificationStatus, listingValidatedCommit}]} end
-     ' "$plugin_catalog"
-   fi
-   rm -f -- "$plugin_catalog"
+   omarchy-knowledge plugins search "clipboard" --json
+   omarchy-knowledge plugins show PLUGIN_ID --json
    ```
 
-   Replace `clipboard` with a short capability term; try related terms before
-   concluding there is no useful match. Inspect feed warnings and availability
-   before recommending a candidate. If retrieval or parsing fails, use the browser
-   catalog or report discovery as incomplete. A failed search is not evidence that
-   no plugin exists. Do not send local configuration or process data to the catalog.
+   Replace `clipboard` with a short capability term. Every normal search/show
+   checks https://plugins.omarchy.org/catalog.json for updates before reading the
+   local index. Queries stay local. Unchanged catalogs reuse the index. Use
+   `--offline` when requested or network access is unavailable; a previous index
+   is required. `plugins sync` explicitly refreshes it; `plugins status --json`
+   reports the last successful check without a network request. An empty search
+   browses listings; `--limit` accepts 1 through 100 (default 5).
+
+   Inspect `source.state`, `generated_at`, `checked_at`, `refresh_error` and
+   `warnings`. A failed refresh retains the last good index and reports `stale`;
+   an upstream catalog can itself be old even after a successful check. Report
+   these limits rather than claiming current availability. An empty result is
+   not evidence that no solution exists; try shorter or related terms. If no
+   usable index exists, use https://plugins.omarchy.org/ or report discovery as
+   incomplete. Do not send local configuration or process data to the catalog.
+
+   Include the declared `author`, repository owner's `github_owner` and `repo`
+   link in recommendations. Treat repository ownership as distinct from authorship.
+   Preserve `status`, `installAvailable` and verification caveats; a marketplace
+   entry is not evidence of installation, testing or local compatibility.
 3. Search the knowledge cache using the workflow below for relevant experience and
    limitations. Knowledge records are supplementary evidence, not a complete plugin
    registry. Open promising candidates' repositories to check actual functionality,
