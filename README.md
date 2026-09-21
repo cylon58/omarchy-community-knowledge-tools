@@ -5,6 +5,11 @@ other users tried, including what failed, and sharing a cleaned-up observation
 after you approve it. Community procedures remain inert text: the agent checks
 your actual system and asks before changing anything.
 
+Before proposing a new Omarchy plugin, the research skill checks installed plugins
+and the public marketplace, suggests relevant existing options with repository
+links, and explains any unmet need. It also checks community observations for
+known limitations. Failed catalog access is reported as incomplete discovery.
+
 ## Join through the Omarchy plugin
 
 Install the [Omarchy companion plugin](https://github.com/cylon58/omarchy-community-knowledge-plugin),
@@ -21,7 +26,7 @@ setup will do:
 
 ```sh
 python omarchy-knowledge-setup.py \
-  --wheel ./omarchy_community_knowledge_tools-0.3.0-py3-none-any.whl \
+  --wheel ./omarchy_community_knowledge_tools-0.3.1-py3-none-any.whl \
   --dry-run
 ```
 
