@@ -9,7 +9,11 @@ experiments are retired; their existing history is preserved for reference.
 3. Test a fresh isolated setup, search, offline use, repair and owned removal.
 4. Publish the reviewed toolkit commit and wheel, standalone setup script and
    SHA-256 checksums in a GitHub release. Use public noreply commit identities.
-5. Bundle those exact artifacts in the plugin repository using its staging script.
+5. Bundle those exact artifacts in the plugin repository using its staging script
+   with `--toolkit-revision` set to the full published tools commit. The script
+   generates release metadata and checksums together. Follow the
+   [plugin maintenance guide](https://github.com/cylon58/omarchy-community-knowledge-plugin/blob/main/MAINTAINING.md)
+   and run its bundle contract tests before publishing.
    Validate the manifest and exercise the panel in the running Omarchy shell.
 6. Publish the plugin update. Existing users update the plugin and explicitly
    choose its Update / repair action; there is no unattended installation hook.

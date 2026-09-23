@@ -1,5 +1,23 @@
 # Omarchy Community Knowledge
 
+## One project, three repositories
+
+| Repository | What belongs here | Who starts here |
+| --- | --- | --- |
+| [Plugin](https://github.com/cylon58/omarchy-community-knowledge-plugin) | Omarchy bar interface and a bundled tools release | People installing or updating through Omarchy |
+| [Tools](https://github.com/cylon58/omarchy-community-knowledge-tools) | Python CLI, search, validation, agent skills, and setup | Code contributors and standalone users |
+| [Knowledge](https://github.com/cylon58/omarchy-community-knowledge) | Shared observations, changes, results, and evidence | People contributing or browsing community experience |
+
+Install the plugin once; it supplies the tools, which read the shared knowledge.
+You do not need to clone or install all three repositories.
+
+The plugin follows Omarchy's plugin packaging and update flow. The tools also work
+without the bar interface. Keeping records separate lets people contribute
+knowledge without changing executable code, and preserves the data's CC BY 4.0
+license alongside the code's MIT license. These are parts of one project.
+
+For maintenance, use the [release guide](https://github.com/cylon58/omarchy-community-knowledge-plugin/blob/main/MAINTAINING.md).
+
 Omarchy Community Knowledge is a small, local-first companion for finding what
 other users tried, including what failed, and sharing a cleaned-up observation
 after you approve it. Community procedures remain inert text: the agent checks
@@ -13,7 +31,7 @@ known limitations. Failed catalog access is reported as incomplete discovery.
 ## Join through the Omarchy plugin
 
 Install the [Omarchy companion plugin](https://github.com/cylon58/omarchy-community-knowledge-plugin),
-open its bar button, and choose **Set up my agent**. It connects the agent selected
+open its bar button, and choose **Connect my agent**. It connects the agent selected
 in Omarchy to the shared knowledge. No account is needed to read it.
 
 For a standalone install, open the [release](https://github.com/cylon58/omarchy-community-knowledge-tools/releases/latest)
